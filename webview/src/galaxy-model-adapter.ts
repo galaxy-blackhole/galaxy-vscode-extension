@@ -8,14 +8,16 @@ import type { OllamaChatMessage, OllamaToolSchema } from "../../src/protocol";
 import { currentHostInfo, startChatRun } from "./host-bridge";
 import { buildSystemPrompt } from "./system-prompt";
 
+type TextPartOf = Extract<ThreadMessage["content"][number], { type: "text" }>;
 type ToolSchemaParams = Readonly<{ type?: string; properties?: Record<string, unknown>; required?: string[] }>;
+interface PendingToolCall { name: string; args: Record<string, unknown>; }
 
 function toOllamaMessages(messages: readonly ThreadMessage[]): OllamaChatMessage[] {
   const out: OllamaChatMessage[] = [];
   for (const message of messages) {
     if (message.role === "user") {
       const text = message.content
-        .filter((part): part is Extract<ThreadMessage["content"][number], { type: "text" }> => part.type === "text")
+        .filter((part): part is TextPartOf => part.type === "text")
         .map((part) => part.text)
         .join("\n");
       if (text.trim()) out.push({ role: "user", content: text });
@@ -46,7 +48,9 @@ function toOllamaMessages(messages: readonly ThreadMessage[]): OllamaChatMessage
   return out;
 }
 
-function toOllamaTools(tools: Record<string, { description?: string; parameters?: unknown }> | undefined): OllamaToolSchema[] {
+function toOllamaTools(
+  tools: Record<string, { description?: string; parameters?: unknown }> | undefined,
+): OllamaToolSchema[] {
   const out: OllamaToolSchema[] = [];
   for (const [name, tool] of Object.entries(tools ?? {})) {
     const parameters = tool.parameters as ToolSchemaParams | undefined;
@@ -62,30 +66,35 @@ function toOllamaTools(tools: Record<string, { description?: string; parameters?
   return out;
 }
 
-/** ChatModelAdapter that bridges assistant-ui LocalRuntime to the extension host's Ollama stream. */
+/**
+ * ChatModelAdapter bridging assistant-ui's LocalRuntime to the Ollama NDJSON
+ * stream executed in the extension host. Intermediate snapshots are yielded so
+ * the UI renders text and reasoning live rather than only at stream end.
+ */
 export function createGalaxyChatModelAdapter(): ChatModelAdapter {
   return {
-    async *run(options) {
+    run(options) {
       const info = currentHostInfo();
       const request = {
         messages: toOllamaMessages(options.messages),
-        tools: toOllamaTools(options.context.tools as Record<string, { description?: string; parameters?: unknown }> | undefined),
+        tools: toOllamaTools(
+          options.context.tools as Record<string, { description?: string; parameters?: unknown }> | undefined,
+        ),
         system: buildSystemPrompt(info),
       };
 
       let text = "";
       let thinking = "";
-      interface PendingToolCall { name: string; args: Record<string, unknown>; }
+      let version = 0;     // bumped whenever the accumulated content changes
+      let finished = false;
       const toolCalls: PendingToolCall[] = [];
+      const waiters: Array<() => void> = [];
+      const notify = () => { for (const wake of waiters.splice(0)) wake(); };
 
       const buildContent = (): readonly ThreadAssistantMessagePart[] => {
         const parts: ThreadAssistantMessagePart[] = [];
-        if (thinking) {
-          parts.push({ type: "reasoning", text: thinking });
-        }
-        if (text) {
-          parts.push({ type: "text", text });
-        }
+        if (thinking) parts.push({ type: "reasoning", text: thinking });
+        if (text) parts.push({ type: "text", text });
         for (const [index, call] of toolCalls.entries()) {
           parts.push({
             type: "tool-call",
@@ -98,16 +107,20 @@ export function createGalaxyChatModelAdapter(): ChatModelAdapter {
         return parts;
       };
 
-      const final = await new Promise<ChatModelRunResult>((resolve, reject) => {
+      const result = new Promise<ChatModelRunResult>((resolve, reject) => {
         startChatRun(
           request,
           {
             onDelta: (delta) => {
               if (delta.thinking) thinking += delta.thinking;
               if (delta.content) text += delta.content;
-              if (delta.toolCalls) toolCalls.push(...delta.toolCalls.map((call) => ({ name: call.name, args: { ...call.args } })));
+              if (delta.toolCalls) toolCalls.push(...delta.toolCalls.map((c) => ({ name: c.name, args: { ...c.args } })));
+              version += 1;
+              notify();
             },
             onDone: () => {
+              finished = true;
+              notify();
               resolve({
                 content: buildContent(),
                 status: toolCalls.length > 0
@@ -116,14 +129,38 @@ export function createGalaxyChatModelAdapter(): ChatModelAdapter {
               });
             },
             onError: (message) => {
-              reject(new Error(message === "cancelled" ? "Run cancelled." : message));
+              finished = true;
+              notify();
+              if (message === "cancelled") reject(new DOMException("Run cancelled.", "AbortError"));
+              else reject(new Error(message));
             },
           },
           options.abortSignal,
         );
       });
-      yield final;
-      return;
+
+      const generator = (async function* (): AsyncGenerator<ChatModelRunResult, void> {
+        let emitted = 0;
+        try {
+          for (;;) {
+            if (emitted !== version) {
+              emitted = version;
+              const content = buildContent();
+              if (content.length > 0) yield { content, status: { type: "running" } };
+            }
+            if (finished) break;
+            await new Promise<void>((resolve) => {
+              waiters.push(resolve);
+              // Safety timeout so the generator eventually notices a finished flag.
+              setTimeout(resolve, 250);
+            });
+          }
+          yield await result;
+        } finally {
+          result.catch(() => undefined);
+        }
+      })();
+      return generator;
     },
   };
 }
