@@ -92,10 +92,10 @@ export function App() {
           </span>
         </header>
         <ThreadPrimitive.Root className="thread-root">
-          <ThreadPrimitive.Empty>
-            <EmptyState />
-          </ThreadPrimitive.Empty>
           <ThreadPrimitive.Viewport className="thread-viewport">
+            <ThreadPrimitive.Empty>
+              <EmptyState />
+            </ThreadPrimitive.Empty>
             <ThreadPrimitive.Messages components={{ UserMessage, AssistantMessage }} />
           </ThreadPrimitive.Viewport>
           <ThreadPrimitive.ScrollToBottom className="scroll-to-bottom">↓</ThreadPrimitive.ScrollToBottom>

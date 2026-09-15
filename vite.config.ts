@@ -4,7 +4,7 @@ import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
 import { defineConfig } from "vite";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   css: {
     postcss: {
@@ -12,13 +12,14 @@ export default defineConfig({
     },
   },
   define: {
-    "process.env.NODE_ENV": JSON.stringify("production"),
+    "process.env.NODE_ENV": JSON.stringify(mode),
   },
   build: {
     outDir: "dist/webview",
     emptyOutDir: false,
     cssCodeSplit: false,
     chunkSizeWarningLimit: 4096,
+    sourcemap: mode !== "production",
     rollupOptions: {
       output: {
         entryFileNames: "chat.js",
@@ -32,4 +33,4 @@ export default defineConfig({
       fileName: () => "chat.js",
     },
   },
-});
+}));

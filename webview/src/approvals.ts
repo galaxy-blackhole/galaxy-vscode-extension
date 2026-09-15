@@ -12,8 +12,12 @@ type PendingEntry = Readonly<{
 
 const pending = new Map<string, PendingEntry>();
 const listeners = new Set<() => void>();
+// Stable snapshot for useSyncExternalStore: a fresh array per call makes React
+// think the store changed every render (infinite update loop).
+let snapshot: readonly ApprovalRequest[] = Object.freeze([]);
 
-function notify(): void {
+function recompute(): void {
+  snapshot = Object.freeze([...pending.values()].map((entry) => entry.request));
   for (const listener of listeners) listener();
 }
 
@@ -23,7 +27,7 @@ export function subscribeApprovals(listener: () => void): () => void {
 }
 
 export function listPendingApprovals(): readonly ApprovalRequest[] {
-  return [...pending.values()].map((entry) => entry.request);
+  return snapshot;
 }
 
 /**
@@ -42,12 +46,12 @@ export function requestApproval(
       request: Object.freeze({ toolCallId, toolName, args, reason }),
       resolve: (approved) => {
         pending.delete(toolCallId);
-        notify();
+        recompute();
         resolvePromise(approved);
       },
     };
     pending.set(toolCallId, entry);
-    notify();
+    recompute();
     if (abortSignal) {
       const onAbort = () => entry.resolve(false);
       if (abortSignal.aborted) onAbort();
