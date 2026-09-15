@@ -1,38 +1,17 @@
 {
   "name": "galaxy-code-vscode",
-  "displayName": "Galaxy Code",
-  "description": "AI-powered coding assistant with a Galaxy chat experience for VS Code.",
-  "version": "0.1.66",
+  "displayName": "Galaxy Code (v2 prototype)",
+  "description": "UI prototype: assistant-ui webview + Ollama (manual) backend",
+  "version": "2.0.0-prototype.0",
+  "private": true,
   "publisher": "kevinbui",
-  "icon": "resources/icon.png",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/buikevin/galaxy-vscode-extension.git"
-  },
-  "bugs": {
-    "url": "https://github.com/buikevin/galaxy-vscode-extension/issues"
-  },
-  "homepage": "https://github.com/buikevin/galaxy-vscode-extension#readme",
   "engines": {
-    "vscode": "^1.113.0"
+    "vscode": "^1.95.0",
+    "node": ">=20"
   },
-  "categories": [
-    "Other",
-    "Machine Learning",
-    "Programming Languages"
-  ],
-  "keywords": [
-    "ai",
-    "assistant",
-    "chat",
-    "coding",
-    "productivity"
-  ],
-  "activationEvents": [
-    "onCommand:galaxy-code.openChatRight"
-  ],
   "main": "./dist/extension.js",
+  "activationEvents": [],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -47,7 +26,7 @@
       "galaxy-code-sidebar": [
         {
           "id": "galaxy-code.chatView",
-          "name": "Galaxy Code",
+          "name": "Chat",
           "type": "webview",
           "icon": "resources/icon.svg"
         }
@@ -56,181 +35,39 @@
     "commands": [
       {
         "command": "galaxy-code.openChat",
-        "title": "Focus Chat",
-        "category": "Galaxy Code"
+        "title": "Galaxy Code: Open Chat"
       },
       {
-        "command": "galaxy-code.openChatTab",
-        "title": "Open New Tab",
-        "category": "Galaxy Code"
-      },
-      {
-        "command": "galaxy-code.clearHistory",
-        "title": "Clear Chat History",
-        "category": "Galaxy Code"
-      },
-      {
-        "command": "galaxy-code.openConfig",
-        "title": "Open Config Folder",
-        "category": "Galaxy Code"
-      },
-      {
-        "command": "galaxy-code.switchAgent",
-        "title": "Switch Agent",
-        "category": "Galaxy Code"
-      },
-      {
-        "command": "galaxy-code.openLogs",
-        "title": "Open Galaxy Logs",
-        "category": "Galaxy Code"
-      },
-      {
-        "command": "galaxy-code.openTelemetrySummary",
-        "title": "Open Telemetry Summary",
-        "category": "Galaxy Code"
-      },
-      {
-        "command": "galaxy-code.openLocalPreview",
-        "title": "Open Local Frontend Preview",
-        "category": "Galaxy Code"
-      },
-      {
-        "command": "galaxy-code.startLocalPreviewSession",
-        "title": "Start Frontend Preview Session",
-        "category": "Galaxy Code"
-      },
-      {
-        "command": "galaxy-code.capturePreviewScreenshot",
-        "title": "Capture Frontend Preview Screenshot",
-        "category": "Galaxy Code"
-      },
-      {
-        "command": "galaxy-code.openWorkflowGraphExplorer",
-        "title": "Open Workflow Graph Explorer",
-        "category": "Galaxy Code"
-      },
-      {
-        "command": "galaxy-code.toggleReview",
-        "title": "Toggle Review",
-        "category": "Galaxy Code"
-      },
-      {
-        "command": "galaxy-code.toggleValidation",
-        "title": "Toggle Validation",
-        "category": "Galaxy Code"
-      }
-    ],
-    "configuration": {
-      "title": "Galaxy Code",
-      "properties": {
-        "galaxyCode.quality.reviewEnabled": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "Run Galaxy Code review after the agent writes files."
-        },
-        "galaxyCode.quality.validateEnabled": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "Run final validation after the agent writes files."
-        },
-        "galaxyCode.quality.fullAccessEnabled": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "Allow high-risk project tools to run without asking for approval."
-        }
-      }
-    },
-    "keybindings": [
-      {
-        "command": "galaxy-code.openChatTab",
-        "key": "ctrl+shift+g",
-        "mac": "cmd+shift+g"
+        "command": "galaxy-code.newThread",
+        "title": "Galaxy Code: New Thread"
       }
     ]
   },
   "scripts": {
-    "vscode:prepublish": "yarn run package",
-    "marketplace:login": "npx @vscode/vsce login kevinbui",
-    "marketplace:package": "npx @vscode/vsce package",
-    "marketplace:publish": "npx @vscode/vsce publish",
-    "marketplace:publish:ci": "npx @vscode/vsce publish --pat $VSCE_PAT",
-    "marketplace:publish:pre-release": "npx @vscode/vsce publish --pre-release",
-    "marketplace:publish:pre-release:ci": "npx @vscode/vsce publish --pre-release --pat $VSCE_PAT",
-    "marketplace:publish:patch": "npx @vscode/vsce publish patch",
-    "marketplace:publish:minor": "npx @vscode/vsce publish minor",
-    "marketplace:publish:major": "npx @vscode/vsce publish major",
-    "acceptance:collect": "node scripts/collect-acceptance-artifacts.mjs",
-    "workflow:benchmark": "yarn run compile-tests && node scripts/benchmark-workflow-rag.mjs",
-    "workflow:benchmark:assert-local": "yarn run compile-tests && node scripts/benchmark-workflow-rag.mjs --assert-local-benchmark",
-    "workflow:benchmark:assert-kuzu": "yarn run compile-tests && node scripts/benchmark-workflow-rag.mjs --assert-kuzu-parity",
-    "compile": "yarn run check-types && yarn run lint && node esbuild.js && vite build",
-    "watch": "npm-run-all -p watch:*",
+    "compile": "node esbuild.js && vite build",
+    "compile:production": "node esbuild.js --production && vite build",
     "watch:esbuild": "node esbuild.js --watch",
-    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
     "watch:webview": "vite build --watch",
-    "package": "yarn run check-types && yarn run lint && node esbuild.js --production && vite build",
-    "compile-tests": "node -e \"require('node:fs').rmSync('out', { recursive: true, force: true });\" && tsc -p . --outDir out",
-    "watch-tests": "node -e \"require('node:fs').rmSync('out', { recursive: true, force: true });\" && tsc -p . -w --outDir out",
-    "pretest": "yarn run compile-tests && yarn run compile && yarn run lint",
     "check-types": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.webview.json",
-    "lint": "eslint src",
-    "test": "vscode-test"
+    "lint": "eslint src"
   },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.27.3",
-    "@google/genai": "^1.44.0",
-    "@radix-ui/react-label": "^2.1.0",
-    "@radix-ui/react-scroll-area": "^1.2.9",
-    "@radix-ui/react-select": "^2.2.6",
-    "@radix-ui/react-separator": "^1.1.7",
-    "@radix-ui/react-slot": "^1.2.3",
-    "@radix-ui/react-tabs": "^1.1.13",
-    "@radix-ui/react-toast": "^1.2.15",
-    "@tavily/core": "^0.7.2",
-    "chromadb": "^3.4.0",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "jszip": "^3.10.1",
-    "lucide-react": "^0.542.0",
-    "mammoth": "^1.11.0",
-    "ollama": "^0.6.3",
-    "openai": "^6.27.0",
-    "pdf-parse": "^1.1.1",
-    "pdfjs-dist": "^5.7.284",
-    "playwright-core": "^1.55.1",
-    "pngjs": "^7.0.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "tailwind-merge": "^3.3.1",
-    "tree-sitter-wasms": "^0.1.13",
-    "web-tree-sitter": "0.20.8",
-    "xlsx": "^0.18.5"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "@galaxy/retrieval-core": "link:../galaxy-retrieval-core",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "22.x",
-    "@types/pdf-parse": "^1.1.5",
-    "@types/pngjs": "^6.0.5",
-    "@types/react": "^18.3.24",
-    "@types/react-dom": "^18.3.7",
-    "@types/vscode": "^1.103.0",
+    "@assistant-ui/react": "0.15.20",
+    "@assistant-ui/react-markdown": "0.14.15",
+    "@types/node": "^22.19.15",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@types/vscode": "^1.103.1",
     "@vitejs/plugin-react": "^4.7.0",
-    "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.27.3",
-    "eslint": "^9.39.3",
-    "npm-run-all": "^4.1.5",
     "postcss": "^8.5.6",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "tailwindcss": "^3.4.17",
-    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.1",
     "vite": "^7.1.7"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
-  "optionalDependencies": {
-    "kuzu": "0.11.3"
-  }
+  "packageManager": "yarn@1.22.22"
 }

@@ -1,694 +1,108 @@
-/**
- * @author Bùi Trọng Hiếu
- * @email kevinbui210191@gmail.com
- * @create date 2026-03-23
- * @modify date 2026-03-23
- * @desc Root webview component that owns chat state, wires host/runtime hooks, and mounts top-level transcript, composer, modal, and approval UI.
- */
-
-import { useEffect, useRef, useState } from "react";
-import type {
-  AgentType,
-  ApprovalRequestPayload,
-  ChatMessage,
-  ChangeSummary,
-  ExtensionToolGroup,
-  FigmaAttachment,
-  QualityDetails,
-  QualityPreferences,
-  SubagentPreferences,
-  ToolCapabilities,
-  ToolToggles,
-} from "@shared/protocol";
-import { Card, CardContent } from "@webview/components/ui/card";
-import { ApprovalPopup } from "@webview/components/chat/ApprovalPopup";
-import { ComposerPanel } from "@webview/components/chat/ComposerPanel";
-import { FullAccessConfirmModal } from "@webview/components/chat/FullAccessConfirmModal";
-import { PreviewModal } from "@webview/components/chat/PreviewModal";
-import { Transcript } from "@webview/components/chat/Transcript";
+import { useEffect, useMemo, useState } from "react";
 import {
-  ComposerViewProvider,
-  type SlashCommandItem,
-} from "@webview/context/ComposerViewContext";
-import { TranscriptViewProvider } from "@webview/context/TranscriptViewContext";
-import { useChatViewModel } from "@webview/hooks/useChatViewModel";
-import { useComposerActions } from "@webview/hooks/useComposerActions";
-import { useHostMessages } from "@webview/hooks/useHostMessages";
-import { persistState, readPersistedState, postHostMessage } from "./vscode";
-import type { LocalAttachment, PreviewAsset } from "./entities/attachments";
-import type {
-  ActiveShellSession,
-  ManualPromptPlan,
-  PendingRequest,
-} from "./entities/chat";
+  AssistantRuntimeProvider,
+  AuiIf,
+  useLocalRuntime,
+  ThreadPrimitive,
+  MessagePrimitive,
+  ComposerPrimitive,
+} from "@assistant-ui/react";
+import { createGalaxyChatModelAdapter } from "./galaxy-model-adapter";
+import { GalaxyTools } from "./tools";
+import { ApprovalBar } from "./components/ApprovalBar";
+import { ReasoningPart, TextPart, ToolFallback } from "./components/parts";
+import { announceReady, currentHostInfo, subscribeHostInfo, type HostInfo } from "./host-bridge";
 
-/**
- * Supported agent options shown in the composer selector.
- */
-const AGENTS: readonly AgentType[] = [
-  "manual",
-  "ollama",
-  "gemini",
-  "claude",
-  "codex",
-];
-
-/**
- * Default individual tool-toggle state used before the host session-init arrives.
- */
-const DEFAULT_TOOL_TOGGLES: ToolToggles = {
-  read_file: true,
-  find_test_files: true,
-  get_latest_test_failure: true,
-  get_latest_review_findings: true,
-  get_next_review_finding: true,
-  dismiss_review_finding: true,
-  get_change_summary: true,
-  query_shared_memory: true,
-  write_agent_handoff: true,
-  query_workflow_graph: true,
-  claim_file_scope: true,
-  write_file: true,
-  create_drawio_diagram: true,
-  convert_drawio_diagram: true,
-  export_drawio_diagram: true,
-  export_workflow_drawio_diagram: true,
-  export_workflow_mermaid_diagram: true,
-  insert_file_at_line: true,
-  edit_file_range: true,
-  multi_edit_file_ranges: true,
-  grep: true,
-  list_dir: true,
-  head: true,
-  tail: true,
-  read_document: true,
-  inspect_workspace_environment: true,
-  search_web: true,
-  extract_web: true,
-  map_web: true,
-  crawl_web: true,
-  run_terminal_command: true,
-  await_terminal_command: true,
-  get_terminal_output: true,
-  kill_terminal_command: true,
-  git_status: true,
-  git_diff: true,
-  git_add: true,
-  git_commit: true,
-  git_push: true,
-  git_pull: true,
-  git_checkout: true,
-  run_project_command: true,
-  validate_code: true,
-  run_validation_suite: true,
-  request_code_review: true,
-  vscode_open_diff: true,
-  vscode_start_frontend_preview: true,
-  vscode_show_problems: true,
-  vscode_workspace_search: true,
-  vscode_find_references: true,
-  search_extension_tools: true,
-  activate_extension_tools: true,
-  galaxy_design_project_info: true,
-  galaxy_design_registry: true,
-  galaxy_design_init: true,
-  galaxy_design_add: true,
-};
-
-const DEFAULT_SUBAGENT_PREFERENCES: SubagentPreferences = {
-  enabled: true,
-  roles: [],
-};
-
-/**
- * Slash commands available from the chat composer.
- */
-const SLASH_COMMANDS: readonly SlashCommandItem[] = [
-  {
-    id: "config",
-    label: "/config",
-    description: "Mở thư mục ~/.galaxy",
-  },
-  {
-    id: "reset",
-    label: "/reset",
-    description: "Đưa review=false, validate=false",
-  },
-  {
-    id: "clear",
-    label: "/clear",
-    description: "Xóa dữ liệu workspace hiện tại",
-  },
-] as const;
-
-/**
- * Root Galaxy Code webview app.
- */
-export function App() {
-  const persisted = readPersistedState();
-  const [, setWorkspaceName] = useState("Workspace");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [selectedAgent, setSelectedAgent] = useState<AgentType>(
-    (persisted?.selectedAgent as AgentType | undefined) ?? "manual",
-  );
-  const [selectedFiles, setSelectedFiles] = useState<string[]>(
-    persisted?.selectedFiles ?? [],
-  );
-  const [input, setInput] = useState(persisted?.input ?? "");
-  const [isRunning, setIsRunning] = useState(false);
-  const [statusText, setStatusText] = useState("Ready");
-  const [errorText, setErrorText] = useState("");
-  const [hasOlderMessages, setHasOlderMessages] = useState(false);
-  const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
-  const [streamingAssistant, setStreamingAssistant] = useState("");
-  const [streamingThinking, setStreamingThinking] = useState("");
-  const [approvalRequest, setApprovalRequest] =
-    useState<ApprovalRequestPayload | null>(null);
-  const [figmaAttachments, setFigmaAttachments] = useState<FigmaAttachment[]>(
-    [],
-  );
-  const [localAttachments, setLocalAttachments] = useState<LocalAttachment[]>(
-    [],
-  );
-  const [previewAsset, setPreviewAsset] = useState<PreviewAsset | null>(null);
-  const [pendingFullAccessPreferences, setPendingFullAccessPreferences] =
-    useState<QualityPreferences | null>(null);
-  const [copiedCommandMessageId, setCopiedCommandMessageId] = useState<
-    string | null
-  >(null);
-  const [activeShellSessions, setActiveShellSessions] = useState<
-    ActiveShellSession[]
-  >([]);
-  const [shellNow, setShellNow] = useState(() => Date.now());
-  const [, setManualPromptPlan] = useState<ManualPromptPlan | null>(null);
-  const [qualityPreferences, setQualityPreferences] =
-    useState<QualityPreferences>({
-      reviewEnabled: true,
-      validateEnabled: true,
-      fullAccessEnabled: false,
-    });
-  const [subagentPreferences, setSubagentPreferences] =
-    useState<SubagentPreferences>(DEFAULT_SUBAGENT_PREFERENCES);
-  const [qualityDetails, setQualityDetails] = useState<QualityDetails>({
-    validationSummary: "",
-    reviewSummary: "",
-    reviewFindings: [],
-  });
-  const [toolCapabilities, setToolCapabilities] = useState<ToolCapabilities>({
-    readProject: true,
-    editFiles: true,
-    runCommands: true,
-    webResearch: true,
-    validation: true,
-    review: true,
-    vscodeNative: true,
-    galaxyDesign: true,
-  });
-  const [toolToggles, setToolToggles] =
-    useState<ToolToggles>(DEFAULT_TOOL_TOGGLES);
-  const [extensionToolGroups, setExtensionToolGroups] = useState<
-    readonly ExtensionToolGroup[]
-  >([]);
-  const [extensionToolToggles, setExtensionToolToggles] = useState<
-    Readonly<Record<string, boolean>>
-  >({});
-  const [pendingPreviewImportId, setPendingPreviewImportId] = useState<
-    string | null
-  >(null);
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
-  const [expandedMessages, setExpandedMessages] = useState<string[]>([]);
-  const [changeSummary, setChangeSummary] = useState<ChangeSummary>({
-    fileCount: 0,
-    createdCount: 0,
-    addedLines: 0,
-    deletedLines: 0,
-    files: [],
-  });
-  const [keptChangeSummaryKey, setKeptChangeSummaryKey] = useState(
-    persisted?.keptChangeSummaryKey ?? "",
-  );
-  const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
-  const [pendingMessageId, setPendingMessageId] = useState<string | null>(null);
-  const [inflightRequest, setInflightRequest] = useState<PendingRequest | null>(
-    null,
-  );
-  const [retryRequest, setRetryRequest] = useState<PendingRequest | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const scrollAreaRef = useRef<HTMLDivElement | null>(null);
-  const plusMenuAnchorRef = useRef<HTMLDivElement | null>(null);
-  const shellOutputRefs = useRef(new Map<string, HTMLDivElement>());
-  const prependHistoryScrollRef = useRef<{
-    previousHeight: number;
-    previousTop: number;
-  } | null>(null);
-
-  /**
-   * Revoke blob URLs created for local previews when attachments are replaced or the app unmounts.
-   */
-  useEffect(() => {
-    return () => {
-      localAttachments.forEach((attachment) => {
-        if (attachment.previewUrl?.startsWith("blob:")) {
-          URL.revokeObjectURL(attachment.previewUrl);
-        }
-      });
-    };
-  }, [localAttachments]);
-
-  /**
-   * Persist lightweight webview state so the composer can recover after reloads.
-   */
-  useEffect(() => {
-    persistState({
-      input,
-      selectedAgent,
-      selectedFiles,
-      keptChangeSummaryKey,
-    });
-  }, [input, selectedAgent, selectedFiles, keptChangeSummaryKey]);
-
-  /**
-   * Autosize the composer textarea while capping it to a reasonable visible height.
-   */
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) {
-      return;
-    }
-
-    textarea.style.height = "0px";
-    const computed = window.getComputedStyle(textarea);
-    const lineHeight = Number.parseFloat(computed.lineHeight || "24") || 24;
-    const borderBox = textarea.offsetHeight - textarea.clientHeight;
-    const maxHeight = lineHeight * 6 + borderBox + 16;
-    const nextHeight = Math.min(textarea.scrollHeight, maxHeight);
-    textarea.style.height = `${Math.max(nextHeight, lineHeight + borderBox + 16)}px`;
-    textarea.style.overflowY =
-      textarea.scrollHeight > maxHeight ? "auto" : "hidden";
-  }, [input]);
-
-  useEffect(() => {
-    const handleInsertComposerText = (event: Event) => {
-      const detail = (event as CustomEvent<{ text: string }>).detail;
-      const nextText = detail?.text?.trim();
-      if (!nextText) {
-        return;
-      }
-
-      setInput((current) => {
-        if (!current.trim()) {
-          return nextText;
-        }
-        return `${current.replace(/\s+$/, "")}\n${nextText}`;
-      });
-
-      window.requestAnimationFrame(() => {
-        textareaRef.current?.focus();
-      });
-    };
-
-    window.addEventListener(
-      "galaxy:insert-composer-text",
-      handleInsertComposerText as EventListener,
-    );
-    return () => {
-      window.removeEventListener(
-        "galaxy:insert-composer-text",
-        handleInsertComposerText as EventListener,
-      );
-    };
-  }, []);
-
-  /**
-   * Keep the transcript scrolled to the latest visible content as messages and streams arrive.
-   */
-  useEffect(() => {
-    const root = scrollAreaRef.current;
-    if (!root) {
-      return;
-    }
-
-    const viewport = root.querySelector(
-      "[data-radix-scroll-area-viewport]",
-    ) as HTMLElement | null;
-    if (!viewport) {
-      return;
-    }
-
-    if (prependHistoryScrollRef.current) {
-      return;
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      viewport.scrollTop = viewport.scrollHeight;
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [
-    messages,
-    streamingAssistant,
-    streamingThinking,
-    activeShellSessions,
-    approvalRequest,
-    errorText,
-  ]);
-
-  function requestOlderMessages(): void {
-    if (isLoadingOlderMessages || !hasOlderMessages || messages.length === 0) {
-      return;
-    }
-
-    const root = scrollAreaRef.current;
-    const viewport = root?.querySelector(
-      "[data-radix-scroll-area-viewport]",
-    ) as HTMLElement | null;
-    if (!viewport) {
-      return;
-    }
-
-    prependHistoryScrollRef.current = {
-      previousHeight: viewport.scrollHeight,
-      previousTop: viewport.scrollTop,
-    };
-    setIsLoadingOlderMessages(true);
-    void window.requestAnimationFrame(() => {
-      // keep the current viewport stable until older messages are prepended
-      viewport.scrollTop =
-        prependHistoryScrollRef.current?.previousTop ?? viewport.scrollTop;
-    });
-    postHostMessage({
-      type: "transcript-load-older",
-      payload: {
-        oldestMessageId: messages[0]?.id,
-        batchSize: 60,
-      },
-    });
-  }
-
-  /**
-   * Refresh live shell durations once per second while background commands are active.
-   */
-  useEffect(() => {
-    if (activeShellSessions.length === 0) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setShellNow(Date.now());
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, [activeShellSessions.length]);
-
-  /**
-   * Auto-scroll each shell output container as new stdout/stderr chunks stream in.
-   */
-  useEffect(() => {
-    activeShellSessions.forEach((session) => {
-      const node = shellOutputRefs.current.get(session.toolCallId);
-      if (!node) {
-        return;
-      }
-      node.scrollTop = node.scrollHeight;
-    });
-  }, [activeShellSessions]);
-
-  /**
-   * Close the plus-menu popup when the user clicks outside its anchor region.
-   */
-  useEffect(() => {
-    if (!isPlusMenuOpen) {
-      return;
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
-      if (plusMenuAnchorRef.current?.contains(target)) {
-        return;
-      }
-      setIsPlusMenuOpen(false);
-    };
-
-    window.addEventListener("pointerdown", handlePointerDown);
-    return () => window.removeEventListener("pointerdown", handlePointerDown);
-  }, [isPlusMenuOpen]);
-
-  /**
-   * Bind host-to-webview message handling so state stays in sync with runtime events.
-   */
-  useHostMessages({
-    pendingPreviewImportId,
-    inflightRequest,
-    setWorkspaceName,
-    setMessages,
-    setHasOlderMessages,
-    setIsLoadingOlderMessages,
-    setSelectedAgent,
-    setIsRunning,
-    setStatusText,
-    setErrorText,
-    setStreamingAssistant,
-    setStreamingThinking,
-    setFigmaAttachments,
-    setLocalAttachments,
-    setPreviewAsset,
-    setIsPlusMenuOpen,
-    setApprovalRequest,
-    setRetryRequest,
-    setPendingMessageId,
-    setInflightRequest,
-    setActiveShellSessions,
-    setManualPromptPlan,
-    setSelectedFiles,
-    setQualityPreferences,
-    setSubagentPreferences,
-    setQualityDetails,
-    setToolCapabilities,
-    setToolToggles,
-    setExtensionToolGroups,
-    setExtensionToolToggles,
-    setChangeSummary,
-    setKeptChangeSummaryKey,
-    setPendingPreviewImportId,
-    scrollAreaRef,
-    prependHistoryScrollRef,
-  });
-
-  /**
-   * Group composer-side actions such as send, retry, attachment handling, and approvals.
-   */
-  const {
-    updateQualityPreferences,
-    updateSubagentPreferences,
-    updateToolCapabilities,
-    updateToolToggles,
-    updateExtensionToolToggles,
-    openFigmaPreview,
-    removeFigmaAttachment,
-    removeLocalAttachment,
-    handleFileSelection,
-    handleComposerPaste,
-    respondToApproval,
-    executeSlashCommand,
-    sendMessage,
-    retryLastRequest,
-  } = useComposerActions({
-    input,
-    isRunning,
-    selectedAgent,
-    selectedFiles,
-    figmaAttachments,
-    localAttachments,
-    qualityPreferences,
-    subagentPreferences,
-    qualityDetails,
-    toolCapabilities,
-    toolToggles,
-    extensionToolGroups,
-    extensionToolToggles,
-    approvalRequest,
-    retryRequest,
-    setMessages,
-    setStreamingAssistant,
-    setStreamingThinking,
-    setFigmaAttachments,
-    setLocalAttachments,
-    setPreviewAsset,
-    setErrorText,
-    setIsRunning,
-    setStatusText,
-    setRetryRequest,
-    setPendingMessageId,
-    setInflightRequest,
-    setManualPromptPlan,
-    setInput,
-    setIsPlusMenuOpen,
-    setQualityPreferences,
-    setSubagentPreferences,
-    setToolCapabilities,
-    setToolToggles,
-    setExtensionToolToggles,
-    setApprovalRequest,
-  });
-
-  /**
-   * Require one explicit confirmation before switching from default permissions to full access.
-   */
-  function handleQualityPreferencesChange(next: QualityPreferences): void {
-    const shouldConfirmFullAccess =
-      !qualityPreferences.fullAccessEnabled && next.fullAccessEnabled;
-
-    if (shouldConfirmFullAccess) {
-      setPendingFullAccessPreferences(next);
-      return;
-    }
-
-    setPendingFullAccessPreferences(null);
-    updateQualityPreferences(next);
-  }
-
-  function cancelFullAccessConfirmation(): void {
-    setPendingFullAccessPreferences(null);
-  }
-
-  function confirmFullAccessConfirmation(): void {
-    if (!pendingFullAccessPreferences) {
-      return;
-    }
-    updateQualityPreferences(pendingFullAccessPreferences);
-    setPendingFullAccessPreferences(null);
-  }
-
-  useEffect(() => {
-    if (
-      pendingFullAccessPreferences &&
-      qualityPreferences.fullAccessEnabled ===
-        pendingFullAccessPreferences.fullAccessEnabled
-    ) {
-      setPendingFullAccessPreferences(null);
-    }
-  }, [pendingFullAccessPreferences, qualityPreferences.fullAccessEnabled]);
-
-  /**
-   * Derive the presentation-oriented view model used by providers and top-level error UI.
-   */
-  const {
-    errorTitle,
-    retryLastRequest: retryLastRequestFromView,
-    composerContextValue,
-    transcriptContextValue,
-  } = useChatViewModel({
-    selectedAgent,
-    selectedFiles,
-    input,
-    isRunning,
-    statusText,
-    errorText,
-    retryRequest,
-    streamingAssistant,
-    streamingThinking,
-    figmaAttachments,
-    localAttachments,
-    copiedCommandMessageId,
-    activeShellSessions,
-    shellNow,
-    qualityPreferences,
-    subagentPreferences,
-    qualityDetails,
-    toolCapabilities,
-    toolToggles,
-    extensionToolGroups,
-    extensionToolToggles,
-    expandedItems,
-    expandedMessages,
-    changeSummary,
-    keptChangeSummaryKey,
-    isPlusMenuOpen,
-    pendingMessageId,
-    hasOlderMessages,
-    isLoadingOlderMessages,
-    messages,
-    scrollAreaRef,
-    textareaRef,
-    fileInputRef,
-    plusMenuAnchorRef,
-    shellOutputRefs,
-    setCopiedCommandMessageId,
-    setPreviewAsset,
-    setErrorText,
-    setExpandedItems,
-    setExpandedMessages,
-    setKeptChangeSummaryKey,
-    setIsPlusMenuOpen,
-    setInput,
-    setSelectedAgent,
-    loadOlderMessages: requestOlderMessages,
-    sendMessage,
-    retryLastRequest,
-    openFigmaPreview,
-    removeFigmaAttachment,
-    removeLocalAttachment,
-    handleFileSelection,
-    handleComposerPaste,
-    updateQualityPreferences: handleQualityPreferencesChange,
-    updateSubagentPreferences,
-    updateToolCapabilities,
-    updateToolToggles,
-    updateExtensionToolToggles,
-    executeSlashCommand,
-    slashCommandSource: SLASH_COMMANDS,
-    agents: AGENTS,
-  });
-
+function UserMessage() {
   return (
-    <div className="h-screen overflow-hidden text-foreground">
-      <div className="flex h-screen flex-col gap-2 overflow-hidden">
-        {errorText ? (
-          <div className="px-3 py-3 mx-2 mt-2 text-sm border rounded-xl border-rose-500/40 bg-rose-500/10 text-rose-100">
-            <div className="font-medium text-rose-200">{errorTitle}</div>
-            <div className="mt-1 text-rose-100/90">{errorText}</div>
-            {retryRequest ? (
-              <button
-                type="button"
-                className="mt-3 inline-flex items-center rounded-full border border-rose-400/30 bg-transparent px-3 py-1.5 text-sm text-rose-100 transition-colors hover:bg-rose-500/10"
-                onClick={retryLastRequestFromView}
-              >
-                Thử lại
-              </button>
-            ) : null}
-          </div>
-        ) : null}
+    <div className="msg msg-user">
+      <MessagePrimitive.Parts components={{ Text: TextPart }} />
+    </div>
+  );
+}
 
-        <Card className="flex-1 min-h-0 overflow-hidden rounded-none border-x-0 border-y-0 bg-transparent">
-          <CardContent className="flex flex-col h-full min-h-0 p-0">
-            <TranscriptViewProvider value={transcriptContextValue}>
-              <ComposerViewProvider value={composerContextValue}>
-                <Transcript />
-                <ComposerPanel />
-              </ComposerViewProvider>
-            </TranscriptViewProvider>
-          </CardContent>
-        </Card>
+function AssistantMessage() {
+  return (
+    <div className="msg msg-assistant">
+      <MessagePrimitive.Parts
+        components={{
+          Text: TextPart,
+          Reasoning: ReasoningPart,
+          tools: { Fallback: ToolFallback },
+        }}
+      />
+    </div>
+  );
+}
 
-        <PreviewModal
-          previewAsset={previewAsset}
-          onClose={() => setPreviewAsset(null)}
-        />
+function Composer() {
+  return (
+    <ComposerPrimitive.Root className="composer">
+      <ComposerPrimitive.Input
+        submitOnEnter
+        placeholder="Hỏi về code, tạo/sửa file, chạy lệnh…"
+        className="composer-input"
+        aria-label="Message Galaxy Code"
+      />
+      <div className="composer-actions">
+        <AuiIf condition={(s) => s.thread.isRunning}>
+          <ComposerPrimitive.Cancel className="btn btn-danger">■ Dừng</ComposerPrimitive.Cancel>
+        </AuiIf>
+        <AuiIf condition={(s) => !s.thread.isRunning}>
+          <ComposerPrimitive.Send className="btn btn-primary">Gửi ⏎</ComposerPrimitive.Send>
+        </AuiIf>
+      </div>
+    </ComposerPrimitive.Root>
+  );
+}
 
-        <FullAccessConfirmModal
-          isOpen={pendingFullAccessPreferences !== null}
-          onCancel={cancelFullAccessConfirmation}
-          onConfirm={confirmFullAccessConfirmation}
-        />
-
-        <ApprovalPopup
-          approvalRequest={approvalRequest}
-          onDeny={() => respondToApproval("deny")}
-          onAsk={() => respondToApproval("ask")}
-          onAllow={() => respondToApproval("allow")}
-        />
+function EmptyState() {
+  return (
+    <div className="empty-state">
+      <div className="empty-logo">✦</div>
+      <div className="empty-title">Galaxy Code</div>
+      <div className="empty-sub">v2 prototype · assistant-ui · Ollama</div>
+      <div className="empty-hints">
+        <span>“Liệt kê file trong workspace”</span>
+        <span>“Đọc package.json và tóm tắt”</span>
+        <span>“Tạo hello.py in ra xin chào”</span>
       </div>
     </div>
+  );
+}
+
+export function App() {
+  const [info, setInfo] = useState<HostInfo | null>(currentHostInfo());
+  const adapter = useMemo(() => createGalaxyChatModelAdapter(), []);
+  const runtime = useLocalRuntime(adapter);
+
+  useEffect(() => {
+    announceReady();
+    return subscribeHostInfo(setInfo);
+  }, []);
+
+  return (
+    <AssistantRuntimeProvider runtime={runtime}>
+      <GalaxyTools />
+      <div className="app-shell">
+        <header className="app-header">
+          <span className="app-title">Galaxy Code</span>
+          <span className="app-subtitle">
+            {info ? `${info.model} — ${info.workspaceName}` : "đang kết nối…"}
+          </span>
+        </header>
+        <ThreadPrimitive.Root className="thread-root">
+          <ThreadPrimitive.Empty>
+            <EmptyState />
+          </ThreadPrimitive.Empty>
+          <ThreadPrimitive.Viewport className="thread-viewport">
+            <ThreadPrimitive.Messages components={{ UserMessage, AssistantMessage }} />
+          </ThreadPrimitive.Viewport>
+          <ThreadPrimitive.ScrollToBottom className="scroll-to-bottom">↓</ThreadPrimitive.ScrollToBottom>
+        </ThreadPrimitive.Root>
+        <ApprovalBar />
+        <Composer />
+      </div>
+    </AssistantRuntimeProvider>
   );
 }

@@ -1,55 +1,49 @@
-# Galaxy Code
+# Galaxy Code VS Code — v2 prototype branch
 
-Galaxy Code is a VS Code sidebar assistant for day-to-day coding work.
+This branch is a **UI/evaluation prototype** for the next-generation Galaxy Code
+chat experience. It deliberately does **not** use `ai-coder-core`, subagents,
+RAG, or any persistence — the goal is to evaluate display quality and
+interaction of **assistant-ui primitives** with a plain Ollama (manual
+provider) backend before the vetted core is integrated.
 
-It helps you read code, make edits, work with project context, and build UI faster inside your current workspace.
+## What this branch contains
 
-## What It Is For
+- React 19 + assistant-ui 0.15 (`useLocalRuntime`, `ThreadPrimitive`,
+  `ComposerPrimitive`, `MessagePrimitive.Parts`) inside the sidebar webview.
+- A thin extension host that:
+  - reads the manual provider entry from `~/.galaxy/config.json`
+    (`agent[type=manual]`: `apiKey`, optional `baseUrl`/`model`);
+  - streams Ollama `/api/chat` NDJSON to the webview;
+  - executes five workspace tools (`list_files`, `read_file`, `grep`,
+    `write_file`, `run_command`) scoped to the current workspace folder.
+- Mutating tools (`write_file`, `run_command`) are gated by an in-webview
+  approval bar showing the exact path/content/command before execution.
 
-Galaxy Code is designed for common development tasks such as:
+## Layout
 
-- understanding an existing codebase
-- editing and generating code
-- working with project files and documents
-- helping with frontend implementation
-- supporting Figma-to-code workflows
+- `src/protocol.ts` — host ↔ webview message contract.
+- `src/host/config.ts` — manual config resolution.
+- `src/host/ollama-client.ts` — NDJSON streaming client.
+- `src/host/workspace-tools.ts` — workspace-scoped tool execution.
+- `src/host/chat-view-provider.ts` — webview provider, CSP, message routing.
+- `webview/src/` — assistant-ui app (runtime adapter, tools, components).
 
-## How To Use
+## Run
 
-Open the `Galaxy Code` sidebar in VS Code and start chatting about the code in your current workspace.
+```sh
+yarn install
+yarn run compile
+```
 
-You can use it to:
+Then press F5 in VS Code (Extension Development Host) and open the
+"Galaxy Code" view container in the activity bar.
 
-- ask questions about the project
-- request code changes
-- attach files or design context
-- iterate on UI and implementation details
+## Known prototype limits
 
-Available commands:
-
-- `Galaxy Code: Focus Chat`
-- `Galaxy Code: Clear Chat History`
-- `Galaxy Code: Open Config Folder`
-
-Default shortcut:
-
-- `Cmd+Shift+G` on macOS
-- `Ctrl+Shift+G` on Windows/Linux
-
-## Design Support
-
-Galaxy Code supports design-driven development workflows, including Figma-based implementation help for UI work.
-
-## Built With Galaxy Design
-
-This project supports [Galaxy Design](https://galaxy-design.vercel.app/), a design system and component library for building modern interfaces.
-
-Galaxy Design is integrated directly into Galaxy Code.
-
-If your project uses Galaxy Design, Galaxy Code can help you work with that setup directly inside VS Code.
-
-## Notes
-
-- Galaxy Code works best when opened in a real workspace folder.
-- Large documents and design inputs are handled progressively to keep the chat usable.
-- Some project actions may require confirmation before execution.
+- No conversation persistence, no checkpoints, no compaction, no tool
+  registry hardening, no diff/validation gates — those belong to
+  `@galaxy/ai-coder-core` and will be wired in after the UI is validated.
+- `run_command` uses the host shell without containment (prototype-only; do
+  not ship).
+- Reasoning text renders via a custom collapsed part; assistant-ui's richer
+  components (ChainOfThought, proper approval seam) are deliberately held back.

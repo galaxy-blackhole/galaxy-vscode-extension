@@ -1,30 +1,35 @@
-import { resolve } from 'node:path';
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { resolve } from "node:path";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "tailwindcss";
+import autoprefixer from "autoprefixer";
+import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react()],
-  define: {
-    'process.env.NODE_ENV': JSON.stringify('production'),
-    'process.env': JSON.stringify({ NODE_ENV: 'production' }),
-    process: JSON.stringify({ env: { NODE_ENV: 'production' } }),
-  },
-  resolve: {
-    alias: {
-      '@shared': resolve(__dirname, 'src/shared'),
-      '@webview': resolve(__dirname, 'webview/src'),
+  css: {
+    postcss: {
+      plugins: [tailwindcss(resolve(__dirname, "tailwind.config.ts")), autoprefixer()],
     },
   },
+  define: {
+    "process.env.NODE_ENV": JSON.stringify("production"),
+  },
   build: {
-    outDir: 'dist/webview',
+    outDir: "dist/webview",
     emptyOutDir: false,
     cssCodeSplit: false,
+    chunkSizeWarningLimit: 4096,
+    rollupOptions: {
+      output: {
+        entryFileNames: "chat.js",
+        assetFileNames: "chat.css",
+      },
+    },
     lib: {
-      entry: resolve(__dirname, 'webview/src/main.tsx'),
-      name: 'GalaxyCodeWebview',
-      formats: ['iife'],
-      cssFileName: 'chat',
-      fileName: () => 'chat.js',
+      entry: resolve(__dirname, "webview/src/main.tsx"),
+      name: "GalaxyCodeChat",
+      formats: ["iife"],
+      fileName: () => "chat.js",
     },
   },
 });

@@ -1,59 +1,26 @@
-import type { HostMessage } from '@shared/protocol';
-
-type VsCodeApi<State> = {
+export type VsCodeApi = {
   postMessage(message: unknown): void;
-  getState(): State | undefined;
-  setState(state: State): void;
+  getState(): unknown;
+  setState(state: unknown): void;
 };
 
-declare function acquireVsCodeApi<State = unknown>(): VsCodeApi<State>;
+declare function acquireVsCodeApi(): VsCodeApi;
 
-function createFallbackApi<State>(): VsCodeApi<State> {
-  let state: State | undefined;
-  return {
-    postMessage(message: unknown) {
-      console.warn('[Galaxy Code] VS Code API unavailable. Dropping message.', message);
-    },
-    getState() {
-      return state;
-    },
-    setState(nextState: State) {
-      state = nextState;
-    },
-  };
-}
+let api: VsCodeApi | undefined;
 
-function resolveVsCodeApi<State>(): VsCodeApi<State> {
-  try {
-    if (typeof acquireVsCodeApi === 'function') {
-      return acquireVsCodeApi<State>();
+export function vscodeApi(): VsCodeApi {
+  if (!api) {
+    try {
+      api = typeof acquireVsCodeApi === "function"
+        ? acquireVsCodeApi()
+        : { postMessage: () => undefined, getState: () => undefined, setState: () => undefined };
+    } catch {
+      api = { postMessage: () => undefined, getState: () => undefined, setState: () => undefined };
     }
-  } catch (error) {
-    console.error('[Galaxy Code] Failed to acquire VS Code API.', error);
   }
-
-  return createFallbackApi<State>();
+  return api;
 }
 
-export const vscode = resolveVsCodeApi<{
-  input?: string;
-  selectedAgent?: string;
-  selectedFiles?: string[];
-  activeTab?: string;
-  fileQuery?: string;
-  keptChangeSummaryKey?: string;
-}>();
-
-export function postHostMessage(message: unknown): void {
-  vscode.postMessage(message);
+export function postToHost(message: unknown): void {
+  vscodeApi().postMessage(message);
 }
-
-export function readPersistedState(): ReturnType<typeof vscode.getState> {
-  return vscode.getState();
-}
-
-export function persistState(state: NonNullable<ReturnType<typeof vscode.getState>>): void {
-  vscode.setState(state);
-}
-
-export type WebviewHostEvent = MessageEvent<HostMessage>;

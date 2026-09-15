@@ -1,20 +1,19 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "baseUrl": ".",
     "strict": true,
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["vite/client"],
+    "noEmit": true,
+    "baseUrl": ".",
     "paths": {
-      "@shared/*": ["src/shared/*"],
-      "@webview/*": ["webview/src/*"]
-    }
+      "@webview/*": ["webview/src/*"],
+      "@galaxy/*": ["src/*"]
+    },
+    "types": ["vite/client"]
   },
-  "include": ["webview/src/**/*.ts", "webview/src/**/*.tsx", "src/shared/**/*.ts", "vite.config.ts", "tailwind.config.ts"]
+  "include": ["webview/src/**/*.ts", "webview/src/**/*.tsx", "src/protocol.ts"]
 }
