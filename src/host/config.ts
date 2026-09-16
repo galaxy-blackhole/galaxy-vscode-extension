@@ -44,3 +44,15 @@ export function resolveOllamaConnection(): OllamaConnection {
     credentialSource: pick("apiKey") ? "manual-config" : envKey ? "environment" : "none",
   });
 }
+
+/**
+ * Provider-owned knowledge: derive the model's library page from the Ollama
+ * base URL and model id (e.g. "glm-5.3-flash:cloud" → ollama.com/library/glm-5.3-flash).
+ * The UI never hardcodes provider URL patterns; it only renders this link.
+ */
+export function resolveModelLibraryUrl(connection: OllamaConnection): string | undefined {
+  if (!connection.baseUrl.includes("ollama.com")) return undefined;
+  const bare = connection.model.split(":")[0]?.replace(/^ollama\//, "").trim();
+  if (!bare) return undefined;
+  return `https://ollama.com/library/${bare}`;
+}

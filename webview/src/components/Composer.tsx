@@ -8,7 +8,7 @@ import {
   getPermissionMode, setPermissionMode, subscribePermissionMode,
   type PermissionMode,
 } from "../permission-mode";
-import type { HostInfo } from "../host-bridge";
+import { openExternal, type HostInfo } from "../host-bridge";
 
 interface ModeOption {
   readonly mode: PermissionMode;
@@ -98,8 +98,15 @@ function PermissionMenu() {
 }
 
 function ModelChip({ info }: { info: HostInfo | null }) {
+  const url = info?.modelLibraryUrl;
   return (
-    <button type="button" className="composer-chip chip-model" title={`${info?.model ?? ""} — ${info?.baseUrl ?? ""}`}>
+    <button
+      type="button"
+      className="composer-chip chip-model"
+      title={url ? `Mở thư viện model: ${url}` : `${info?.model ?? ""} — ${info?.baseUrl ?? ""}`}
+      onClick={() => { if (url) openExternal(url); }}
+      {...(url ? {} : { disabled: true })}
+    >
       <span>{info?.model ?? "…"}</span>
       <ChevronDownIcon />
     </button>

@@ -13,6 +13,7 @@ export type HostInfo = Readonly<{
   model: string;
   baseUrl: string;
   credentialSource: string;
+  modelLibraryUrl?: string;
 }>;
 
 type ChatHandlers = {

@@ -31,10 +31,13 @@ export type OllamaStreamDelta = Readonly<{
   toolCalls?: readonly Readonly<{ name: string; args: Readonly<Record<string, unknown>> }>[];
 }>;
 
+/** Bump when the shape of host↔webview messages changes. */
+export const HOST_WEBVIEW_PROTOCOL_VERSION = 1;
+
 export type HostToWebviewMessage =
   | Readonly<{ type: "chat-delta"; runId: string; delta: OllamaStreamDelta }>
   | Readonly<{ type: "chat-done"; runId: string; stats: Readonly<{ promptTokens?: number; completionTokens?: number; durationMs?: number }> }>
   | Readonly<{ type: "chat-error"; runId: string; message: string }>
   | Readonly<{ type: "tool-result"; requestId: string; ok: boolean; result: string }>
-  | Readonly<{ type: "host-info"; workspaceName: string; workspacePath: string; platform: string; shell: string; model: string; baseUrl: string; credentialSource: string }>
+  | Readonly<{ type: "host-info"; workspaceName: string; workspacePath: string; platform: string; shell: string; model: string; baseUrl: string; credentialSource: string; modelLibraryUrl?: string }>
   | Readonly<{ type: "new-thread" }>;

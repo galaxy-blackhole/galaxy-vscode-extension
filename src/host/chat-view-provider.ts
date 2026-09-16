@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import type { HostToWebviewMessage, WebviewToHostMessage } from "../protocol";
-import { resolveOllamaConnection } from "./config";
+import { resolveModelLibraryUrl, resolveOllamaConnection } from "./config";
 import { streamOllamaChat } from "./ollama-client";
 import { executeWorkspaceTool } from "./workspace-tools";
 
@@ -40,6 +40,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       case "ui-ready": {
         const connection = resolveOllamaConnection();
         const workspace = vscode.workspace.workspaceFolders?.[0];
+        const modelLibraryUrl = resolveModelLibraryUrl(connection);
         this.post({
           type: "host-info",
           workspaceName: workspace?.name ?? "no workspace",
@@ -49,6 +50,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
           model: connection.model,
           baseUrl: connection.baseUrl,
           credentialSource: connection.credentialSource,
+          ...(modelLibraryUrl ? { modelLibraryUrl } : {}),
         });
         return;
       }
