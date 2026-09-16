@@ -1,3 +1,5 @@
+import { getPermissionMode } from "./permission-mode";
+
 export type ApprovalRequest = Readonly<{
   toolCallId: string;
   toolName: string;
@@ -41,6 +43,8 @@ export function requestApproval(
   reason: string,
   abortSignal?: AbortSignal,
 ): Promise<boolean> {
+  // Full-access mode skips the review affordance entirely for this prototype.
+  if (getPermissionMode() === "auto") return Promise.resolve(true);
   return new Promise((resolvePromise) => {
     const entry: PendingEntry = {
       request: Object.freeze({ toolCallId, toolName, args, reason }),

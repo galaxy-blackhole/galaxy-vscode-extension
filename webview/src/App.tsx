@@ -10,6 +10,7 @@ import {
 import { createGalaxyChatModelAdapter } from "./galaxy-model-adapter";
 import { GalaxyTools } from "./tools";
 import { ApprovalBar } from "./components/ApprovalBar";
+import { Composer } from "./components/Composer";
 import { ReasoningPart, TextPart, ToolFallback } from "./components/parts";
 import { announceReady, currentHostInfo, subscribeHostInfo, type HostInfo } from "./host-bridge";
 
@@ -32,27 +33,6 @@ function AssistantMessage() {
         }}
       />
     </div>
-  );
-}
-
-function Composer() {
-  return (
-    <ComposerPrimitive.Root className="composer">
-      <ComposerPrimitive.Input
-        submitOnEnter
-        placeholder="Hỏi về code, tạo/sửa file, chạy lệnh…"
-        className="composer-input"
-        aria-label="Message Galaxy Code"
-      />
-      <div className="composer-actions">
-        <AuiIf condition={(s) => s.thread.isRunning}>
-          <ComposerPrimitive.Cancel className="btn btn-danger">■ Dừng</ComposerPrimitive.Cancel>
-        </AuiIf>
-        <AuiIf condition={(s) => !s.thread.isRunning}>
-          <ComposerPrimitive.Send className="btn btn-primary">Gửi ⏎</ComposerPrimitive.Send>
-        </AuiIf>
-      </div>
-    </ComposerPrimitive.Root>
   );
 }
 
@@ -101,7 +81,7 @@ export function App() {
           <ThreadPrimitive.ScrollToBottom className="scroll-to-bottom">↓</ThreadPrimitive.ScrollToBottom>
         </ThreadPrimitive.Root>
         <ApprovalBar />
-        <Composer />
+        <Composer info={info} />
       </div>
     </AssistantRuntimeProvider>
   );

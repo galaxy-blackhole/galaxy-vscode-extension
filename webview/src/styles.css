@@ -163,29 +163,6 @@ html, body, #app {
   overflow-y: auto;
 }
 
-.composer {
-  display: flex;
-  gap: 8px;
-  padding: 10px 12px 12px;
-  border-top: 1px solid var(--vscode-sideBar-border, #333);
-}
-.composer-input {
-  flex: 1;
-  resize: none;
-  min-height: 34px;
-  max-height: 140px;
-  padding: 7px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--vscode-input-border, #3c3c3c);
-  background: var(--vscode-input-background, #3c3c3c);
-  color: var(--vscode-input-foreground, #cccccc);
-  font: inherit;
-}
-.composer-input:focus {
-  outline: 1px solid var(--vscode-focusBorder, #007fd4);
-}
-.composer-actions { display: flex; align-items: flex-end; }
-
 .btn {
   border: none;
   border-radius: 8px;
@@ -262,4 +239,104 @@ html, body, #app {
   border: 1px solid var(--vscode-panel-border, #333);
   border-radius: 999px;
   padding: 4px 12px;
+}
+
+/* ===== Composer card (assistant-ui ComposerPrimitive) ===== */
+.composer-card {
+  margin: 0 10px 10px;
+  border: 1px solid var(--vscode-input-border, rgba(255,255,255,0.14));
+  background: var(--vscode-input-background, rgba(255,255,255,0.05));
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 120ms ease;
+}
+.composer-card:focus-within {
+  border-color: var(--vscode-focusBorder, #c7a23f);
+}
+.composer-card-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--vscode-input-foreground, #cccccc);
+  font: inherit;
+  line-height: 1.45;
+  padding: 12px 14px 4px;
+  min-height: 44px;
+  max-height: 160px;
+  resize: none;
+}
+.composer-card-input:focus { outline: none; }
+.composer-card-input::placeholder {
+  color: var(--vscode-input-placeholderForeground, rgba(255,255,255,0.35));
+}
+.composer-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px 8px;
+}
+.composer-footer-left,
+.composer-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.composer-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground, #ccc);
+  opacity: 0.75;
+  cursor: pointer;
+}
+.composer-icon-btn:hover { opacity: 1; background: rgba(255,255,255,0.08); }
+
+.composer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.composer-chip:hover { background: rgba(255,255,255,0.08); color: var(--vscode-foreground, #e0e0e0); }
+.composer-chip.chip-auto {
+  color: #d8b45a;
+}
+.composer-chip.chip-auto:hover { background: rgba(216,180,90,0.12); }
+.chip-model { max-width: 180px; }
+.chip-model span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  background: #d8b45a;
+  color: #1c1c1c;
+}
+.composer-send:hover { background: #e3c06a; }
+.composer-send:disabled { opacity: 0.4; cursor: default; }
+.composer-send.composer-stop {
+  background: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+  color: var(--vscode-errorForeground, #f48771);
 }

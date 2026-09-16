@@ -29,7 +29,7 @@ try {
   await new Promise((r) => setTimeout(r, 500));
   const html = document.getElementById('app')?.innerHTML ?? '';
   console.log('--- rendered length:', html.length);
-  console.log(html.slice(0, 400));
+  console.log(html.slice(0, 3000));
   if (errors.length) { console.log('ERRORS:'); for (const e of errors) console.log(e); process.exitCode = 1; }
   else console.log('NO ERRORS');
 } catch (e) {
