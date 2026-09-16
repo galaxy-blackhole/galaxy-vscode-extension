@@ -1,14 +1,20 @@
 import * as vscode from "vscode";
 import type { HostToWebviewMessage, WebviewToHostMessage } from "../protocol";
-import { resolveModelLibraryUrl, resolveOllamaConnection } from "./config";
+import { resolveModelLibraryUrl, resolveOllamaConnection, type OllamaConnection } from "./config";
 import { streamOllamaChat } from "./ollama-client";
-import { executeWorkspaceTool } from "./workspace-tools";
+import { startCoreRun, type CoreRunSession } from "./core-run-session";
+import type { PermissionMode } from "./core-tool-executor";
+import type { GalaxyUiAction } from "../ui-protocol";
 
 export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "galaxy-code.chatView";
   private view?: vscode.WebviewView;
   private readonly controllers = new Map<string, AbortController>();
   private readonly disposables: vscode.Disposable[] = [];
+  private session: CoreRunSession | null = null;
+  private permissionMode: PermissionMode = "smart";
+  private workspaceRoot: string | null = null;
+  private connection: OllamaConnection | null = null;
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
@@ -24,6 +30,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       view.webview.onDidReceiveMessage((message: WebviewToHostMessage) => {
         void this.handleMessage(message);
       }),
+      view.onDidDispose(() => { this.session = null; }),
     );
   }
 
@@ -39,7 +46,9 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
     switch (message.type) {
       case "ui-ready": {
         const connection = resolveOllamaConnection();
+        this.connection = connection;
         const workspace = vscode.workspace.workspaceFolders?.[0];
+        this.workspaceRoot = workspace?.uri.fsPath ?? null;
         const modelLibraryUrl = resolveModelLibraryUrl(connection);
         this.post({
           type: "host-info",
@@ -81,14 +90,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         this.controllers.get(message.runId)?.abort(new Error("cancelled"));
         return;
       }
-      case "tool-exec": {
-        const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        if (!root) {
-          this.post({ type: "tool-result", requestId: message.requestId, ok: false, result: "No workspace folder is open." });
-          return;
-        }
-        const outcome = await executeWorkspaceTool(root, message.name, message.args);
-        this.post({ type: "tool-result", requestId: message.requestId, ok: outcome.ok, result: outcome.result });
+      case "ui-action": {
+        await this.handleUiAction(message.action);
         return;
       }
       case "open-external": {
@@ -98,6 +101,50 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         } catch { /* ignore invalid url */ }
         return;
       }
+    }
+  }
+
+  private async handleUiAction(action: GalaxyUiAction): Promise<void> {
+    switch (action.type) {
+      case "run/start": {
+        if (this.session) return; // one run at a time in the prototype
+        if (!this.connection || !this.workspaceRoot) return;
+        this.post({ type: "ui-event", event: { kind: "run/status", status: "running" } });
+        try {
+          this.session = await startCoreRun({
+            connection: this.connection,
+            goal: action.input,
+            onEvent: (event) => this.post({ type: "ui-event", event }),
+            onPendingApproval: (pending) => this.post({
+              type: "pending-approval",
+              requestId: pending.requestId,
+              tool: pending.tool,
+              args: pending.args,
+              reason: pending.reason,
+            }),
+            permissionMode: this.permissionMode,
+            taskId: action.taskId,
+            workspaceRoot: this.workspaceRoot,
+          });
+          const result = await this.session.handle.result;
+          this.post({ type: "ui-event", event: { kind: "run/status", reason: result.error?.message, status: result.state === "completed" ? "completed" : result.state === "failed" ? "failed" : result.state === "paused" ? "paused" : "cancelled" } });
+        } catch (error) {
+          this.post({ type: "ui-event", event: { kind: "error", code: "SESSION_ERROR", message: error instanceof Error ? error.message : String(error), retryable: false } });
+        } finally {
+          this.session = null;
+        }
+        return;
+      }
+      case "run/cancel":
+        this.session?.handle.cancel("Cancelled from webview.");
+        return;
+      case "approval/resolve":
+        void this.session?.handle.resolveApproval(action.requestId, action.approved ? "granted" : "denied");
+        return;
+      case "permission/mode":
+        this.permissionMode = action.mode;
+        this.session?.setPermissionMode(action.mode);
+        return;
     }
   }
 

@@ -53,6 +53,7 @@ export async function streamOllamaChat(
         messages,
         stream: true,
         think: true,
+        options: { num_predict: 32768, temperature: 0 },
         ...(body.tools.length > 0 ? { tools: [...body.tools] } : {}),
       }),
       signal: controller.signal,

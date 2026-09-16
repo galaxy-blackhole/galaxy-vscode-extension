@@ -2,13 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AssistantRuntimeProvider,
   AuiIf,
-  useLocalRuntime,
   ThreadPrimitive,
   MessagePrimitive,
   ComposerPrimitive,
 } from "@assistant-ui/react";
-import { createGalaxyChatModelAdapter } from "./galaxy-model-adapter";
-import { GalaxyTools } from "./tools";
+import { useGalaxyUiRuntime } from "./galaxy-ui-runtime";
 import { ApprovalBar } from "./components/ApprovalBar";
 import { Composer } from "./components/Composer";
 import { ReasoningPart, TextPart, ToolFallback } from "./components/parts";
@@ -53,8 +51,7 @@ function EmptyState() {
 
 export function App() {
   const [info, setInfo] = useState<HostInfo | null>(currentHostInfo());
-  const adapter = useMemo(() => createGalaxyChatModelAdapter(), []);
-  const runtime = useLocalRuntime(adapter);
+  const runtime = useGalaxyUiRuntime(info?.workspacePath ?? "");
 
   useEffect(() => {
     announceReady();
@@ -63,7 +60,6 @@ export function App() {
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <GalaxyTools />
       <div className="app-shell">
         <header className="app-header">
           <span className="app-title">Galaxy Code</span>

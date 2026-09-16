@@ -8,6 +8,7 @@ import {
   getPermissionMode, setPermissionMode, subscribePermissionMode,
   type PermissionMode,
 } from "../permission-mode";
+import { setPermissionMode as sendPermissionMode } from "../host-bridge";
 import { openExternal, type HostInfo } from "../host-bridge";
 
 interface ModeOption {
@@ -73,7 +74,7 @@ function PermissionMenu() {
               type="button"
               role="menuitem"
               className={`permission-option ${option.mode === mode ? "option-active" : ""}`}
-              onClick={() => { setPermissionMode(option.mode); setOpen(false); }}
+              onClick={() => { setPermissionMode(option.mode); sendPermissionMode(option.mode); setOpen(false); }}
             >
               <span className="option-icon">{option.icon()}</span>
               <span className="option-texts">
@@ -98,18 +99,42 @@ function PermissionMenu() {
 }
 
 function ModelChip({ info }: { info: HostInfo | null }) {
+  const [open, setOpen] = useState(false);
   const url = info?.modelLibraryUrl;
   return (
-    <button
-      type="button"
-      className="composer-chip chip-model"
-      title={url ? `Mở thư viện model: ${url}` : `${info?.model ?? ""} — ${info?.baseUrl ?? ""}`}
-      onClick={() => { if (url) openExternal(url); }}
-      {...(url ? {} : { disabled: true })}
-    >
-      <span>{info?.model ?? "…"}</span>
-      <ChevronDownIcon />
-    </button>
+    <div className="permission-root">
+      <button
+        type="button"
+        className="composer-chip chip-model"
+        title={url ? `Auto = entry 'manual' trong ~/.galaxy/config.json → ${info?.model ?? ""}` : `${info?.model ?? ""} — ${info?.baseUrl ?? ""}`}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span>Auto</span>
+        <ChevronDownIcon />
+      </button>
+      {open && (
+        <div className="permission-menu model-menu" role="menu">
+          <button type="button" role="menuitem" className="permission-option option-active" onClick={() => setOpen(false)}>
+            <span className="option-icon"><CheckIcon /></span>
+            <span className="option-texts">
+              <span className="option-title title-gold">Auto</span>
+              <span className="option-desc">
+                {info ? `Entry 'manual' trong ~/.galaxy/config.json → ${info.model} (thinking: max)` : "Đang đọc ~/.galaxy/config.json…"}
+              </span>
+            </span>
+          </button>
+          {url && (
+            <button type="button" role="menuitem" className="permission-option" onClick={() => { openExternal(url); setOpen(false); }}>
+              <span className="option-icon"><ChevronDownIcon /></span>
+              <span className="option-texts">
+                <span className="option-title">Mở thư viện model</span>
+                <span className="option-desc">{url}</span>
+              </span>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

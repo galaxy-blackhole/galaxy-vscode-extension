@@ -1,9 +1,7 @@
 import { postToHost } from "./vscode";
-import type {
-  HostToWebviewMessage,
-  OllamaChatMessage,
-  OllamaToolSchema,
-} from "../../src/protocol";
+import type { GalaxyUiAction, GalaxyUiEvent } from "../../src/ui-protocol";
+import type { OllamaChatMessage, OllamaToolSchema } from "../../src/protocol";
+import type { HostToWebviewMessage } from "../../src/protocol";
 
 export type HostInfo = Readonly<{
   workspaceName: string;
@@ -15,6 +13,42 @@ export type HostInfo = Readonly<{
   credentialSource: string;
   modelLibraryUrl?: string;
 }>;
+
+type UiEventListener = (event: GalaxyUiEvent) => void;
+type PendingApprovalListener = (pending: { requestId: string; tool: string; args: Record<string, unknown>; reason: string }) => void;
+
+const uiEventListeners = new Set<UiEventListener>();
+const pendingApprovalListeners = new Set<PendingApprovalListener>();
+
+export function subscribeUiEvents(listener: UiEventListener): () => void {
+  uiEventListeners.add(listener);
+  return () => uiEventListeners.delete(listener);
+}
+
+export function subscribePendingApprovals(listener: PendingApprovalListener): () => void {
+  pendingApprovalListeners.add(listener);
+  return () => pendingApprovalListeners.delete(listener);
+}
+
+export function dispatchUiAction(action: GalaxyUiAction): void {
+  postToHost({ type: "ui-action", action });
+}
+
+export function startUiRun(input: string, workspacePath: string): void {
+  dispatchUiAction({ type: "run/start", input, taskId: `ui-${Date.now()}`, workspace: workspacePath });
+}
+
+export function cancelUiRun(): void {
+  dispatchUiAction({ type: "run/cancel" });
+}
+
+export function resolveApproval(requestId: string, approved: boolean): void {
+  dispatchUiAction({ type: "approval/resolve", approved, requestId });
+}
+
+export function setPermissionMode(mode: "ask" | "smart" | "auto"): void {
+  dispatchUiAction({ type: "permission/mode", mode });
+}
 
 type ChatHandlers = {
   onDelta: (delta: { content?: string; thinking?: string; toolCalls?: readonly { name: string; args: Record<string, unknown> }[] }) => void;
@@ -93,6 +127,12 @@ if (typeof window !== "undefined") {
   window.addEventListener("message", (event: MessageEvent<HostToWebviewMessage>) => {
     const message = event.data;
     switch (message.type) {
+      case "ui-event":
+        for (const listener of uiEventListeners) listener(message.event);
+        return;
+      case "pending-approval":
+        for (const listener of pendingApprovalListeners) listener(message);
+        return;
       case "chat-delta":
         chatRuns.get(message.runId)?.onDelta(message.delta);
         return;

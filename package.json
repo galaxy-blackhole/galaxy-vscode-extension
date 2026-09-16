@@ -52,7 +52,9 @@
     "lint": "eslint src",
     "test:webview": "node scripts/webview-smoke.mjs"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@galaxy/ai-coder-core": "link:../packages/ai-coder-core"
+  },
   "devDependencies": {
     "@assistant-ui/react": "0.15.20",
     "@assistant-ui/react-markdown": "0.14.15",
