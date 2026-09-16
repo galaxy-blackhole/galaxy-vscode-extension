@@ -1,24 +1,99 @@
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AuiIf, ComposerPrimitive } from "@assistant-ui/react";
-import { ArrowUpIcon, ChevronDownIcon, PlusIcon, ShieldIcon, StopIcon } from "./icons";
-import { getPermissionMode, setPermissionMode, subscribePermissionMode } from "../permission-mode";
+import {
+  ArrowUpIcon, CheckIcon, ChevronDownIcon, ClockIcon, GearIcon,
+  HandIcon, PlusIcon, ShieldIcon, StopIcon,
+} from "./icons";
+import {
+  getPermissionMode, setPermissionMode, subscribePermissionMode,
+  type PermissionMode,
+} from "../permission-mode";
 import type { HostInfo } from "../host-bridge";
 
-function ModeChip() {
+interface ModeOption {
+  readonly mode: PermissionMode;
+  readonly icon: () => React.ReactNode;
+  readonly title: string;
+  readonly description: string;
+}
+
+const MODE_OPTIONS: readonly ModeOption[] = [
+  { mode: "ask", icon: () => <HandIcon />, title: "Yêu cầu phê duyệt", description: "Luôn hỏi khi chỉnh sửa tệp và chạy lệnh" },
+  { mode: "smart", icon: () => <ClockIcon />, title: "Phê duyệt giúp tôi", description: "Chỉ hỏi khi chạy lệnh trong terminal" },
+  { mode: "auto", icon: () => <ShieldIcon />, title: "Toàn quyền truy cập", description: "Truy cập không giới hạn vào mọi tệp trên máy tính của bạn" },
+];
+
+function PermissionMenu() {
   const mode = useSyncExternalStore(subscribePermissionMode, getPermissionMode);
-  const auto = mode === "auto";
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent | TouchEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  const active = MODE_OPTIONS.find((option) => option.mode === mode);
+  const label = mode === "auto" ? "Toàn quyền truy cập"
+    : mode === "ask" ? "Yêu cầu phê duyệt"
+    : "Phê duyệt giúp tôi";
+
   return (
-    <button
-      type="button"
-      className={`composer-chip ${auto ? "chip-auto" : ""}`}
-      title={auto
-        ? "Toàn quyền tiếp cận: các thao tác ghi file/chạy lệnh không cần phê duyệt (prototype)"
-        : "Chế độ thủ công: write_file và run_command luôn hỏi trước khi chạy"}
-      onClick={() => setPermissionMode(auto ? "manual" : "auto")}
-    >
-      <ShieldIcon />
-      <span>{auto ? "Toàn quyền tiếp cận" : "Cần phê duyệt"}</span>
-    </button>
+    <div ref={rootRef} className="permission-root">
+      <button
+        type="button"
+        className={`composer-chip ${mode === "auto" ? "chip-auto" : ""} ${open ? "chip-open" : ""}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title="Chọn chế độ cấp quyền cho các thao tác ghi tệp và chạy lệnh"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <ShieldIcon />
+        <span>{label}</span>
+      </button>
+      {open && (
+        <div className="permission-menu" role="menu">
+          <div className="permission-menu-header">
+            <span>Nên phê duyệt các hành động của Galaxy thế nào?</span>
+          </div>
+          {MODE_OPTIONS.map((option) => (
+            <button
+              key={option.mode}
+              type="button"
+              role="menuitem"
+              className={`permission-option ${option.mode === mode ? "option-active" : ""}`}
+              onClick={() => { setPermissionMode(option.mode); setOpen(false); }}
+            >
+              <span className="option-icon">{option.icon()}</span>
+              <span className="option-texts">
+                <span className={`option-title ${option.mode === "auto" ? "title-gold" : ""}`}>{option.title}</span>
+                <span className="option-desc">{option.description}</span>
+              </span>
+              {option.mode === mode && <span className="option-check"><CheckIcon /></span>}
+            </button>
+          ))}
+          <button type="button" className="permission-option option-disabled" disabled title="Sẽ có khi tích hợp ai-coder-core với approval profile từ cấu hình">
+            <span className="option-icon"><GearIcon /></span>
+            <span className="option-texts">
+              <span className="option-title">Tùy chỉnh</span>
+              <span className="option-desc">Quyền theo cấu hình — có sau khi tích hợp core</span>
+            </span>
+          </button>
+        </div>
+      )}
+      <span hidden>{active?.title ?? ""}</span>
+    </div>
   );
 }
 
@@ -32,8 +107,6 @@ function ModelChip({ info }: { info: HostInfo | null }) {
 }
 
 export function Composer({ info }: { info: HostInfo | null }) {
-  const [attachOpen, setAttachOpen] = useState(false);
-  void attachOpen;
   return (
     <ComposerPrimitive.Root className="composer-card">
       <ComposerPrimitive.Input
@@ -49,11 +122,10 @@ export function Composer({ info }: { info: HostInfo | null }) {
             type="button"
             className="composer-icon-btn"
             title="Đính kèm file (chưa hỗ trợ trong prototype)"
-            onClick={() => setAttachOpen(false)}
           >
             <PlusIcon />
           </button>
-          <ModeChip />
+          <PermissionMenu />
         </div>
         <div className="composer-footer-right">
           <ModelChip info={info} />

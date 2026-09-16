@@ -43,8 +43,11 @@ export function requestApproval(
   reason: string,
   abortSignal?: AbortSignal,
 ): Promise<boolean> {
-  // Full-access mode skips the review affordance entirely for this prototype.
-  if (getPermissionMode() === "auto") return Promise.resolve(true);
+  // "auto" skips review entirely; "smart" auto-approves file edits but still
+  // asks before running shell commands (external side effects).
+  const currentMode = getPermissionMode();
+  if (currentMode === "auto") return Promise.resolve(true);
+  if (currentMode === "smart" && toolName !== "run_command") return Promise.resolve(true);
   return new Promise((resolvePromise) => {
     const entry: PendingEntry = {
       request: Object.freeze({ toolCallId, toolName, args, reason }),

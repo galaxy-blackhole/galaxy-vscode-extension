@@ -27,6 +27,20 @@ try {
   const code = readFileSync(new URL('../dist/webview/chat.js', import.meta.url), 'utf8');
   new Function(code)();
   await new Promise((r) => setTimeout(r, 500));
+  // Interaction: open the permission menu, switch to auto mode.
+  const chip = document.querySelector('.composer-chip[aria-haspopup=\'menu\']');
+  if (chip) {
+    chip.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 50));
+    const menu = document.querySelector('.permission-menu');
+    console.log('--- menu open:', Boolean(menu), 'options:', document.querySelectorAll('.permission-option').length);
+    const autoOption = [...document.querySelectorAll('.permission-option')].find((b) => b.textContent.includes('Toàn quyền truy cập'));
+    autoOption?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 50));
+    const chipAfter = document.querySelector('.composer-chip[aria-haspopup=\'menu\']');
+    console.log('--- chip label after select:', chipAfter?.textContent.trim());
+    console.log('--- chip is gold:', chipAfter?.classList.contains('chip-auto'));
+  }
   const html = document.getElementById('app')?.innerHTML ?? '';
   console.log('--- rendered length:', html.length);
   console.log(html.slice(0, 3000));
