@@ -1,6 +1,6 @@
-# Galaxy Code VS Code — v2 prototype branch
+# Galaxy Blackhole for VS Code — v2 prototype branch
 
-This branch is a **UI/evaluation prototype** for the next-generation Galaxy Code
+This branch is a **UI/evaluation prototype** for the next-generation Galaxy Blackhole
 chat experience. It deliberately does **not** use `ai-coder-core`, subagents,
 RAG, or any persistence — the goal is to evaluate display quality and
 interaction of **assistant-ui primitives** with a plain Ollama (manual

@@ -1,7 +1,7 @@
 {
   "name": "galaxy-code-vscode",
-  "displayName": "Galaxy Code (v2 prototype)",
-  "description": "UI prototype: assistant-ui webview + Ollama (manual) backend",
+  "displayName": "Galaxy Blackhole",
+  "description": "Galaxy Blackhole for VS Code (item ID kept: galaxy-code-vscode) — deterministic AI coding chat built on the Galaxy Blackhole line",
   "version": "2.0.0-prototype.0",
   "private": true,
   "publisher": "kevinbui",
@@ -73,5 +73,13 @@
     "typescript": "^5.9.3",
     "vite": "^7.1.7"
   },
-  "packageManager": "yarn@1.22.22"
+  "packageManager": "yarn@1.22.22",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/galaxy-blackhole/galaxy-vscode-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/galaxy-blackhole/galaxy-vscode-extension/issues"
+  },
+  "homepage": "https://github.com/galaxy-blackhole/galaxy-vscode-extension#readme"
 }
