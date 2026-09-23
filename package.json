@@ -53,7 +53,7 @@
     "test:webview": "node scripts/webview-smoke.mjs"
   },
   "dependencies": {
-    "@galaxy/ai-coder-core": "link:../packages/ai-coder-core"
+    "@galaxy/ai-coder-core": "link:../galaxy-ai-coder-core"
   },
   "devDependencies": {
     "@assistant-ui/react": "0.15.20",

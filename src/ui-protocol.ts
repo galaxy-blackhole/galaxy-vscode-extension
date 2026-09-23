@@ -37,7 +37,7 @@ export type GalaxyUiAction =
 
 /**
  * Mapping from @galaxy/ai-coder-core runtime events (see
- * packages/ai-coder-core/src/runtime/runtime-types.ts) to GalaxyUiEvent.
+ * galaxy-ai-coder-core/src/runtime/runtime-types.ts) to GalaxyUiEvent.
  * This table is the ONLY file that must change when core internals change.
  *
  * | AiCoderRuntimeEvent            | GalaxyUiEvent              |
