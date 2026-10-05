@@ -36,6 +36,16 @@ jobs:
       - name: Install Dependencies
         run: yarn install --frozen-lockfile
 
+      # The extension depends on the core through link:../galaxy-ai-coder-core, so CI has to
+      # materialise that sibling next to the workspace and build it before installing.
+      - name: Checkout And Build ai-coder-core
+        shell: bash
+        run: |
+          git clone --depth 1 https://github.com/galaxy-blackhole/galaxy-ai-coder-core.git "$RUNNER_WORKSPACE/galaxy-ai-coder-core"
+          cd "$RUNNER_WORKSPACE/galaxy-ai-coder-core"
+          npm install --no-audit --no-fund
+          npm run build
+
       # The bundle has to exist before the webview tests: they load dist/webview/chat.js,
       # which is exactly the artifact the extension ships.
       - name: Compile Host And Webview
