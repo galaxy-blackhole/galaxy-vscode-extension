@@ -1,93 +1,29 @@
 import * as crypto from "node:crypto";
-import * as fsp from "node:fs/promises";
-import * as path from "node:path";
 import {
   AiCoderRunController,
-  portFailure,
-  portSuccess,
-  type AiCoderCheckpointFile,
-  type AiCoderRunCheckpoint,
   type AiCoderRunHandle,
-  type AiCoderRunResult,
-  type AiCoderRunStore,
   type AiCoderRuntimeEvent,
-  type AiCoderResumeWorkspaceVerifier,
-  type AiCoderWorkspaceCheckpointSnapshot,
-  type PortResult,
   type RunExecutionContext,
-} from "@galaxy/ai-coder-core";
+} from "@galaxy-stack/ai-coder-core";
 import type { OllamaConnection } from "./config";
 import { createOllamaCoreModel } from "./core-model";
-import { WorkspaceToolExecutor, type PendingApproval, type PermissionMode } from "./core-tool-executor";
+import { createEvidenceVerifier, createDurableRunStore, FileToolOutputSpill, NdjsonTracePort } from "./core-host";
+import { createCoreToolExecutor, detectGitWorkTree, type PendingApproval, type PermissionMode } from "./core-tool-executor";
 
 export type GalaxyUiEventSink = (event: import("../ui-protocol").GalaxyUiEvent) => void;
 
-/** In-memory store for the prototype; FileRunStore-style durability lands later. */
-class MemoryRunStore implements AiCoderRunStore {
-  readonly checkpointTrust = "trusted_host" as const;
-  private readonly checkpoints = new Map<string, AiCoderRunCheckpoint>();
-
-  async loadLatestCheckpoint(runId: string): Promise<AiCoderRunCheckpoint | null> {
-    return this.checkpoints.get(runId) ?? null;
-  }
-
-  async saveCheckpoint(checkpoint: AiCoderRunCheckpoint): Promise<Readonly<{ artifactRef?: string }>> {
-    this.checkpoints.set(checkpoint.runId, checkpoint);
-    return Object.freeze({});
-  }
-
-  async saveFinalReport(): Promise<void> {}
-}
-
-/** Deterministic active-file fingerprint; prototype counterpart of NodeWorkspaceEvidenceVerifier. */
-class WorkspaceVerifier implements AiCoderResumeWorkspaceVerifier {
-  readonly consistency = "serialized_workspace" as const;
-
-  constructor(private readonly workspaceRoot: string) {}
-
-  async capture(input: Readonly<{ activeFiles: readonly AiCoderCheckpointFile[]; dirtyStateSummary: string | null }>): Promise<PortResult<AiCoderWorkspaceCheckpointSnapshot>> {
-    const files: AiCoderCheckpointFile[] = [];
-    for (const file of input.activeFiles) {
-      const full = path.resolve(this.workspaceRoot, file.path);
-      if (!full.startsWith(this.workspaceRoot + path.sep) && full !== this.workspaceRoot) {
-        return portFailure({ code: "IO_ERROR", message: `Checkpoint file escapes workspace: ${file.path}`, retryable: false });
-      }
-      try {
-        const stat = await fsp.stat(full);
-        if (stat.isFile()) {
-          files.push(Object.freeze({ ...file, contentHash: crypto.createHash("sha256").update(await fsp.readFile(full)).digest("hex"), kind: "file" }));
-        } else if (stat.isDirectory()) {
-          files.push(Object.freeze({ ...file, contentHash: null, kind: "directory" }));
-        } else {
-          files.push(Object.freeze({ ...file, contentHash: null, kind: "other" }));
-        }
-      } catch {
-        files.push(Object.freeze({ ...file, contentHash: null, kind: "missing" }));
-      }
-    }
-    const canonical = files
-      .map((file) => `${file.kind ?? "file"}:${file.path}:${file.contentHash ?? ""}`)
-      .sort()
-      .join("\n");
-    return portSuccess(Object.freeze({
-      activeFiles: Object.freeze(files),
-      dirtyStateSummary: input.dirtyStateSummary,
-      stateFingerprint: crypto.createHash("sha256").update(canonical).digest("hex"),
-    }));
-  }
-
-  async verify(snapshot: AiCoderWorkspaceCheckpointSnapshot): Promise<PortResult<Readonly<{ currentFingerprint: string; matches: boolean }>>> {
-    const recaptured = await this.capture({ activeFiles: snapshot.activeFiles, dirtyStateSummary: snapshot.dirtyStateSummary });
-    if (!recaptured.ok) return recaptured;
-    return portSuccess(Object.freeze({
-      currentFingerprint: recaptured.data.stateFingerprint,
-      matches: recaptured.data.stateFingerprint === snapshot.stateFingerprint,
-    }));
-  }
-}
-
 export interface CoreRunSession {
   handle: AiCoderRunHandle;
+  /**
+   * Compact this run's context because the composer asked (`/compact`).
+   *
+   * The runtime owns the context manager, so the pass runs inside the live run and
+   * reports through the `compaction` event; the numbers come back here as well so
+   * the host can answer even when the event is missed.
+   */
+  compact(): Promise<Readonly<{ itemsShadowed: number; tokensAfter: number; tokensBefore: number }> | null>;
+  /** Answer a webview approval; falls back to the runtime's own pending-approval path. */
+  resolveApproval(requestId: string, approved: boolean): void;
   setPermissionMode(mode: PermissionMode): void;
 }
 
@@ -97,18 +33,29 @@ export interface StartCoreRunOptions {
   onEvent: GalaxyUiEventSink;
   onPendingApproval: (pending: PendingApproval) => void;
   permissionMode: PermissionMode;
+  /** Extension global storage: checkpoints, traces, and spilled output live here, never in the workspace. */
+  storageRoot: string;
   taskId: string;
   workspaceRoot: string;
 }
 
+/**
+ * Start one core run against a durable host.
+ *
+ * Everything the core can persist is persisted: the run store keeps checkpoints
+ * and the final report, the trace port keeps a redacted NDJSON journal, and the
+ * spill port keeps oversized tool output outside the model-writable workspace.
+ * The approval bridge answers through the webview so a permission prompt is a
+ * real host decision rather than an auto-grant.
+ */
 export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRunSession> {
   let permissionMode: PermissionMode = options.permissionMode;
-  const runId = `vscode-${crypto.randomUUID().slice(0, 8)}`;
   const taskId = options.taskId;
+  const runId = `vscode-${taskId}`;
   const context: RunExecutionContext = Object.freeze({
     deadline: Date.now() + 30 * 60_000,
     mode: "auto",
-    runId: `vscode-${taskId}`,
+    runId,
     signal: new AbortController().signal,
     taskId,
     workspaceRoot: options.workspaceRoot,
@@ -119,22 +66,38 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
   if (!capabilitiesResult.ok) throw new Error(`Model probe failed: ${capabilitiesResult.error.message}`);
   const capabilities = capabilitiesResult.data;
 
-  const executor = new WorkspaceToolExecutor(
-    options.workspaceRoot,
+  const pendingApprovals = new Map<string, (approved: boolean) => void>();
+  const spill = new FileToolOutputSpill(options.storageRoot);
+  const [store, trace, resumeWorkspaceVerifier, hasGit] = await Promise.all([
+    createDurableRunStore(options.storageRoot),
+    NdjsonTracePort.create(options.storageRoot),
+    createEvidenceVerifier(options.workspaceRoot),
+    detectGitWorkTree(options.workspaceRoot),
+  ]);
+
+  const toolExecutor = await createCoreToolExecutor({
     capabilities,
-    (pending) => options.onPendingApproval(pending),
-    () => permissionMode,
-  );
-  const verifier = new WorkspaceVerifier(options.workspaceRoot);
-  await executor.getToolSet(context);
+    context,
+    hasGit,
+    onPendingApproval: (pending) => {
+      pendingApprovals.set(pending.requestId, pending.resolve);
+      options.onPendingApproval(pending);
+    },
+    permissionMode: () => permissionMode,
+    spill,
+    workspaceRoot: options.workspaceRoot,
+  });
 
   const controller = new AiCoderRunController({
     model,
     onEvent: (event) => {
       mapCoreEventToUi(event, options.onEvent);
     },
-    resumeWorkspaceVerifier: verifier,
-    toolExecutor: executor,
+    resumeWorkspaceVerifier,
+    store,
+    toolExecutor,
+    toolOutputSpill: spill,
+    trace,
   });
 
   const handle = controller.start(Object.freeze({
@@ -169,13 +132,23 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
   }));
 
   return {
+    compact: async () => await controller.compact(runId),
     handle,
+    resolveApproval(requestId, approved) {
+      const resolver = pendingApprovals.get(requestId);
+      if (resolver !== undefined) {
+        pendingApprovals.delete(requestId);
+        resolver(approved);
+        return;
+      }
+      void handle.resolveApproval(requestId, approved ? "granted" : "denied");
+    },
     setPermissionMode(mode: PermissionMode) { permissionMode = mode; },
   };
 }
 
 /**
- * The only place where @galaxy/ai-coder-core event shapes touch the UI wire.
+ * The only place where @galaxy-stack/ai-coder-core event shapes touch the UI wire.
  * When core internals change, this mapper is the single file to update.
  */
 function mapCoreEventToUi(event: AiCoderRuntimeEvent, sink: GalaxyUiEventSink): void {
@@ -204,6 +177,15 @@ function mapCoreEventToUi(event: AiCoderRuntimeEvent, sink: GalaxyUiEventSink): 
       return;
     case "checkpoint":
       sink({ kind: "context/compacted", reason: event.reason });
+      return;
+    case "compaction":
+      sink({
+        itemsShadowed: event.itemsShadowed,
+        kind: "context/compacted",
+        reason: event.reason,
+        tokensAfter: event.tokensAfter,
+        tokensBefore: event.tokensBefore,
+      });
       return;
     case "context_pressure":
       sink({ contextWindow: null, kind: "context/pressure", usedTokens: event.tokens });

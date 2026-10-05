@@ -146,7 +146,9 @@ function handleEvent(event: GalaxyUiEvent): void {
       return;
     }
     case "context/compacted": {
-      statusReason = `context compacted: ${event.reason}`;
+      statusReason = event.itemsShadowed === undefined
+        ? `context compacted: ${event.reason}`
+        : `đã nén ${event.itemsShadowed} mục (~${event.tokensBefore} → ${event.tokensAfter} token)`;
       commit();
       return;
     }

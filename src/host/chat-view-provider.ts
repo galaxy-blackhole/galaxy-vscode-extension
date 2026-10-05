@@ -5,6 +5,22 @@ import { streamOllamaChat } from "./ollama-client";
 import { startCoreRun, type CoreRunSession } from "./core-run-session";
 import type { PermissionMode } from "./core-tool-executor";
 import type { GalaxyUiAction } from "../ui-protocol";
+import {
+  activeModel,
+  configPath,
+  hydrateKeys,
+  readModelSettings,
+  removeProvider,
+  setActiveProvider,
+  setApiKey,
+  summarize,
+  upsertProvider,
+  validateBaseUrl,
+  validateProviderId,
+  writeCanonicalKey,
+  writeModelSettings,
+  type ProviderEntry,
+} from "./model-settings";
 
 export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "galaxy-code.chatView";
@@ -16,7 +32,16 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   private workspaceRoot: string | null = null;
   private connection: OllamaConnection | null = null;
 
-  constructor(private readonly extensionUri: vscode.Uri) {}
+  constructor(private readonly context: vscode.ExtensionContext) {}
+
+  /** Checkpoints, traces, and spilled output live in global storage, never in the workspace. */
+  private get storageRoot(): string {
+    return this.context.globalStorageUri.fsPath;
+  }
+
+  private get extensionUri(): vscode.Uri {
+    return this.context.extensionUri;
+  }
 
   resolveWebviewView(view: vscode.WebviewView): void {
     this.view = view;
@@ -44,6 +69,48 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
 
   private async handleMessage(message: WebviewToHostMessage): Promise<void> {
     switch (message.type) {
+      case "model-settings/save-key": {
+        /* One secrets file for every host: write the shared document, then mirror it. */
+        writeCanonicalKey(message.providerId, message.apiKey);
+        const settings = setApiKey(hydrateKeys(readModelSettings(this.configPath)), message.providerId, message.apiKey);
+        writeModelSettings(settings, this.configPath);
+        this.refreshConnection();
+        return;
+      }
+      case "model-settings/save-provider": {
+        const draft = message.provider;
+        const idError = validateProviderId(draft.id);
+        if (idError !== undefined) { this.postModelSettings(`Provider ID: ${idError}`); return; }
+        const urlError = validateBaseUrl(draft.baseUrl);
+        if (urlError !== undefined) { this.postModelSettings(urlError); return; }
+        const models = draft.models.map(value => value.trim()).filter(value => value.length > 0);
+        if (models.length === 0) { this.postModelSettings("Nhà cung cấp tuỳ chỉnh cần ít nhất một model."); return; }
+        const previous = readModelSettings(this.configPath).providers.find(entry => entry.id === draft.id);
+        const apiKey = draft.apiKey !== undefined && draft.apiKey.trim().length > 0 ? draft.apiKey.trim() : previous?.apiKey;
+        const entry: ProviderEntry = Object.freeze({
+          api: draft.api,
+          ...(apiKey === undefined ? {} : { apiKey }),
+          baseUrl: draft.baseUrl.replace(/\/+$/, ""),
+          displayName: draft.displayName.trim().length > 0 ? draft.displayName.trim() : draft.id,
+          id: draft.id,
+          models: Object.freeze(models.map(model => Object.freeze({ id: model }))),
+        });
+        if (apiKey !== undefined) writeCanonicalKey(entry.id, apiKey);
+        const settings = upsertProvider(hydrateKeys(readModelSettings(this.configPath)), entry);
+        writeModelSettings(settings, this.configPath);
+        this.refreshConnection();
+        return;
+      }
+      case "model-settings/set-active": {
+        writeModelSettings(setActiveProvider(readModelSettings(this.configPath), message.providerId), this.configPath);
+        this.refreshConnection();
+        return;
+      }
+      case "model-settings/remove": {
+        writeModelSettings(removeProvider(readModelSettings(this.configPath), message.providerId), this.configPath);
+        this.refreshConnection();
+        return;
+      }
       case "ui-ready": {
         const connection = resolveOllamaConnection();
         this.connection = connection;
@@ -60,6 +127,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
           baseUrl: connection.baseUrl,
           credentialSource: connection.credentialSource,
           ...(modelLibraryUrl ? { modelLibraryUrl } : {}),
+          modelSettings: summarize(hydrateKeys(readModelSettings(this.configPath))),
         });
         return;
       }
@@ -104,6 +172,35 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  /** Where the shared Galaxy model/credential document lives. */
+  private get configPath(): string {
+    return configPath();
+  }
+
+  /** Re-read the shared document after an edit and tell the webview. */
+  private refreshConnection(): void {
+    this.connection = resolveOllamaConnection();
+    this.postModelSettings();
+  }
+
+  private postModelSettings(error?: string): void {
+    const settings = summarize(hydrateKeys(readModelSettings(this.configPath)));
+    this.post({ type: "model-settings", settings });
+    /* The active model changes with the provider list, so the header must follow. */
+    this.post({
+      type: "host-info",
+      workspaceName: vscode.workspace.workspaceFolders?.[0]?.name ?? "no workspace",
+      workspacePath: this.workspaceRoot ?? "",
+      platform: process.platform,
+      shell: process.platform === "win32" ? "cmd.exe" : "/bin/sh",
+      model: activeModel(readModelSettings(this.configPath)),
+      baseUrl: this.connection?.baseUrl ?? "",
+      credentialSource: this.connection?.credentialSource ?? "none",
+      modelSettings: settings,
+    });
+    if (error !== undefined) void vscode.window.showWarningMessage(error);
+  }
+
   private async handleUiAction(action: GalaxyUiAction): Promise<void> {
     switch (action.type) {
       case "run/start": {
@@ -123,6 +220,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
               reason: pending.reason,
             }),
             permissionMode: this.permissionMode,
+            storageRoot: this.storageRoot,
             taskId: action.taskId,
             workspaceRoot: this.workspaceRoot,
           });
@@ -138,8 +236,20 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       case "run/cancel":
         this.session?.handle.cancel("Cancelled from webview.");
         return;
+      case "context/compact": {
+        // Nothing in flight: the next run starts from the durable checkpoint, which is
+        // already the compact form of the session, so say that instead of faking a pass.
+        const session = this.session;
+        if (session === null) {
+          this.post({ type: "ui-event", event: { kind: "context/compacted", reason: "no active run" } });
+          return;
+        }
+        const result = await session.compact();
+        if (result === null) this.post({ type: "ui-event", event: { kind: "context/compacted", reason: "no active run" } });
+        return;
+      }
       case "approval/resolve":
-        void this.session?.handle.resolveApproval(action.requestId, action.approved ? "granted" : "denied");
+        this.session?.resolveApproval(action.requestId, action.approved);
         return;
       case "permission/mode":
         this.permissionMode = action.mode;

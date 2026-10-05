@@ -5,7 +5,7 @@ import {
   type ThreadMessageLike,
 } from "@assistant-ui/react";
 import { appendUserMessage, getUiState, type UiMessage } from "./ui-store";
-import { cancelUiRun, startUiRun } from "./host-bridge";
+import { cancelUiRun, dispatchUiAction, startUiRun } from "./host-bridge";
 
 function toThreadMessageLike(message: UiMessage): ThreadMessageLike {
   return {
@@ -41,6 +41,12 @@ export function useGalaxyUiRuntime(workspacePath: string) {
         .trim();
       if (!text) return;
       appendUserMessage(text);
+      /* The composer's /compact mirrors the web GUI: it asks the runtime to compact the
+         live run instead of becoming a model turn, and the host answers context/compacted. */
+      if (text === "/compact") {
+        dispatchUiAction({ type: "context/compact" });
+        return;
+      }
       startUiRun(text, workspacePath || ".");
     },
   };

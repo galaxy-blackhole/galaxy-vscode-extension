@@ -1,7 +1,7 @@
 /**
  * Galaxy UI Protocol — the stable, UI-facing semantic contract.
  *
- * The webview depends ONLY on this schema, never on @galaxy/ai-coder-core
+ * The webview depends ONLY on this schema, never on @galaxy-stack/ai-coder-core
  * types or provider wire formats. When ai-coder-core evolves, only the host
  * mapper (core event → GalaxyUiEvent) changes; the webview stays frozen.
  *
@@ -21,7 +21,7 @@ export type GalaxyUiEvent =
   | Readonly<{ kind: "tool/start"; toolCallId: string; name: string; args: Record<string, unknown> }>
   | Readonly<{ kind: "tool/result"; toolCallId: string; ok: boolean; summary: string; outputTail?: string }>
   | Readonly<{ kind: "context/pressure"; usedTokens: number; contextWindow: number | null }>
-  | Readonly<{ kind: "context/compacted"; reason: string }>
+  | Readonly<{ kind: "context/compacted"; reason: string; itemsShadowed?: number; tokensAfter?: number; tokensBefore?: number }>
   | Readonly<{ kind: "model/retry"; attempt: number; delayMs: number; reason: string }>
   | Readonly<{ kind: "approval/request"; requestId: string; tool: string; risk: string; args: Record<string, unknown> }>
   | Readonly<{ kind: "completion/rejected"; issues: readonly string[] }>
@@ -32,11 +32,12 @@ export type GalaxyUiAction =
   | Readonly<{ type: "run/start"; taskId: string; workspace: string; input: string }>
   | Readonly<{ type: "run/cancel" }>
   | Readonly<{ type: "run/pause" }>
+  | Readonly<{ type: "context/compact" }>
   | Readonly<{ type: "approval/resolve"; requestId: string; approved: boolean }>
   | Readonly<{ type: "permission/mode"; mode: "ask" | "smart" | "auto" }>;
 
 /**
- * Mapping from @galaxy/ai-coder-core runtime events (see
+ * Mapping from @galaxy-stack/ai-coder-core runtime events (see
  * galaxy-ai-coder-core/src/runtime/runtime-types.ts) to GalaxyUiEvent.
  * This table is the ONLY file that must change when core internals change.
  *
