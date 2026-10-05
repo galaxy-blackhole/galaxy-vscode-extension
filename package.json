@@ -40,20 +40,41 @@
       {
         "command": "galaxy-code.newThread",
         "title": "Galaxy Code: New Thread"
+      },
+      {
+        "command": "galaxy-code.openWeb",
+        "title": "Galaxy Blackhole: Open Web GUI",
+        "category": "Galaxy Blackhole"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Galaxy Blackhole",
+      "properties": {
+        "galaxy-code.cliPath": {
+          "type": "string",
+          "default": "blackhole",
+          "markdownDescription": "Đường dẫn tới CLI  (mặc định: tìm trên PATH). Cài bằng ."
+        },
+        "galaxy-code.webPort": {
+          "type": "number",
+          "default": 3090,
+          "markdownDescription": "Cổng cho Galaxy Blackhole web GUI (mặc định 3090)."
+        }
+      }
+    }
   },
   "scripts": {
     "compile": "node esbuild.js && vite build",
     "compile:production": "node esbuild.js --production && vite build",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:webview": "vite build --watch",
-    "check-types": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.webview.json",
+    "check-types": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.webview.json && tsc --noEmit -p tsconfig.test.json",
     "lint": "eslint src",
-    "test:webview": "node scripts/webview-smoke.mjs"
+    "test:webview": "node scripts/webview-smoke.mjs",
+    "test:host": "node --test test/*.test.ts"
   },
   "dependencies": {
-    "@galaxy/ai-coder-core": "link:../galaxy-ai-coder-core"
+    "@galaxy-stack/ai-coder-core": "link:../galaxy-ai-coder-core"
   },
   "devDependencies": {
     "@assistant-ui/react": "0.15.20",

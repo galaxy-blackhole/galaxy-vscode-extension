@@ -1,7 +1,8 @@
 import { postToHost } from "./vscode";
 import type { GalaxyUiAction, GalaxyUiEvent } from "../../src/ui-protocol";
 import type { OllamaChatMessage, OllamaToolSchema } from "../../src/protocol";
-import type { HostToWebviewMessage } from "../../src/protocol";
+import type { HostToWebviewMessage, ProviderDraft } from "../../src/protocol";
+import type { ModelSettingsSummary } from "../../src/model-settings-types";
 
 export type HostInfo = Readonly<{
   workspaceName: string;
@@ -12,6 +13,7 @@ export type HostInfo = Readonly<{
   baseUrl: string;
   credentialSource: string;
   modelLibraryUrl?: string;
+  modelSettings: ModelSettingsSummary;
 }>;
 
 type UiEventListener = (event: GalaxyUiEvent) => void;
@@ -121,6 +123,24 @@ export function announceReady(): void {
 
 export function openExternal(url: string): void {
   postToHost({ type: "open-external", url });
+}
+
+/** Store one provider key; an empty value clears it. */
+export function saveApiKey(providerId: string, apiKey: string): void {
+  postToHost({ type: "model-settings/save-key", providerId, apiKey });
+}
+
+/** Create or replace one provider from the model-setup panel. */
+export function saveProvider(provider: ProviderDraft): void {
+  postToHost({ type: "model-settings/save-provider", provider });
+}
+
+export function setActiveProvider(providerId: string): void {
+  postToHost({ type: "model-settings/set-active", providerId });
+}
+
+export function removeProvider(providerId: string): void {
+  postToHost({ type: "model-settings/remove", providerId });
 }
 
 if (typeof window !== "undefined") {

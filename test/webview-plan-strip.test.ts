@@ -6,7 +6,7 @@
  */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { bootWebview } from "./helpers/webview-harness.ts";
+import { bootWebview, clickElement } from "./helpers/webview-harness.ts";
 
 test("the plan strip renders the checklist and toggles plan mode", async () => {
   const booted = await bootWebview();
@@ -31,7 +31,9 @@ test("the plan strip renders the checklist and toggles plan mode", async () => {
   assert.match(text, /KẾ HOẠCH/, "plan mode is visible while it is on");
   assert.equal(booted.document.querySelectorAll(".plan-step-active").length, 1, "exactly one step is the active one");
 
-  booted.document.querySelector(".plan-chip")?.dispatchEvent(new booted.window.MouseEvent("click", { bubbles: true }));
+  const chip = booted.document.querySelector(".plan-chip");
+  assert.ok(chip, "the strip offers the plan-mode control");
+  clickElement(booted, chip);
   await new Promise(resolve => setTimeout(resolve, 100));
   const actions = booted.posted
     .filter(message => message.type === "ui-action")

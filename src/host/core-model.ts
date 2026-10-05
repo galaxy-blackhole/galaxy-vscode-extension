@@ -10,7 +10,7 @@ import {
   type ModelIdentity,
   type PortResult,
   type RunExecutionContext,
-} from "@galaxy/ai-coder-core";
+} from "@galaxy-stack/ai-coder-core";
 import { streamOllamaChat } from "./ollama-client";
 import type { OllamaConnection } from "./config";
 

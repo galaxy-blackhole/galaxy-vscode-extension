@@ -75,6 +75,11 @@ export function typeComposer(booted: BootedWebview, text: string): void {
   field.dispatchEvent(asDom<Event>(new booted.window.Event("input", { bubbles: true })));
 }
 
+/** Click a control the way a human does; happy-dom owns the event type the DOM sees. */
+export function clickElement(booted: BootedWebview, element: Element): void {
+  element.dispatchEvent(asDom<Event>(new booted.window.MouseEvent("click", { bubbles: true })));
+}
+
 /** Submit the way the composer does: Enter, which the primitive turns into a runtime append. */
 export async function submitComposer(booted: BootedWebview): Promise<void> {
   composer(booted).dispatchEvent(asDom<Event>(new booted.window.KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" })));

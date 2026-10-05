@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "allowImportingTsExtensions": true,
+    "types": ["node"]
+  },
+  "include": [
+    "test/**/*.ts",
+    "src/model-settings-types.ts",
+    "src/host/core-host.ts",
+    "src/host/model-settings.ts",
+    "src/host/web-launcher-core.ts"
+  ]
+}

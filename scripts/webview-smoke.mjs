@@ -41,6 +41,49 @@ try {
     console.log('--- chip label after select:', chipAfter?.textContent.trim());
     console.log('--- chip is gold:', chipAfter?.classList.contains('chip-auto'));
   }
+  // Interaction: model setup appears when the active provider has no key, and the
+  // custom-provider form submits the draft to the host.
+  window.dispatchEvent(new window.MessageEvent('message', { data: {
+    type: 'host-info',
+    workspaceName: 'galaxy',
+    workspacePath: '/tmp/galaxy',
+    platform: 'darwin',
+    shell: '/bin/sh',
+    model: 'deepseek-v4.1-flash:cloud',
+    baseUrl: 'https://ollama.com',
+    credentialSource: 'none',
+    modelSettings: {
+      activeProviderId: 'galaxy',
+      model: 'deepseek-v4.1-flash:cloud',
+      providers: [{ active: true, api: 'ollama', baseUrl: 'https://ollama.com', displayName: 'Galaxy Blackhole', id: 'galaxy', keyConfigured: false, models: [{ id: 'deepseek-v4.1-flash:cloud' }] }],
+    },
+  } }));
+  await new Promise((r) => setTimeout(r, 300));
+  const panel = document.querySelector('.ms-panel');
+  console.log('--- model setup visible:', Boolean(panel));
+  const dashed = [...document.querySelectorAll('.ms-dashed')].map((b) => b.textContent.trim());
+  console.log('--- setup buttons:', JSON.stringify(dashed));
+  const custom = [...document.querySelectorAll('.ms-dashed')].find((b) => b.textContent.includes('tuỳ chỉnh'));
+  custom?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 200));
+  const form = document.querySelector('.ms-form');
+  console.log('--- custom form visible:', Boolean(form));
+  if (form) {
+    const setValue = (selector, value) => {
+      const field = document.querySelector(selector);
+      if (!field) return;
+      const proto = field.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(proto, 'value').set.call(field, value);
+      field.dispatchEvent(new window.Event('input', { bubbles: true }));
+    };
+    setValue('#ms-custom-id', 'my-gateway');
+    setValue('#ms-custom-url', 'https://gateway.example/v1');
+    setValue('#ms-custom-models', 'gpt-x');
+    await new Promise((r) => setTimeout(r, 100));
+    [...document.querySelectorAll('.ms-form .ms-btn-primary')].pop()?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 200));
+    console.log('--- custom form submitted');
+  }
   const html = document.getElementById('app')?.innerHTML ?? '';
   console.log('--- rendered length:', html.length);
   console.log(html.slice(0, 3000));

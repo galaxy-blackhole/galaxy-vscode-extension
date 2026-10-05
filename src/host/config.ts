@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { galaxyRefName, readGalaxyCredential } from "@galaxy-stack/ai-coder-core/adapters/node/config/galaxy-credentials";
 
 export interface OllamaConnection {
   readonly apiKey?: string;
@@ -36,13 +37,31 @@ export function resolveOllamaConnection(): OllamaConnection {
     return typeof value === "string" && value.trim() ? value.trim() : undefined;
   };
   const envKey = process.env.OLLAMA_API_KEY?.trim();
-  const apiKey = pick("apiKey") ?? envKey;
+  /* The shared document is the source of truth; config.json is the legacy mirror. */
+  const canonical = canonicalKeyFor(providerIdFrom(configPath));
+  const apiKey = canonical ?? pick("apiKey") ?? envKey;
   return Object.freeze({
     ...(apiKey ? { apiKey } : {}),
     baseUrl: (pick("baseUrl") ?? DEFAULT_BASE_URL).replace(/\/+$/, ""),
     model: pick("model") ?? DEFAULT_MODEL,
-    credentialSource: pick("apiKey") ? "manual-config" : envKey ? "environment" : "none",
+    credentialSource: (canonical ?? pick("apiKey")) !== undefined ? "manual-config" : envKey !== undefined ? "environment" : "none",
   });
+}
+
+/** The provider the single `manual` entry stands for. */
+function providerIdFrom(configPath: string): string {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(configPath, "utf8")) as { providers?: { active?: unknown } };
+    const active = parsed.providers?.active;
+    return typeof active === "string" && active.trim().length > 0 ? active.trim() : "galaxy";
+  } catch {
+    return "galaxy";
+  }
+}
+
+/** Key from the shared credential document, when one is stored. */
+function canonicalKeyFor(providerId: string): string | undefined {
+  return readGalaxyCredential(galaxyRefName(providerId));
 }
 
 /**
