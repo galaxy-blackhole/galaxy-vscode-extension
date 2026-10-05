@@ -21,9 +21,15 @@ export interface UiMessage {
   )[];
 }
 
+export interface UiPlan {
+  readonly steps: readonly Readonly<{ id: string; status: "completed" | "in_progress" | "pending" | "skipped"; title: string }>[];
+}
+
 export interface UiState {
   readonly messages: readonly UiMessage[];
   readonly status: GalaxyUiRunStatus | "idle";
+  readonly plan: UiPlan | null;
+  readonly planMode: boolean;
   readonly statusReason: string | null;
 }
 
@@ -32,6 +38,8 @@ type Listener = () => void;
 let messages: UiMessage[] = [];
 let status: GalaxyUiRunStatus | "idle" = "idle";
 let statusReason: string | null = null;
+let plan: UiPlan | null = null;
+let planMode = false;
 const listeners = new Set<Listener>();
 let pendingAssistant: { content: UiMessage["content"] } | null = null;
 
@@ -40,7 +48,7 @@ function notify(): void {
 }
 
 function snapshot(): UiState {
-  return { messages, status, statusReason };
+  return { messages, plan, planMode, status, statusReason };
 }
 
 let cachedSnapshot: UiState = snapshot();
@@ -142,6 +150,12 @@ function handleEvent(event: GalaxyUiEvent): void {
     }
     case "model/retry": {
       statusReason = `retry ${event.attempt} sau ${event.delayMs}ms — ${event.reason}`;
+      commit();
+      return;
+    }
+    case "plan/updated": {
+      plan = event.steps.length ? Object.freeze({ steps: event.steps }) : plan;
+      planMode = event.mode;
       commit();
       return;
     }

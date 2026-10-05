@@ -22,6 +22,8 @@ export interface CoreRunSession {
    * the host can answer even when the event is missed.
    */
   compact(): Promise<Readonly<{ itemsShadowed: number; tokensAfter: number; tokensBefore: number }> | null>;
+  /** Enter or leave plan mode on this run; null means the run already settled. */
+  setPlanMode(on: boolean): Promise<boolean | null>;
   /** Answer a webview approval; falls back to the runtime's own pending-approval path. */
   resolveApproval(requestId: string, approved: boolean): void;
   setPermissionMode(mode: PermissionMode): void;
@@ -136,6 +138,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
 
   return {
     compact: async () => await controller.compact(runId),
+    setPlanMode: async (on) => await controller.setPlanMode(runId, on),
     handle,
     resolveApproval(requestId, approved) {
       const resolver = pendingApprovals.get(requestId);
@@ -180,6 +183,9 @@ function mapCoreEventToUi(event: AiCoderRuntimeEvent, sink: GalaxyUiEventSink): 
       return;
     case "checkpoint":
       sink({ kind: "context/compacted", reason: event.reason });
+      return;
+    case "plan":
+      sink({ kind: "plan/updated", mode: event.planMode, steps: event.plan.steps });
       return;
     case "compaction":
       sink({

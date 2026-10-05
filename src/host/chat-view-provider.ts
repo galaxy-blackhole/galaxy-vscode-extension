@@ -243,6 +243,10 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       case "run/cancel":
         this.session?.handle.cancel("Cancelled from webview.");
         return;
+      case "plan/mode": {
+        await this.session?.setPlanMode(action.on);
+        return;
+      }
       case "context/compact": {
         // Nothing in flight: carry the intent into the next run, which compacts before its
         // first model turn (compactOnStart) — the idle half of the web's /compact.

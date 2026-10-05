@@ -22,6 +22,7 @@ export type GalaxyUiEvent =
   | Readonly<{ kind: "tool/result"; toolCallId: string; ok: boolean; summary: string; outputTail?: string }>
   | Readonly<{ kind: "context/pressure"; usedTokens: number; contextWindow: number | null }>
   | Readonly<{ kind: "context/compacted"; reason: string; itemsShadowed?: number; tokensAfter?: number; tokensBefore?: number }>
+  | Readonly<{ kind: "plan/updated"; mode: boolean; steps: readonly Readonly<{ id: string; status: "completed" | "in_progress" | "pending" | "skipped"; title: string }>[] }>
   | Readonly<{ kind: "model/retry"; attempt: number; delayMs: number; reason: string }>
   | Readonly<{ kind: "approval/request"; requestId: string; tool: string; risk: string; args: Record<string, unknown> }>
   | Readonly<{ kind: "completion/rejected"; issues: readonly string[] }>
@@ -33,6 +34,7 @@ export type GalaxyUiAction =
   | Readonly<{ type: "run/cancel" }>
   | Readonly<{ type: "run/pause" }>
   | Readonly<{ type: "context/compact" }>
+  | Readonly<{ type: "plan/mode"; on: boolean }>
   | Readonly<{ type: "approval/resolve"; requestId: string; approved: boolean }>
   | Readonly<{ type: "permission/mode"; mode: "ask" | "smart" | "auto" }>;
 

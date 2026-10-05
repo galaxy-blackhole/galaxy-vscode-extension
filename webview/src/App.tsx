@@ -9,6 +9,8 @@ import {
 import { useGalaxyUiRuntime } from "./galaxy-ui-runtime";
 import { ApprovalBar } from "./components/ApprovalBar";
 import { Composer } from "./components/Composer";
+import { PlanStrip } from "./components/PlanStrip";
+import { ModelSetup } from "./components/ModelSetup";
 import { ReasoningPart, TextPart, ToolFallback } from "./components/parts";
 import { announceReady, currentHostInfo, subscribeHostInfo, type HostInfo } from "./host-bridge";
 
@@ -51,12 +53,21 @@ function EmptyState() {
 
 export function App() {
   const [info, setInfo] = useState<HostInfo | null>(currentHostInfo());
+  const [setupOpen, setSetupOpen] = useState(false);
   const runtime = useGalaxyUiRuntime(info?.workspacePath ?? "");
+  const settings = info?.modelSettings ?? null;
+  /* No key on the active provider means the first run cannot start: open the panel. */
+  const needsKey = settings !== null && info?.credentialSource !== "environment"
+    && settings.providers.some(provider => provider.active && !provider.keyConfigured);
 
   useEffect(() => {
     announceReady();
     return subscribeHostInfo(setInfo);
   }, []);
+
+  useEffect(() => {
+    if (needsKey) setSetupOpen(true);
+  }, [needsKey]);
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
@@ -66,6 +77,11 @@ export function App() {
           <span className="app-subtitle">
             {info ? `${info.model} — ${info.workspaceName}` : "đang kết nối…"}
           </span>
+          {settings !== null ? (
+            <button type="button" className="app-model-btn" onClick={() => setSetupOpen(open => !open)}>
+              Model
+            </button>
+          ) : null}
         </header>
         <ThreadPrimitive.Root className="thread-root">
           <ThreadPrimitive.Viewport className="thread-viewport">
@@ -77,6 +93,8 @@ export function App() {
           <ThreadPrimitive.ScrollToBottom className="scroll-to-bottom">↓</ThreadPrimitive.ScrollToBottom>
         </ThreadPrimitive.Root>
         <ApprovalBar />
+        {setupOpen && settings !== null ? <ModelSetup settings={settings} onClose={() => setSetupOpen(false)} /> : null}
+        <PlanStrip />
         <Composer info={info} />
       </div>
     </AssistantRuntimeProvider>
