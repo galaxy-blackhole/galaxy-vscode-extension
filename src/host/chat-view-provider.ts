@@ -201,6 +201,9 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
     if (error !== undefined) void vscode.window.showWarningMessage(error);
   }
 
+  /** Set by `/compact` while idle: the next run compacts before its first model turn. */
+  private compactOnNextRun = false;
+
   private async handleUiAction(action: GalaxyUiAction): Promise<void> {
     switch (action.type) {
       case "run/start": {
@@ -208,7 +211,11 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         if (!this.connection || !this.workspaceRoot) return;
         this.post({ type: "ui-event", event: { kind: "run/status", status: "running" } });
         try {
+          /* A `/compact` typed while idle rides into this run. */
+          const compactOnStart = this.compactOnNextRun;
+          this.compactOnNextRun = false;
           this.session = await startCoreRun({
+            compactOnStart,
             connection: this.connection,
             goal: action.input,
             onEvent: (event) => this.post({ type: "ui-event", event }),
@@ -237,15 +244,13 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         this.session?.handle.cancel("Cancelled from webview.");
         return;
       case "context/compact": {
-        // Nothing in flight: the next run starts from the durable checkpoint, which is
-        // already the compact form of the session, so say that instead of faking a pass.
+        // Nothing in flight: carry the intent into the next run, which compacts before its
+        // first model turn (compactOnStart) — the idle half of the web's /compact.
         const session = this.session;
-        if (session === null) {
-          this.post({ type: "ui-event", event: { kind: "context/compacted", reason: "no active run" } });
-          return;
+        if (session === null || (await session.compact()) === null) {
+          this.compactOnNextRun = true;
+          this.post({ type: "ui-event", event: { kind: "context/compacted", reason: "chưa có lượt nào đang chạy — lượt kế tiếp sẽ tự nén trước khi gọi model" } });
         }
-        const result = await session.compact();
-        if (result === null) this.post({ type: "ui-event", event: { kind: "context/compacted", reason: "no active run" } });
         return;
       }
       case "approval/resolve":

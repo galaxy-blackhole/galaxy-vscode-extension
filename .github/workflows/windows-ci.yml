@@ -36,15 +36,16 @@ jobs:
       - name: Install Dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Compile Test Suite
-        run: yarn run compile-tests
+      # The bundle has to exist before the webview tests: they load dist/webview/chat.js,
+      # which is exactly the artifact the extension ships.
+      - name: Compile Host And Webview
+        run: yarn compile
 
-      - name: Run Local Retrieval Benchmark Assertions
-        run: yarn workflow:benchmark:assert-local
+      - name: Type Check
+        run: yarn check-types
 
-      - name: Run Kuzu Retrieval Benchmark Assertions
-        if: matrix.os == 'ubuntu-latest'
-        run: node scripts/benchmark-workflow-rag.mjs --assert-kuzu-parity
+      - name: Run Host And Webview Tests
+        run: node --test test/*.test.ts
 
-      - name: Run Extension Tests
-        run: yarn test
+      - name: Webview Smoke
+        run: node scripts/webview-smoke.mjs

@@ -28,6 +28,8 @@ export interface CoreRunSession {
 }
 
 export interface StartCoreRunOptions {
+  /** The composer asked for a compaction while nothing was running; do it first. */
+  compactOnStart?: boolean;
   connection: OllamaConnection;
   goal: string;
   onEvent: GalaxyUiEventSink;
@@ -102,6 +104,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
 
   const handle = controller.start(Object.freeze({
     budget: { deadlineMs: 30 * 60_000 },
+    compactOnStart: options.compactOnStart === true,
     goal: options.goal,
     mode: "auto",
     prompt: {
