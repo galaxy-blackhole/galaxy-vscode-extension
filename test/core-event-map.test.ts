@@ -20,16 +20,16 @@ function mapped(event: AiCoderRuntimeEvent): GalaxyUiEvent[] {
 
 test("every core event a run emits lands on the webview as a known UI event", () => {
   const cases: Readonly<{ event: AiCoderRuntimeEvent; expect: readonly string[] }>[] = [
-    { event: { event: { delta: "hi", type: "content" }, type: "model" } as AiCoderRuntimeEvent, expect: ["message/text-delta"] },
-    { event: { event: { delta: "nghĩ", type: "thinking" }, type: "model" } as AiCoderRuntimeEvent, expect: ["message/thinking-delta"] },
-    { event: { call, type: "tool_start" } as AiCoderRuntimeEvent, expect: ["tool/start"] },
-    { event: { call, result: { canonicalToolId: "workspace_list", content: "{}", ok: true, summary: "ok", trust: "workspace" }, type: "tool_result" } as AiCoderRuntimeEvent, expect: ["tool/result"] },
-    { event: { attempt: 2, delayMs: 100, message: "retry", type: "model_retry" } as AiCoderRuntimeEvent, expect: ["model/retry"] },
-    { event: { reason: "manual", type: "compaction", itemsShadowed: 3, tokensAfter: 100, tokensBefore: 200 } as AiCoderRuntimeEvent, expect: ["context/compacted"] },
-    { event: { plan: { completed: [], inProgress: null, pending: [], steps: [] }, planMode: true, turn: 2, type: "plan" } as AiCoderRuntimeEvent, expect: ["plan/updated"] },
-    { event: { pressure: { level: "normal" }, tokens: 42, type: "context_pressure" } as AiCoderRuntimeEvent, expect: ["context/pressure"] },
-    { event: { issues: ["a"], type: "completion_rejected" } as AiCoderRuntimeEvent, expect: ["completion/rejected"] },
-    { event: { transition: { from: "preparing", reason: "start", sequence: 1, timestamp: "2026-01-01T00:00:00.000Z", to: "inspecting" }, type: "state" } as AiCoderRuntimeEvent, expect: ["run/status"] },
+    { event: { event: { delta: "hi", type: "content" }, type: "model" } as unknown as AiCoderRuntimeEvent, expect: ["message/text-delta"] },
+    { event: { event: { delta: "nghĩ", type: "thinking" }, type: "model" } as unknown as AiCoderRuntimeEvent, expect: ["message/thinking-delta"] },
+    { event: { call, type: "tool_start" } as unknown as AiCoderRuntimeEvent, expect: ["tool/start"] },
+    { event: { call, result: { canonicalToolId: "workspace_list", content: "{}", ok: true, summary: "ok", trust: "workspace" }, type: "tool_result" } as unknown as AiCoderRuntimeEvent, expect: ["tool/result"] },
+    { event: { attempt: 2, delayMs: 100, message: "retry", type: "model_retry" } as unknown as AiCoderRuntimeEvent, expect: ["model/retry"] },
+    { event: { reason: "manual", type: "compaction", itemsShadowed: 3, tokensAfter: 100, tokensBefore: 200 } as unknown as AiCoderRuntimeEvent, expect: ["context/compacted"] },
+    { event: { plan: { completed: [], inProgress: null, pending: [], steps: [] }, planMode: true, turn: 2, type: "plan" } as unknown as AiCoderRuntimeEvent, expect: ["plan/updated"] },
+    { event: { pressure: { level: "normal" }, tokens: 42, type: "context_pressure" } as unknown as AiCoderRuntimeEvent, expect: ["context/pressure"] },
+    { event: { issues: ["a"], type: "completion_rejected" } as unknown as AiCoderRuntimeEvent, expect: ["completion/rejected"] },
+    { event: { transition: { from: "preparing", reason: "start", sequence: 1, timestamp: "2026-01-01T00:00:00.000Z", to: "inspecting" }, type: "state" } as unknown as AiCoderRuntimeEvent, expect: ["run/status"] },
   ];
   for (const item of cases) {
     const seen = mapped(item.event);
@@ -45,6 +45,6 @@ test("the plan event carries the checklist and the mode the strip renders", () =
     toolCallId: "call-9",
     turn: 3,
     type: "plan",
-  } as AiCoderRuntimeEvent);
+  } as unknown as AiCoderRuntimeEvent);
   assert.deepEqual(seen, [{ kind: "plan/updated", mode: true, steps: [{ id: "a", status: "completed", title: "a" }] }]);
 });
