@@ -15,6 +15,8 @@ export interface ProviderModel {
 export interface ProviderEntry {
   readonly api: ProviderApi;
   readonly apiKey?: string;
+  /** Mức suy luận đã chọn cho nhà cung cấp này (từ vựng của core: default/off/on/minimal…max). */
+  readonly thinking?: string;
   readonly baseUrl: string;
   readonly displayName: string;
   readonly id: string;
@@ -34,6 +36,7 @@ export interface ProviderSummary {
   readonly displayName: string;
   readonly id: string;
   readonly keyConfigured: boolean;
+  readonly thinking?: string;
   readonly models: readonly ProviderModel[];
 }
 

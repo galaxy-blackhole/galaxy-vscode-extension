@@ -53,8 +53,8 @@ test("each composer chip says what it is, and the menus stay inside the sidebar"
   await new Promise(resolve => setTimeout(resolve, 150));
   assert.match(booted.document.querySelector(".permission-menu-header")?.textContent ?? "", /phê duyệt/i, "the menu explains itself");
   const options = Array.from(booted.document.querySelectorAll(".permission-menu .permission-option")).map(option => option.textContent ?? "");
-  assert.equal(options.length, 4, "three modes plus the settings link: " + JSON.stringify(options));
-  assert.ok(options.some(option => option.includes("Cài đặt")), "the settings link is in the menu");
+  assert.equal(options.length, 3, "the three modes, nothing else: " + JSON.stringify(options));
+  assert.ok(!options.some(option => option.includes("Cài đặt")), "settings live behind the gear, not in this menu");
   assert.ok(!options.some(option => option.includes("có sau khi tích hợp")), "no placeholder entry is shipped");
 
   /* The model chip is a picker now: it lists the active provider's models and switches between them. */

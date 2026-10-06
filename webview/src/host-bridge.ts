@@ -30,6 +30,20 @@ export function subscribeSessionMessages(listener: (message: SessionMessage) => 
   return () => sessionListeners.delete(listener);
 }
 
+type ThinkingMessage = Extract<HostToWebviewMessage, { type: "thinking" }>;
+const thinkingListeners = new Set<(message: ThinkingMessage) => void>();
+
+/** The host says which reasoning levels exist for the active model, and which is stored. */
+export function subscribeThinking(listener: (message: ThinkingMessage) => void): () => void {
+  thinkingListeners.add(listener);
+  return () => thinkingListeners.delete(listener);
+}
+
+/** Store one reasoning level for the active provider. */
+export function setThinking(choice: string): void {
+  postToHost({ type: "model-settings/set-thinking", choice });
+}
+
 /** Switch the model the next run will use, inside the active provider. */
 export function setModel(model: string): void {
   postToHost({ type: "model-settings/set-model", model });
@@ -215,8 +229,8 @@ if (typeof window !== "undefined") {
         hostInfo = message;
         for (const listener of infoListeners) listener(message);
         return;
-      case "new-thread":
-        for (const listener of newThreadListeners) listener();
+      case "thinking":
+        for (const listener of thinkingListeners) listener(message);
         return;
     }
   });

@@ -42,6 +42,7 @@ export type WebviewToHostMessage =
   | Readonly<{ type: "model-settings/save-provider"; provider: ProviderDraft }>
   | Readonly<{ type: "model-settings/set-active"; providerId: string }>
   | Readonly<{ type: "model-settings/set-model"; model: string }>
+  | Readonly<{ type: "model-settings/set-thinking"; choice: string }>
   | Readonly<{ type: "model-settings/remove"; providerId: string }>
   | Readonly<{ type: "session/action"; action: Readonly<{ type: "delete" | "list" | "new" | "open"; id?: string }> }>;
 
@@ -52,7 +53,7 @@ export type OllamaStreamDelta = Readonly<{
 }>;
 
 /** Bump when the shape of host↔webview messages changes. */
-export const HOST_WEBVIEW_PROTOCOL_VERSION = 4;
+export const HOST_WEBVIEW_PROTOCOL_VERSION = 5;
 
 export type HostToWebviewMessage =
   | Readonly<{ type: "chat-delta"; runId: string; delta: OllamaStreamDelta }>
@@ -67,4 +68,5 @@ export type HostToWebviewMessage =
   /* Test-only: the extension-host suite drives the webview the way a click would (see test/vscode). */
   | Readonly<{ type: "test/command"; command: Readonly<{ kind: "submit"; text: string } | { kind: "open-session"; id: string }> }>
   | Readonly<{ type: "session-list"; sessions: readonly Readonly<{ id: string; messageCount: number; title: string; updatedAt: string }>[] }>
+  | Readonly<{ type: "thinking"; choice: string; options: readonly Readonly<{ label: string; value: string }>[] }>
   | Readonly<{ type: "session-loaded"; id: string | null; messages: readonly Readonly<{ content: string; role: "assistant" | "user" }>[]; title: string }>;

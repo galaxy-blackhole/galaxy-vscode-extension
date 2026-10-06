@@ -81,6 +81,20 @@ gói nên dừng ở đó.
 
 - Chọn **thinking / reasoning effort** ngay trong picker: policy hiện chỉ nằm ở CLI (`thinking-policy.ts`),
   core chưa có. Bước tiếp theo là đưa policy đó vào core để CLI, web GUI và extension dùng chung một nguồn.
+## [2.0.8] - 2026-10-06 19:20 +0700
+
+### Added
+
+- **Chọn mức suy luận (thinking) trong picker model** — cùng policy với blackhole web và CLI (core 0.3.13):
+  menu model giờ có mục **Mức suy luận** với đúng các mức model đó hỗ trợ (Mặc định/Tắt/Thấp/Vừa/Cao/Rất
+  cao/Tối đa…), chọn xong ghi vào `~/.galaxy/config.json` và lượt chạy kế tiếp gửi `think` tương ứng.
+
+### Fixed
+
+- Menu quyền không còn mục **Cài đặt** (Cài đặt nằm ở icon bánh răng) và menu model không còn **Cài đặt model**
+  / **Mở thư viện model** — đúng như bạn góp ý.
+- **Bấm menu này thì menu kia tự đóng**: menu model nay cũng đóng khi bấm ra ngoài hoặc nhấn Escape (trước đây
+  chỉ menu quyền có, nên hai menu cùng mở).
 ## [Unreleased]
 
 ### Changed

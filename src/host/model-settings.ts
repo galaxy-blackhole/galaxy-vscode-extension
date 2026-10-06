@@ -196,6 +196,7 @@ export function writeModelSettings(settings: ModelSettings, path: string = confi
         ...(provider.apiKey === undefined ? {} : { apiKey: provider.apiKey }),
         baseUrl: provider.baseUrl.replace(/\/+$/, ""),
         model: activeModel(settings),
+        ...(provider.thinking === undefined ? {} : { thinking: provider.thinking }),
       },
     ],
     providers: {
@@ -242,6 +243,18 @@ export function setProviderModel(settings: ModelSettings, id: string, modelId: s
     if (chosen === undefined) return provider;
     found = true;
     return Object.freeze({ ...provider, models: Object.freeze([chosen, ...provider.models.filter(model => model.id !== modelId)]) });
+  });
+  return found ? Object.freeze({ active: settings.active, providers: Object.freeze(providers) }) : settings;
+}
+
+/** Choose the reasoning effort for a provider; the shared policy maps it to the wire value. */
+export function setProviderThinking(settings: ModelSettings, id: string, choice: string): ModelSettings {
+  let found = false;
+  const providers = settings.providers.map(provider => {
+    if (provider.id !== id) return provider;
+    found = true;
+    const { thinking: _previous, ...rest } = provider;
+    return Object.freeze(choice.trim().length === 0 ? { ...rest } : { ...rest, thinking: choice.trim() });
   });
   return found ? Object.freeze({ active: settings.active, providers: Object.freeze(providers) }) : settings;
 }

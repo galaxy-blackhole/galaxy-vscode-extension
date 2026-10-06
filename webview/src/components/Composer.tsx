@@ -8,7 +8,8 @@ import {
   getPermissionMode, setPermissionMode, subscribePermissionMode,
   type PermissionMode,
 } from "../permission-mode";
-import { setModel, setPermissionMode as sendPermissionMode } from "../host-bridge";
+import { setModel, setPermissionMode as sendPermissionMode, setThinking } from "../host-bridge";
+import { getUiState, subscribeUiState } from "../ui-store";
 import { openSettings } from "../settings-store";
 import { openExternal, type HostInfo } from "../host-bridge";
 
@@ -85,13 +86,6 @@ function PermissionMenu() {
               {option.mode === mode && <span className="option-check"><CheckIcon /></span>}
             </button>
           ))}
-          <button type="button" role="menuitem" className="permission-option" onClick={() => { openSettings(); setOpen(false); }}>
-            <span className="option-icon"><GearIcon /></span>
-            <span className="option-texts">
-              <span className="option-title">Cài đặt</span>
-              <span className="option-desc">Model, nhà cung cấp và chế độ phê duyệt</span>
-            </span>
-          </button>
         </div>
       )}
       <span hidden>{active?.title ?? ""}</span>
@@ -99,14 +93,35 @@ function PermissionMenu() {
   );
 }
 
+/** Close a popup when the pointer goes elsewhere or Escape is pressed — the same behaviour both menus need. */
+function useDismiss(open: boolean, close: () => void, rootRef: React.RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent | TouchEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) close();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, close, rootRef]);
+}
+
 function ModelChip({ info }: { info: HostInfo | null }) {
   const [open, setOpen] = useState(false);
-  const url = info?.modelLibraryUrl;
+  const rootRef = useRef<HTMLDivElement>(null);
+  const { thinking } = useSyncExternalStore(subscribeUiState, getUiState);
   const activeProvider = info?.modelSettings?.providers.find(provider => provider.active);
   const models = activeProvider?.models ?? [];
   const activeModel = info?.model ?? models[0]?.id ?? "";
+  useDismiss(open, () => setOpen(false), rootRef);
   return (
-    <div className="permission-root">
+    <div ref={rootRef} className="permission-root">
       <button
         type="button"
         className="composer-chip chip-model"
@@ -136,22 +151,26 @@ function ModelChip({ info }: { info: HostInfo | null }) {
               </span>
             </button>
           ))}
-          <button type="button" role="menuitem" className="permission-option" onClick={() => { openSettings(); setOpen(false); }}>
-            <span className="option-icon"><GearIcon /></span>
-            <span className="option-texts">
-              <span className="option-title">Cài đặt model</span>
-              <span className="option-desc">Nhà cung cấp, API key và chế độ phê duyệt</span>
-            </span>
-          </button>
-          {url && (
-            <button type="button" role="menuitem" className="permission-option" onClick={() => { openExternal(url); setOpen(false); }}>
-              <span className="option-icon"><ChevronDownIcon /></span>
+          {thinking !== null && thinking.options.length > 0 ? (
+            <div className="permission-menu-header">
+              <span>Mức suy luận</span>
+            </div>
+          ) : null}
+          {(thinking?.options ?? []).map(option => (
+            <button
+              key={option.value}
+              type="button"
+              role="menuitem"
+              className={"permission-option" + (option.value === thinking?.choice ? " option-active" : "")}
+              onClick={() => { setThinking(option.value); setOpen(false); }}
+            >
+              <span className="option-icon">{option.value === thinking?.choice ? <CheckIcon /> : null}</span>
               <span className="option-texts">
-                <span className="option-title">Mở thư viện model</span>
-                <span className="option-desc">{url}</span>
+                <span className={"option-title" + (option.value === thinking?.choice ? " title-gold" : "")}>{option.label}</span>
+                <span className="option-desc">{option.value}</span>
               </span>
             </button>
-          )}
+          ))}
         </div>
       )}
     </div>

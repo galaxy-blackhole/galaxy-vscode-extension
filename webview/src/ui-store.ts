@@ -1,5 +1,5 @@
 import type { GalaxyUiEvent, GalaxyUiRunStatus } from "../../src/ui-protocol";
-import { subscribeNewThread, subscribeSessionMessages, subscribeUiEvents } from "./host-bridge";
+import { subscribeNewThread, subscribeSessionMessages, subscribeThinking, subscribeUiEvents } from "./host-bridge";
 
 export interface UiToolPart {
   readonly type: "tool-call";
@@ -37,6 +37,7 @@ export interface UiState {
   readonly status: GalaxyUiRunStatus | "idle";
   readonly plan: UiPlan | null;
   readonly sessions: readonly UiSessionSummary[];
+  readonly thinking: Readonly<{ choice: string; options: readonly Readonly<{ label: string; value: string }>[] }> | null;
   readonly activeSessionId: string | null;
   readonly planMode: boolean;
   readonly statusReason: string | null;
@@ -49,6 +50,7 @@ let status: GalaxyUiRunStatus | "idle" = "idle";
 let statusReason: string | null = null;
 let plan: UiPlan | null = null;
 let sessions: UiSessionSummary[] = [];
+let thinking: UiState["thinking"] = null;
 let activeSessionId: string | null = null;
 let planMode = false;
 const listeners = new Set<Listener>();
@@ -59,7 +61,7 @@ function notify(): void {
 }
 
 function snapshot(): UiState {
-  return { activeSessionId, messages, plan, planMode, sessions, status, statusReason };
+  return { activeSessionId, messages, plan, planMode, sessions, status, statusReason, thinking };
 }
 
 let cachedSnapshot: UiState = snapshot();
@@ -194,6 +196,12 @@ subscribeUiEvents(handleEvent);
 /** The host's session list and the transcript it hands back when a session is opened. */
 /* The New Thread command (host side) clears the conversation; so does the header's new-chat button. */
 subscribeNewThread(() => { resetConversation(); });
+
+/* The reasoning levels the active model offers, as the host resolved them from the shared policy. */
+subscribeThinking(message => {
+  thinking = Object.freeze({ choice: message.choice, options: Object.freeze(message.options.map(option => Object.freeze({ ...option }))) });
+  commit();
+});
 
 subscribeSessionMessages(message => {
   if (message.type === "session-list") {

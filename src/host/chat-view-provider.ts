@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import type { HostToWebviewMessage, WebviewToHostMessage } from "../protocol";
+import { resolveThinkingPolicy, thinkingLabel } from "@galaxy-stack/ai-coder-core";
 import { resolveModelLibraryUrl, resolveOllamaConnection, type OllamaConnection } from "./config";
 import { streamOllamaChat } from "./ollama-client";
 import { startCoreRun, type CoreRunSession } from "./core-run-session";
@@ -16,6 +17,7 @@ import {
   removeProvider,
   setActiveProvider,
   setProviderModel,
+  setProviderThinking,
   setApiKey,
   summarize,
   upsertProvider,
@@ -105,6 +107,13 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         this.refreshConnection();
         return;
       }
+      case "model-settings/set-thinking": {
+        const document_ = readModelSettings(this.configPath);
+        writeModelSettings(setProviderThinking(document_, document_.active, message.choice), this.configPath);
+        this.refreshConnection();
+        this.postThinking();
+        return;
+      }
       case "model-settings/set-model": {
         const current = readModelSettings(this.configPath);
         writeModelSettings(setProviderModel(current, current.active, message.model), this.configPath);
@@ -123,6 +132,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       }
       case "ui-ready": {
         this.testLog.push("ui-ready");
+        this.postThinking();
         const connection = resolveOllamaConnection();
         this.connection = connection;
         const workspace = vscode.workspace.workspaceFolders?.[0];
@@ -301,6 +311,16 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       messages: session.messages.map(turn => Object.freeze({ content: turn.content, role: turn.role })),
       title: session.title,
     });
+  }
+
+/** The pickable reasoning levels for the active model, and which one is stored. */
+  private postThinking(): void {
+    const connection = resolveOllamaConnection();
+    const document = readModelSettings(this.configPath);
+    const provider = document.providers.find(entry => entry.id === document.active);
+    const stored = provider?.thinking;
+    const policy = resolveThinkingPolicy({ model: connection.model, ...(stored === undefined ? {} : { preferred: stored }) });
+    this.post({ type: "thinking", choice: stored ?? policy.default, options: policy.choices.map(value => Object.freeze({ label: thinkingLabel(value), value })) });
   }
 
   private async postSessionList(): Promise<void> {

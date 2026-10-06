@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { parseThinkingChoice, resolveThinkingPolicy, toOllamaThinking } from "@galaxy-stack/ai-coder-core";
 import { galaxyRefName, readGalaxyCredential } from "@galaxy-stack/ai-coder-core/adapters/node/config/galaxy-credentials";
 
 export interface OllamaConnection {
@@ -8,6 +9,8 @@ export interface OllamaConnection {
   readonly baseUrl: string;
   readonly model: string;
   readonly credentialSource: "manual-config" | "environment" | "none";
+  /** Giá trị `think` gửi kèm mỗi lượt gọi model; undefined nghĩa là bật như trước giờ. */
+  readonly thinking?: boolean | "low" | "medium" | "high" | "max";
 }
 
 /**
@@ -52,10 +55,16 @@ export function resolveOllamaConnection(): OllamaConnection {
   /* The shared document is the source of truth; config.json is the legacy mirror. */
   const canonical = canonicalKeyFor(providerIdFrom(configPath));
   const apiKey = canonical ?? pick("apiKey") ?? envKey;
+  /* The thinking choice is stored per provider; the shared policy turns it into the value the wire takes. */
+  const model = pick("model") ?? DEFAULT_MODEL;
+  const thinkingChoice = pick("thinking");
+  const thinkingPolicy = resolveThinkingPolicy({ model, ...(thinkingChoice === undefined ? {} : { preferred: thinkingChoice }) });
+  const thinking = toOllamaThinking(thinkingPolicy, parseThinkingChoice(thinkingChoice) ?? thinkingPolicy.default);
   return Object.freeze({
     ...(apiKey ? { apiKey } : {}),
     baseUrl: (pick("baseUrl") ?? DEFAULT_BASE_URL).replace(/\/+$/, ""),
-    model: pick("model") ?? DEFAULT_MODEL,
+    model,
+    ...(thinking === undefined ? {} : { thinking }),
     credentialSource: (canonical ?? pick("apiKey")) !== undefined ? "manual-config" : envKey !== undefined ? "environment" : "none",
   });
 }
