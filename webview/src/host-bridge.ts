@@ -44,6 +44,11 @@ export function setThinking(choice: string): void {
   postToHost({ type: "model-settings/set-thinking", choice });
 }
 
+/** Ask the host to open the settings in their own editor tab (the header's gear). */
+export function openSettingsTab(): void {
+  postToHost({ type: "settings/open" });
+}
+
 /** Switch the model the next run will use, inside the active provider. */
 export function setModel(model: string): void {
   postToHost({ type: "model-settings/set-model", model });

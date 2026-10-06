@@ -130,6 +130,10 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         this.refreshConnection();
         return;
       }
+      case "settings/open": {
+        this.openSettingsPanel();
+        return;
+      }
       case "ui-ready": {
         this.testLog.push("ui-ready");
         this.postThinking();
@@ -243,6 +247,9 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
 
   /** The Galaxy session this view shows; created lazily by the first run. */
   private sessionId: string | null = null;
+
+  /** The settings tab, when one is open. */
+  private settingsPanel: vscode.WebviewPanel | undefined;
 
   /** The workspace's MCP servers, connected once per window and reused for every run. */
   private mcp: Promise<WorkspaceMcpHandle | null> | null = null;
@@ -410,7 +417,24 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private renderHtml(webview: vscode.Webview): string {
+  /**
+   * Open the settings in an editor tab, the way Codex does it. The sidebar's gear asks for this, and the
+   * tab renders the same bundle in its settings mode.
+   */
+  openSettingsPanel(): void {
+    if (this.settingsPanel !== undefined) { this.settingsPanel.reveal(); return; }
+    const panel = vscode.window.createWebviewPanel("galaxy-code.settings", "Galaxy Blackhole: Cài đặt", vscode.ViewColumn.Active, {
+      enableScripts: true,
+      localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, "dist", "webview")],
+      retainContextWhenHidden: true,
+    });
+    this.settingsPanel = panel;
+    panel.webview.html = this.renderHtml(panel.webview, "settings");
+    panel.webview.onDidReceiveMessage((message: WebviewToHostMessage) => { void this.handleMessage(message); });
+    panel.onDidDispose(() => { this.settingsPanel = undefined; });
+  }
+
+  private renderHtml(webview: vscode.Webview, view: "chat" | "settings" = "chat"): string {
     const distUri = vscode.Uri.joinPath(this.extensionUri, "dist", "webview");
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, "chat.js"));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, "chat.css"));
@@ -422,11 +446,11 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; font-src ${webview.cspSource}; img-src ${webview.cspSource} https: data:;" />
   <link href="${styleUri}" rel="stylesheet" />
-  <title>Galaxy Code</title>
+  <title>Galaxy Blackhole</title>
 </head>
 <body>
   <div id="app"></div>
-  <script nonce="${nonce}" src="${scriptUri}"></script>
+  <script nonce="${nonce}" src="${scriptUri}${view === "settings" ? "#settings" : ""}"></script>
 </body>
 </html>`;
   }

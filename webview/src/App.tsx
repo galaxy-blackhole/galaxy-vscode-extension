@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { openSettings, setSettingsOpen, settingsOpen, subscribeSettings } from "./settings-store";
+import { openSettingsTab } from "./host-bridge";
 import {
   AssistantRuntimeProvider,
   AuiIf,
@@ -11,7 +11,6 @@ import { useGalaxyUiRuntime } from "./galaxy-ui-runtime";
 import { ApprovalBar } from "./components/ApprovalBar";
 import { Composer } from "./components/Composer";
 import { PlanStrip } from "./components/PlanStrip";
-import { SessionPanel } from "./components/SessionPanel";
 import { ModelSetup } from "./components/ModelSetup";
 import { GearIcon, NewThreadIcon } from "./components/icons";
 import { startNewThread } from "./host-bridge";
@@ -57,7 +56,6 @@ function EmptyState() {
 
 export function App() {
   const [info, setInfo] = useState<HostInfo | null>(currentHostInfo());
-  const setupOpen = useSyncExternalStore(subscribeSettings, settingsOpen);
   const runtime = useGalaxyUiRuntime(info?.workspacePath ?? "");
   const settings = info?.modelSettings ?? null;
   /* No key on the active provider means the first run cannot start: open the panel. */
@@ -70,7 +68,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (needsKey) openSettings();
+    if (needsKey) openSettingsTab();
   }, [needsKey]);
 
   return (
@@ -83,7 +81,7 @@ export function App() {
               <NewThreadIcon />
             </button>
             {settings !== null ? (
-              <button type="button" className="app-icon-btn" aria-label="Cài đặt" title="Cài đặt: model và quyền" onClick={() => setSettingsOpen(!setupOpen)}>
+              <button type="button" className="app-icon-btn" aria-label="Cài đặt" title="Cài đặt: model và quyền" onClick={() => openSettingsTab()}>
                 <GearIcon />
               </button>
             ) : null}
@@ -99,8 +97,6 @@ export function App() {
           <ThreadPrimitive.ScrollToBottom className="scroll-to-bottom">↓</ThreadPrimitive.ScrollToBottom>
         </ThreadPrimitive.Root>
         <ApprovalBar />
-        {setupOpen && settings !== null ? <ModelSetup settings={settings} onClose={() => setSettingsOpen(false)} /> : null}
-        <SessionPanel />
         <PlanStrip />
         <Composer info={info} />
       </div>

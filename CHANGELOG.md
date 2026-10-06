@@ -102,6 +102,15 @@ gói nên dừng ở đó.
 - **Picker model/thinking theo kiểu Codex**: thay danh sách dài bằng một popover gọn — mức suy luận hiện ở
   trên (kèm nút ↺ về mặc định), hàng model ở dưới mở ra danh sách model, và **thanh trượt** với đúng số nấc
   mà model cho phép. Kéo tới nấc nào là ghi ngay mức đó vào `~/.galaxy/config.json`.
+## [2.0.10] - 2026-10-06 20:30 +0700
+
+### Changed
+
+- **Cài đặt mở ra tab riêng** (như Codex): bấm bánh răng ở header là mở tab *Galaxy Blackhole: Cài đặt* trong
+  vùng soạn thảo, không còn tấm overlay trong sidebar.
+- **Trang Cài đặt có 3 phần như blackhole web**: **Chung** (chế độ phê duyệt), **Model** (nhà cung cấp, API
+  key, model) và **Thông tin** (model, endpoint, workspace, nền tảng).
+- **Bỏ thanh Phiên** phía trên khung nhập liệu.
 ## [Unreleased]
 
 ### Changed

@@ -27,10 +27,7 @@ test("the header reads Galaxy Blackhole and its gear opens the settings panel", 
   assert.ok(gear, "the header has a settings button");
   clickElement(booted, gear);
   await new Promise(resolve => setTimeout(resolve, 150));
-  const panel = booted.document.querySelector(".ms-panel");
-  assert.ok(panel, "the settings panel opens from the header");
-  assert.match(panel.textContent ?? "", /Cài đặt/);
-  assert.match(panel.textContent ?? "", /Quyền/, "and it carries the permissions section");
+  assert.ok(booted.posted.some(message => message.type === "settings/open"), "the gear asks the host to open the settings tab: " + JSON.stringify(booted.posted.slice(-2)));
 
   /* The header also offers a new conversation, which asks the host to clear the session. */
   const newThread = booted.document.querySelector('[aria-label="Trò chuyện mới"]');

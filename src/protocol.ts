@@ -36,6 +36,7 @@ export type WebviewToHostMessage =
   | Readonly<{ type: "chat-cancel"; runId: string }>
   | Readonly<{ type: "tool-exec"; requestId: string; name: string; args: Readonly<Record<string, unknown>> }>
   | Readonly<{ type: "ui-ready" }>
+  | Readonly<{ type: "settings/open" }>
   | Readonly<{ type: "open-external"; url: string }>
   | Readonly<{ type: "ui-action"; action: import("./ui-protocol").GalaxyUiAction }>
   | Readonly<{ type: "model-settings/save-key"; providerId: string; apiKey: string }>
@@ -53,7 +54,7 @@ export type OllamaStreamDelta = Readonly<{
 }>;
 
 /** Bump when the shape of host↔webview messages changes. */
-export const HOST_WEBVIEW_PROTOCOL_VERSION = 5;
+export const HOST_WEBVIEW_PROTOCOL_VERSION = 6;
 
 export type HostToWebviewMessage =
   | Readonly<{ type: "chat-delta"; runId: string; delta: OllamaStreamDelta }>
