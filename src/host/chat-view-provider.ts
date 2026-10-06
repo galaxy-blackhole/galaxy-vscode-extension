@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import type { HostToWebviewMessage, WebviewToHostMessage } from "../protocol";
 import { resolveThinkingPolicy, thinkingLabel } from "@galaxy-stack/ai-coder-core";
+import { readPreferences, writePreferences } from "./preferences";
 import { webviewHtml } from "./webview-html";
 import { resolveModelLibraryUrl, resolveOllamaConnection, type OllamaConnection } from "./config";
 import { streamOllamaChat } from "./ollama-client";
@@ -133,6 +134,10 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         this.refreshConnection();
         return;
       }
+      case "preferences/set": {
+        this.post({ type: "preferences", preferences: writePreferences(this.storageRoot, message.patch) });
+        return;
+      }
       case "settings/open": {
         this.openSettingsPanel();
         return;
@@ -140,6 +145,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       case "ui-ready": {
         this.testLog.push("ui-ready");
         this.postThinking();
+        this.post({ type: "preferences", preferences: readPreferences(this.storageRoot) });
         const connection = resolveOllamaConnection();
         this.connection = connection;
         const workspace = vscode.workspace.workspaceFolders?.[0];

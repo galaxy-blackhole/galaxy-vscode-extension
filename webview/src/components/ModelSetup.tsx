@@ -4,6 +4,7 @@ import { setPermissionMode as sendPermissionMode } from "../host-bridge";
 import { getPermissionMode, setPermissionMode as storePermissionMode, subscribePermissionMode } from "../permission-mode";
 import type { ModelSettingsSummary, ProviderApi, ProviderSummary } from "../../../src/model-settings-types";
 import { removeProvider, saveApiKey, saveProvider, setActiveProvider } from "../host-bridge";
+import { useT } from "../i18n";
 
 /**
  * Model setup for the sidebar, mirroring the Galaxy Blackhole web surface:
@@ -82,6 +83,7 @@ function KeyEditor({ provider, onDone }: { provider: ProviderSummary; onDone: ()
 }
 
 function CustomForm({ onDone }: { onDone: () => void }) {
+  const t = useT();
   const [draft, setDraft] = useState<CustomDraft>(EMPTY_DRAFT);
   const [error, setError] = useState<string | null>(null);
   const update = (patch: Partial<CustomDraft>): void => setDraft(current => ({ ...current, ...patch }));
@@ -106,20 +108,20 @@ function CustomForm({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="ms-form">
-      <label className="ms-label" htmlFor="ms-custom-id">ID nhà cung cấp</label>
+      <label className="ms-label" htmlFor="ms-custom-id">{t("ID nhà cung cấp")}</label>
       <input id="ms-custom-id" className="ms-input" value={draft.id} placeholder="my-gateway"
         onChange={(event) => update({ id: event.target.value })} />
-      <p className="ms-hint">Định danh chữ thường, bắt đầu bằng chữ cái; dùng làm tên provider và tên thông tin xác thực.</p>
+      <p className="ms-hint">{t("Định danh chữ thường, bắt đầu bằng chữ cái; dùng làm tên provider và tên thông tin xác thực.")}</p>
 
-      <label className="ms-label" htmlFor="ms-custom-name">Tên hiển thị</label>
-      <input id="ms-custom-name" className="ms-input" value={draft.displayName} placeholder="Dùng ID khi để trống"
+      <label className="ms-label" htmlFor="ms-custom-name">{t("Tên hiển thị")}</label>
+      <input id="ms-custom-name" className="ms-input" value={draft.displayName} placeholder={t("Dùng ID khi để trống")}
         onChange={(event) => update({ displayName: event.target.value })} />
 
       <label className="ms-label" htmlFor="ms-custom-api">Giao thức API</label>
       <select id="ms-custom-api" className="ms-input" value={draft.api}
         onChange={(event) => update({ api: event.target.value as ProviderApi })}>
-        <option value="ollama">Ollama (runtime hiện tại)</option>
-        <option value="openai-completions">OpenAI-compatible — chưa được runtime hỗ trợ</option>
+        <option value="ollama">{t("Ollama (runtime hiện tại)")}</option>
+        <option value="openai-completions">{t("OpenAI-compatible — chưa được runtime hỗ trợ")}</option>
       </select>
 
       <label className="ms-label" htmlFor="ms-custom-url">Base URL</label>
@@ -133,19 +135,20 @@ function CustomForm({ onDone }: { onDone: () => void }) {
 
       <label className="ms-label" htmlFor="ms-custom-key">API key (tuỳ chọn)</label>
       <input id="ms-custom-key" className="ms-input" type="password" autoComplete="off" value={draft.apiKey}
-        placeholder="Để trống nếu endpoint không cần xác thực"
+        placeholder={t("Để trống nếu endpoint không cần xác thực")}
         onChange={(event) => update({ apiKey: event.target.value })} />
 
       {error !== null ? <p className="ms-error">{error}</p> : null}
       <div className="ms-actions">
         <button type="button" className="ms-btn" onClick={onDone}>Huỷ</button>
-        <button type="button" className="ms-btn ms-btn-primary" onClick={submit}>Tạo nhà cung cấp</button>
+        <button type="button" className="ms-btn ms-btn-primary" onClick={submit}>{t("Tạo nhà cung cấp")}</button>
       </div>
     </div>
   );
 }
 
 export function ModelSetup({ settings }: { settings: ModelSettingsSummary }) {
+  const t = useT();
   const [editing, setEditing] = useState<string | null>(null);
   const permissionMode = useSyncExternalStore(subscribePermissionMode, getPermissionMode);
   const [mode, setMode] = useState<"idle" | "catalog" | "custom">("idle");
@@ -155,10 +158,10 @@ export function ModelSetup({ settings }: { settings: ModelSettingsSummary }) {
   );
 
   return (
-    <section className="ms-panel" aria-label="Cài đặt">
+    <section className="ms-panel" aria-label={t("Cài đặt")}>
 
       {missingKey ? (
-        <p className="ms-warning">Chưa có API key cho nhà cung cấp đang dùng. Nhập key để bắt đầu.</p>
+        <p className="ms-warning">{t("Chưa có API key cho nhà cung cấp đang dùng. Nhập key để bắt đầu.")}</p>
       ) : null}
 
       {settings.providers.map(provider => (
@@ -176,9 +179,7 @@ export function ModelSetup({ settings }: { settings: ModelSettingsSummary }) {
               Sửa
             </button>
             {settings.providers.length > 1 ? (
-              <button type="button" className="ms-btn ms-btn-ghost" onClick={() => removeProvider(provider.id)} aria-label={`Xoá ${provider.displayName}`}>
-                Xoá
-              </button>
+              <button type="button" className="ms-btn ms-btn-ghost" onClick={() => removeProvider(provider.id)} aria-label={`Xoá ${provider.displayName}`}>{t("Xoá")}</button>
             ) : null}
           </div>
           <p className="ms-meta">{provider.api === "ollama" ? "Ollama" : "OpenAI-compatible"} · {provider.baseUrl}

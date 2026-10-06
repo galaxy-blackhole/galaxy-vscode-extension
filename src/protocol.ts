@@ -20,6 +20,7 @@ export type OllamaChatMessage = Readonly<{
 
 import type { GalaxyUiEvent } from "./ui-protocol";
 import type { ModelSettingsSummary } from "./model-settings-types";
+import type { UiPreferences } from "./preferences-types";
 
 /** One provider draft the model-setup panel submits. */
 export type ProviderDraft = Readonly<{
@@ -37,6 +38,7 @@ export type WebviewToHostMessage =
   | Readonly<{ type: "tool-exec"; requestId: string; name: string; args: Readonly<Record<string, unknown>> }>
   | Readonly<{ type: "ui-ready" }>
   | Readonly<{ type: "settings/open" }>
+  | Readonly<{ type: "preferences/set"; patch: Partial<UiPreferences> }>
   | Readonly<{ type: "open-external"; url: string }>
   | Readonly<{ type: "ui-action"; action: import("./ui-protocol").GalaxyUiAction }>
   | Readonly<{ type: "model-settings/save-key"; providerId: string; apiKey: string }>
@@ -54,7 +56,7 @@ export type OllamaStreamDelta = Readonly<{
 }>;
 
 /** Bump when the shape of host↔webview messages changes. */
-export const HOST_WEBVIEW_PROTOCOL_VERSION = 6;
+export const HOST_WEBVIEW_PROTOCOL_VERSION = 7;
 
 export type HostToWebviewMessage =
   | Readonly<{ type: "chat-delta"; runId: string; delta: OllamaStreamDelta }>
@@ -69,5 +71,6 @@ export type HostToWebviewMessage =
   /* Test-only: the extension-host suite drives the webview the way a click would (see test/vscode). */
   | Readonly<{ type: "test/command"; command: Readonly<{ kind: "submit"; text: string } | { kind: "open-session"; id: string }> }>
   | Readonly<{ type: "session-list"; sessions: readonly Readonly<{ id: string; messageCount: number; title: string; updatedAt: string }>[] }>
+  | Readonly<{ type: "preferences"; preferences: UiPreferences }>
   | Readonly<{ type: "thinking"; choice: string; options: readonly Readonly<{ label: string; value: string }>[] }>
   | Readonly<{ type: "session-loaded"; id: string | null; messages: readonly Readonly<{ content: string; role: "assistant" | "user" }>[]; title: string }>;

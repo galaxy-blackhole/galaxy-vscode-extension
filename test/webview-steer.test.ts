@@ -7,8 +7,15 @@ import { bootWebview, clickElement } from "./helpers/webview-harness.ts";
 
 const tick = () => new Promise(resolve => setTimeout(resolve, 150));
 
+/** The host owns the preferences; a panel learns them from this broadcast. */
+function seedPreferences(booted: Awaited<ReturnType<typeof bootWebview>>, patch: Record<string, unknown>): void {
+  const preferences = { fontSize: 15, locale: "vi", nextMessage: "queue", workDetail: "standard", ...patch };
+  booted.window.dispatchEvent(new booted.window.MessageEvent("message", { data: { type: "preferences", preferences } }));
+}
+
 test("with steering on, a message sent while a run is live cancels it and starts the new one", async () => {
-  const booted = await bootWebview({ preferences: { nextMessage: "steer" } });
+  const booted = await bootWebview();
+  seedPreferences(booted, { nextMessage: "steer" });
   booted.window.dispatchEvent(new booted.window.MessageEvent("message", { data: { type: "ui-event", event: { kind: "run/status", status: "running" } } }));
   await tick();
   const box = booted.document.querySelector(".composer-card-input") as HTMLTextAreaElement;
@@ -27,7 +34,9 @@ test("with steering on, a message sent while a run is live cancels it and starts
 });
 
 test("the language setting translates the interface", async () => {
-  const booted = await bootWebview({ preferences: { locale: "en" } });
+  const booted = await bootWebview();
+  seedPreferences(booted, { locale: "en" });
+  await tick();
   assert.equal((booted.document.querySelector(".composer-card-input") as HTMLTextAreaElement).getAttribute("placeholder"), "Ask anything");
   assert.match(booted.document.querySelector(".composer-card")?.textContent ?? "", /Approve for me|Ask before acting|Full access/, "the permission chip speaks English too");
 });

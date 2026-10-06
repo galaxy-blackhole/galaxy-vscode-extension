@@ -13,7 +13,7 @@ import { getUiState, subscribeUiState } from "../ui-store";
 import { openSettings } from "../settings-store";
 import { useT } from "../i18n";
 import { steerRun } from "../galaxy-ui-runtime";
-import { getPreferences, subscribePreferences } from "../preferences";
+import { getPreferences, subscribePreferenceChanges } from "../preferences";
 import { openExternal, type HostInfo } from "../host-bridge";
 
 interface ModeOption {
@@ -292,7 +292,7 @@ function ModelChip({ info }: { info: HostInfo | null }) {
 export function Composer({ info }: { info: HostInfo | null }) {
   const t = useT();
   const cardRef = useRef<HTMLDivElement>(null);
-  const preferences = useSyncExternalStore(subscribePreferences, getPreferences);
+  const preferences = useSyncExternalStore(subscribePreferenceChanges, getPreferences);
   /* Steering reads the box straight from the DOM: this assistant-ui build exposes no composer runtime. */
   const steer = () => {
     const box = cardRef.current?.querySelector<HTMLTextAreaElement>(".composer-card-input");

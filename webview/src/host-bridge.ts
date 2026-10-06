@@ -1,6 +1,7 @@
 import { submitPrompt } from "./galaxy-ui-runtime";
 import {
   emitHostInfo,
+  emitPreferences,
   emitNewThread,
   emitPendingApproval,
   emitSessionMessage,
@@ -14,6 +15,7 @@ import type { HostToWebviewMessage, ProviderDraft } from "../../src/protocol";
 
 export {
   subscribeHostInfo,
+  subscribePreferences,
   subscribeNewThread,
   subscribePendingApprovals,
   subscribeSessionMessages,
@@ -200,6 +202,9 @@ if (typeof window !== "undefined") {
       case "host-info":
         hostInfo = message;
         emitHostInfo(message);
+        return;
+      case "preferences":
+        emitPreferences(message.preferences);
         return;
       case "thinking":
         emitThinking(message);

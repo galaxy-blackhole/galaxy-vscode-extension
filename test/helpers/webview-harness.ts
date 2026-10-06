@@ -37,7 +37,7 @@ function asDom<T>(value: unknown): T {
 }
 
 /** Boot one webview instance and return it with everything the host was told. */
-export async function bootWebview(options: Readonly<{ preferences?: Record<string, unknown> }> = {}): Promise<BootedWebview> {
+export async function bootWebview(): Promise<BootedWebview> {
   const window = new Window({ url: "https://localhost/" });
   const posted: PostedMessage[] = [];
   const global = globalThis as unknown as Record<string, unknown>;
@@ -54,15 +54,7 @@ export async function bootWebview(options: Readonly<{ preferences?: Record<strin
   (window as unknown as Record<string, unknown>).acquireVsCodeApi = () => bridge;
   const document = asDom<Document>(window.document);
   document.body.innerHTML = '<div id="app"></div>';
-  /* Preferences are read once, when the bundle runs, so the test seeds them before evaluating it. */
-  if (options.preferences !== undefined) {
-    /* happy-dom's storage is not reliably writable here, so the test seeds a plain stub. */
-    const seeded = JSON.stringify(options.preferences);
-    Object.defineProperty(window, "localStorage", {
-      configurable: true,
-      value: { getItem: (key: string) => (key === "galaxy.preferences.v1" ? seeded : null), removeItem() { /* noop */ }, setItem() { /* noop */ } },
-    });
-  }
+
   /* The runner always starts at the package root, which is also where `yarn compile` writes. */
   new Function(readFileSync(join(process.cwd(), "dist", "webview", "chat.js"), "utf8"))();
   await new Promise(resolve => setTimeout(resolve, 400));

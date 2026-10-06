@@ -651,3 +651,13 @@ html, body, #app {
 /* Steering button: the same arrow, outlined while a run is live. */
 .composer-shell { display: contents; }
 .composer-steer { border: 1px solid var(--vscode-focusBorder, #4a9eff) !important; }
+
+/* Readability: the conversation and the settings follow the chosen size, with a roomier base. */
+.app-shell { font-size: var(--ui-font-size, 15px); }
+.thread-viewport, .composer-card-input { font-size: var(--ui-font-size, 15px); }
+.settings-page { font-size: calc(var(--ui-font-size, 15px) - 1.5px); }
+.settings-row-label { font-size: 1em; }
+.settings-row-desc { font-size: 0.84em; }
+.settings-select, .settings-number, .settings-link { font-size: 0.9em; }
+.settings-tab, .settings-title { font-size: 0.97em; }
+.settings-h1 { font-size: 1.5em; }

@@ -8,7 +8,7 @@ import { ModelSetup } from "./components/ModelSetup";
 import { announceReady, currentHostInfo, openExternal, setPermissionMode as sendPermissionMode, subscribeHostInfo, type HostInfo } from "./host-bridge";
 import { ZALO_QR_URI } from "./zalo-qr";
 import { getPermissionMode, setPermissionMode, subscribePermissionMode } from "./permission-mode";
-import { getPreferences, setPreferences, subscribePreferences, type Locale, type NextMessage, type WorkDetail } from "./preferences";
+import { getPreferences, setPreferences, subscribePreferenceChanges, type Locale, type NextMessage, type WorkDetail } from "./preferences";
 import { useT } from "./i18n";
 
 const SECTIONS = ["Chung", "Model", "Thông tin"] as const;
@@ -30,7 +30,7 @@ export function SettingsPage() {
   const [section, setSection] = useState<Section>("Chung");
   const [info, setInfo] = useState<HostInfo | null>(currentHostInfo());
   const mode = useSyncExternalStore(subscribePermissionMode, getPermissionMode);
-  const preferences = useSyncExternalStore(subscribePreferences, getPreferences);
+  const preferences = useSyncExternalStore(subscribePreferenceChanges, getPreferences);
   const t = useT();
   useEffect(() => { announceReady(); return subscribeHostInfo(setInfo); }, []);
 

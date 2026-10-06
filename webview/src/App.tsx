@@ -15,7 +15,7 @@ import { GearIcon, NewThreadIcon } from "./components/icons";
 import { startNewThread } from "./host-bridge";
 import { ReasoningPart, TextPart, ToolFallback } from "./components/parts";
 import { announceReady, currentHostInfo, subscribeHostInfo, type HostInfo } from "./host-bridge";
-import { getPreferences, subscribePreferences } from "./preferences";
+import { getPreferences, subscribePreferenceChanges } from "./preferences";
 import { useT } from "./i18n";
 
 function UserMessage() {
@@ -61,7 +61,7 @@ export function App() {
   const runtime = useGalaxyUiRuntime(info?.workspacePath ?? "");
   const settings = info?.modelSettings ?? null;
   /* Đổi cỡ chữ trong Cài đặt là đổi luôn nội dung hội thoại. */
-  const fontSize = useSyncExternalStore(subscribePreferences, getPreferences).fontSize;
+  const fontSize = useSyncExternalStore(subscribePreferenceChanges, getPreferences).fontSize;
   useEffect(() => { document.documentElement.style.setProperty("--ui-font-size", fontSize + "px"); }, [fontSize]);
   /* No key on the active provider means the first run cannot start: open the panel. */
   const needsKey = settings !== null && info?.credentialSource !== "environment"

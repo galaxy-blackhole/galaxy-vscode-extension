@@ -3,7 +3,7 @@
  * text, so a call site reads t("Cài đặt") and the English comes from the table below.
  */
 import { useSyncExternalStore } from "react";
-import { getPreferences, subscribePreferences, type Locale } from "./preferences";
+import { getPreferences, subscribePreferenceChanges, type Locale } from "./preferences";
 
 const EN: Readonly<Record<string, string>> = Object.freeze({
   "Trò chuyện mới": "New conversation",
@@ -75,6 +75,28 @@ const EN: Readonly<Record<string, string>> = Object.freeze({
   "Toàn quyền": "Full access",
   "Yêu cầu duyệt": "Ask first",
   "Duyệt giúp tôi": "Approve for me",
+  "Kế hoạch của lượt chạy": "Plan for this run",
+  "Duyệt kế hoạch và cho phép sửa workspace": "Approve the plan and allow workspace edits",
+  "Bật chế độ kế hoạch chỉ-đọc": "Turn on the read-only plan mode",
+  "Lập kế hoạch": "Plan mode",
+  "KẾ HOẠCH · duyệt": "PLAN · review",
+  "ID nhà cung cấp": "Provider id",
+  "Định danh chữ thường, bắt đầu bằng chữ cái; dùng làm tên provider và tên thông tin xác thực.": "A lowercase identifier starting with a letter; it names the provider and its credential.",
+  "Tên hiển thị": "Display name",
+  "Ollama (runtime hiện tại)": "Ollama (current runtime)",
+  "OpenAI-compatible — chưa được runtime hỗ trợ": "OpenAI-compatible — not supported by the runtime yet",
+  "Tạo nhà cung cấp": "Create provider",
+  "Chưa có API key cho nhà cung cấp đang dùng. Nhập key để bắt đầu.": "No API key for the active provider yet. Add one to begin.",
+  "Dùng ID khi để trống": "Uses the id when empty",
+  "Để trống nếu endpoint không cần xác thực": "Leave empty when the endpoint needs no authentication",
+  "Sửa": "Edit",
+  "Thêm nhà cung cấp model": "Add a model provider",
+  "Thêm nhà cung cấp tuỳ chỉnh": "Add a custom provider",
+  "Tuỳ chỉnh": "Custom",
+  "Khoá API": "API key",
+  "Lưu": "Save",
+  "Huỷ": "Cancel",
+  "Xoá": "Remove",
 });
 
 /** Translate one Vietnamese string; anything missing from the table stays as it is. */
@@ -84,6 +106,6 @@ export function translate(text: string, locale: Locale): string {
 
 /** Translate into the language the settings chose; components re-render when it changes. */
 export function useT(): (text: string) => string {
-  const locale = useSyncExternalStore(subscribePreferences, getPreferences).locale;
+  const locale = useSyncExternalStore(subscribePreferenceChanges, getPreferences).locale;
   return (text: string) => translate(text, locale);
 }

@@ -1,5 +1,5 @@
 import { useState, useSyncExternalStore } from "react";
-import { getPreferences, subscribePreferences } from "../preferences";
+import { getPreferences, subscribePreferenceChanges } from "../preferences";
 import type { ToolCallMessagePartComponent } from "@assistant-ui/react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 
@@ -26,7 +26,7 @@ function preview(value: unknown, max = 800): string {
 
 export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(props) {
   /* "Gọn" hides the args/result detail so a long run reads as a list of tool names. */
-  const compact = useSyncExternalStore(subscribePreferences, getPreferences).workDetail === "compact";
+  const compact = useSyncExternalStore(subscribePreferenceChanges, getPreferences).workDetail === "compact";
   const [open, setOpen] = useState(false);
   const part = props;
   const running = part.status?.type === "running";

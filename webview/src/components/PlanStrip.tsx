@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { dispatchUiAction } from "../host-bridge";
 import { getUiState, subscribeUiState } from "../ui-store";
+import { useT } from "../i18n";
 
 /** Marks match the TUI strip so the same plan reads the same on both surfaces. */
 const MARKS: Readonly<Record<"completed" | "in_progress" | "pending" | "skipped", string>> = Object.freeze({
@@ -15,6 +16,7 @@ const MARKS: Readonly<Record<"completed" | "in_progress" | "pending" | "skipped"
  * It hides itself when the run has no plan, and doubles as the plan-mode control.
  */
 export function PlanStrip() {
+  const t = useT();
   const { plan, planMode } = useSyncExternalStore(subscribeUiState, getUiState);
   const steps = plan?.steps ?? [];
   if (steps.length === 0 && !planMode) return null;
@@ -22,7 +24,7 @@ export function PlanStrip() {
   const done = steps.filter((step) => step.status === "completed");
   const visible = [...active, ...done].slice(0, 6);
   return (
-    <div className="plan-strip" aria-label="Kế hoạch của lượt chạy">
+    <div className="plan-strip" aria-label={t("Kế hoạch của lượt chạy")}>
       <div className="plan-steps">
         {visible.map((step) => (
           <span key={step.id} className={"plan-step" + (step.status === "in_progress" ? " plan-step-active" : "")}>

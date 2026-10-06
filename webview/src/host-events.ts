@@ -6,6 +6,7 @@
 import type { GalaxyUiEvent } from "../../src/ui-protocol";
 import type { HostToWebviewMessage } from "../../src/protocol";
 import type { ModelSettingsSummary } from "../../src/model-settings-types";
+import type { UiPreferences } from "../../src/preferences-types";
 
 export type HostInfo = Readonly<{
   workspaceName: string;
@@ -31,6 +32,7 @@ const sessionListeners = new Set<(message: SessionMessage) => void>();
 const thinkingListeners = new Set<(message: ThinkingMessage) => void>();
 const infoListeners = new Set<(info: HostInfo) => void>();
 const newThreadListeners = new Set<() => void>();
+const preferencesListeners = new Set<(preferences: UiPreferences) => void>();
 
 export function subscribeUiEvents(listener: UiEventListener): () => void {
   uiEventListeners.add(listener);
@@ -61,6 +63,15 @@ export function subscribeHostInfo(listener: (info: HostInfo) => void): () => voi
 export function subscribeNewThread(listener: () => void): () => void {
   newThreadListeners.add(listener);
   return () => newThreadListeners.delete(listener);
+}
+
+export function subscribePreferences(listener: (preferences: UiPreferences) => void): () => void {
+  preferencesListeners.add(listener);
+  return () => preferencesListeners.delete(listener);
+}
+
+export function emitPreferences(preferences: UiPreferences): void {
+  for (const listener of preferencesListeners) listener(preferences);
 }
 
 export function emitUiEvent(event: GalaxyUiEvent): void {

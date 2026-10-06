@@ -144,6 +144,13 @@ gói nên dừng ở đó.
   Kèm đó là một bug thật: runtime chỉ đọc state **một lần** nên `isRunning` không cập nhật — nay đã subscribe.
 - **i18n phủ thêm**: màn hình trống, toàn bộ tab **Cài đặt** (nhãn, mô tả, các lựa chọn), nhãn ngắn của chip
   quyền và tên các mức suy luận. Chưa bọc: pane Model, thẻ tool và dải kế hoạch.
+- **Sửa gốc lỗi cỡ chữ không có tác dụng**: hai webview (panel chat và tab Cài đặt) là **hai document riêng** nên
+  `localStorage` không chia sẻ ✗ — đổi cỡ chữ bên Cài đặt thì panel chat không hề biết. Preferences nay do **host**
+  giữ (`src/host/preferences.ts`, ghi vào global storage) và host phát cho **cả hai** webview, giống permission mode.
+- **Chữ to hơn, đọc dễ hơn**: mặc định 15px (khoảng chọn 12–22), áp cho nội dung hội thoại, ô nhập và cả trang
+  Cài đặt (nhãn/mô tả/ô chọn theo cỡ đó).
+- **i18n nốt phần còn lại**: dải kế hoạch (PlanStrip) và pane **Model** (ModelSetup) đã bọc `t()` — thêm 22 cặp
+  dịch. Đổi sang English là đổi cả hai chỗ này.
 - Bỏ 2 test của thanh Phiên (đã gỡ theo yêu cầu) và thay bằng test chốt: khung nhập liệu không còn thanh đó,
   và message phiên vẫn không làm hỏng view.
 
