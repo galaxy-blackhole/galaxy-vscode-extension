@@ -1,18 +1,19 @@
 /**
  * Runs inside the VS Code extension host.
  *
- * A suite is just a module exporting run(); mocha is a convention, not a requirement, and these are
- * smoke assertions: activate, contribute, open the panel, and see that the webview got there.
+ * Layer 4 is about the pieces only a real editor can exercise: does it activate, are the commands
+ * there, does the sidebar view open without falling over, and does one whole goal — connection, core,
+ * tool executor, session store — actually run. The model is a scripted local endpoint the runner
+ * starts; everything else is the real extension.
  */
 const assert = require("node:assert/strict");
+const fs = require("node:fs/promises");
+const path = require("node:path");
 const vscode = require("vscode");
 
 const EXTENSION_ID = "kevinbui.galaxy-code-vscode";
 const COMMANDS = ["galaxy-code.openChat", "galaxy-code.newThread", "galaxy-code.openWeb"];
-
-function openTabs() {
-  return vscode.window.tabGroups.all.reduce((total, group) => total + group.tabs.length, 0);
-}
+const GOAL = "Đếm các tệp ở gốc workspace giúp tôi";
 
 async function run() {
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
@@ -22,25 +23,24 @@ async function run() {
 
   const commands = await vscode.commands.getCommands(true);
   for (const id of COMMANDS) assert.ok(commands.includes(id), "the command is contributed: " + id);
+  await vscode.commands.executeCommand("galaxy-code.openChat");
+  console.log("[galaxy] activation, contributions and the chat view opened cleanly");
 
-  const before = openTabs();
-  const returned = await vscode.commands.executeCommand("galaxy-code.openChat");
-  console.log("[galaxy] openChat returned: " + JSON.stringify(returned ?? null));
-  console.log("[galaxy] tabs: " + vscode.window.tabGroups.all.flatMap(group => group.tabs.map(tab => tab.label + " <" + tab.input?.constructor?.name + ">")).join(", "));
-  const deadline = Date.now() + 15000;
-  while (openTabs() === before && Date.now() < deadline) {
-    await new Promise(resolve => setTimeout(resolve, 250));
-  }
-  console.log("[galaxy] tab count before/after: " + String(before) + "/" + String(openTabs()));
-  if (openTabs() === before) {
-    /* A webview panel does not always register as a tab in the extension host (it depends on where
-       VS Code seats it), so this half of the smoke reports instead of failing the whole run; the
-       webview suite asserts the panel's contents against the real bundle. */
-    console.log("[galaxy] note: no new tab observed; panel visibility is asserted by the webview suite");
-  } else {
-    console.log("[galaxy] extension host smoke passed (" + String(openTabs() - before) + " tab opened)");
-  }
-  console.log("[galaxy] extension host smoke passed (" + String(openTabs() - before) + " tab opened)");
+  const report = await vscode.commands.executeCommand("galaxy-code.__e2e", { goal: GOAL });
+  assert.ok(report, "the probe answered");
+  assert.equal(report.state, "completed", "the run completed: " + JSON.stringify(report.error));
+  assert.ok(Array.isArray(report.mcpServers), "the probe reports the workspace's MCP servers");
+  assert.ok(report.sessions.length >= 1, "the run left a session behind");
+
+  const document = JSON.parse(await fs.readFile(path.join(report.storageRoot, "sessions", report.sessionId + ".json"), "utf8"));
+  assert.equal(document.title, GOAL, "the session is titled by its first message");
+  assert.ok(document.messages.some(turn => turn.role === "user" && turn.content === GOAL), "the question is in the history");
+  const answers = document.messages.filter(turn => turn.role === "assistant");
+  assert.ok(answers.length >= 1 && answers[0].content.length > 0, "and so is the report");
+  assert.ok(report.sessions.every(item => typeof item.id === "string" && item.messageCount >= 1), "the list carries the stored sessions");
+
+  console.log("[galaxy] flow ok: run completed with " + String(document.messages.length) + " turns in session " + report.sessionId);
+  console.log("[galaxy] extension host flows passed");
 }
 
 module.exports = { run };

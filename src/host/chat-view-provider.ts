@@ -4,6 +4,8 @@ import { resolveModelLibraryUrl, resolveOllamaConnection, type OllamaConnection 
 import { streamOllamaChat } from "./ollama-client";
 import { startCoreRun, type CoreRunSession } from "./core-run-session";
 import { appendSessionTurn, createSession, deleteSession, listSessions, readSession } from "./session-store";
+import type { AgentTool } from "@galaxy-stack/ai-coder-core/agent";
+import { connectWorkspaceMcp, workspaceMcpServers, type WorkspaceMcpHandle } from "./workspace-mcp";
 import type { PermissionMode } from "./core-tool-executor";
 import type { GalaxyUiAction } from "../ui-protocol";
 import {
@@ -212,6 +214,28 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   /** The Galaxy session this view shows; created lazily by the first run. */
   private sessionId: string | null = null;
 
+  /** The workspace's MCP servers, connected once per window and reused for every run. */
+  private mcp: Promise<WorkspaceMcpHandle | null> | null = null;
+
+  private async mcpTools(): Promise<readonly AgentTool[]> {
+    const workspaceRoot = this.workspaceRoot;
+    const storageRoot = this.sessionsRoot;
+    if (workspaceRoot === null || storageRoot === null) return [];
+    if (this.mcp === null) {
+      const servers = workspaceMcpServers(workspaceRoot);
+      this.mcp = servers.length === 0
+        ? Promise.resolve(null)
+        : connectWorkspaceMcp({ servers, stateDir: storageRoot }).catch(() => null);
+    }
+    const handle = await this.mcp;
+    if (handle === null) return [];
+    try {
+      return await handle.tools();
+    } catch {
+      return [];
+    }
+  }
+
   /** Whether history can be kept at all: without a storage root there is nowhere safe to write. */
   private get sessionsRoot(): string | null {
     return typeof this.storageRoot === "string" && this.storageRoot.length > 0 ? this.storageRoot : null;
@@ -274,6 +298,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
             compactOnStart,
             connection: this.connection,
             goal: action.input,
+            mcpTools: await this.mcpTools(),
             onEvent: (event) => this.post({ type: "ui-event", event }),
             onPendingApproval: (pending) => this.post({
               type: "pending-approval",
@@ -289,9 +314,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
           });
           const result = await this.session.handle.result;
           if (sessionsRoot !== null && this.sessionId !== null) {
-            const finalReport = (result as { finalReport?: unknown }).finalReport;
-            const report = typeof finalReport === "string" ? finalReport.trim() : "";
-            const text = report.length > 0 ? report : (result.error?.message ?? "");
+            /* The runtime hands the final assistant text back as content; a failed run explains itself. */
+            const text = result.content.trim().length > 0 ? result.content.trim() : (result.error?.message ?? "");
             if (text.length > 0) await appendSessionTurn(sessionsRoot, this.sessionId, "assistant", text);
             await this.postSessionList();
           }

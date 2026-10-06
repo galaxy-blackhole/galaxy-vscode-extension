@@ -33,6 +33,8 @@ export interface CoreToolExecutorOptions {
   readonly capabilities: ModelCapabilities;
   readonly context: RunExecutionContext;
   readonly hasGit: boolean;
+  /** Tools the workspace's own MCP servers expose; the host connects them before the run. */
+  readonly mcpTools?: readonly AgentTool[];
   readonly onPendingApproval: ApprovalEmitter;
   readonly permissionMode: () => PermissionMode;
   readonly spill: FileToolOutputSpill;
@@ -90,7 +92,7 @@ export async function createCoreToolExecutor(options: CoreToolExecutorOptions): 
   const executors: AiCoderRuntimeToolExecutor[] = [hostTools];
   /* Outside a Git repository the snapshot reviewer is what attests inspect/diff evidence. */
   if (!options.hasGit) executors.push(await NodeWorkspaceReviewExecutor.create(workspace, options.context));
-  executors.push(new AgentToolExecutor(toolOutputReader(options.spill), async () => true));
+  executors.push(new AgentToolExecutor([...toolOutputReader(options.spill), ...(options.mcpTools ?? [])], async () => true));
 
   return new CompositeToolExecutor(executors);
 }

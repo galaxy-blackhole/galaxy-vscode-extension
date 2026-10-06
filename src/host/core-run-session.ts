@@ -8,6 +8,7 @@ import {
 import type { OllamaConnection } from "./config";
 import { createOllamaCoreModel } from "./core-model";
 import { createEvidenceVerifier, createDurableRunStore, FileToolOutputSpill, NdjsonTracePort } from "./core-host";
+import type { AgentTool } from "@galaxy-stack/ai-coder-core/agent";
 import { createCoreToolExecutor, detectGitWorkTree, type PendingApproval, type PermissionMode } from "./core-tool-executor";
 
 export type GalaxyUiEventSink = (event: import("../ui-protocol").GalaxyUiEvent) => void;
@@ -36,6 +37,7 @@ export interface StartCoreRunOptions {
   goal: string;
   onEvent: GalaxyUiEventSink;
   onPendingApproval: (pending: PendingApproval) => void;
+  mcpTools?: readonly AgentTool[];
   permissionMode: PermissionMode;
   /** Extension global storage: checkpoints, traces, and spilled output live here, never in the workspace. */
   storageRoot: string;
@@ -83,6 +85,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
     capabilities,
     context,
     hasGit,
+    ...(options.mcpTools === undefined ? {} : { mcpTools: options.mcpTools }),
     onPendingApproval: (pending) => {
       pendingApprovals.set(pending.requestId, pending.resolve);
       options.onPendingApproval(pending);

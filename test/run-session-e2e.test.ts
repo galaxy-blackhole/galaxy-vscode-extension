@@ -63,6 +63,9 @@ test("a run streams to the UI, calls a workspace tool and lands in the run store
     assert.ok(bodies.some(body => body.includes("Liệt kê workspace")), "the goal reaches the model");
     const stored = await readdir(storage, { recursive: true });
     assert.ok(stored.length > 0, "the run store wrote under storageRoot");
+    assert.equal(result.content.trim().length > 0, true, "a completed run hands back the assistant's text: " + JSON.stringify(result.content));
+    const kindsSeen = kinds.join(",");
+    assert.match(kindsSeen, /run\/status/, "the status reached the webview: " + kindsSeen);
   } finally {
     server.close();
     await rm(workspace, { recursive: true, force: true });
