@@ -60,18 +60,19 @@ test("each composer chip says what it is, and the menus stay inside the sidebar"
   const modelChip = chips.find(chip => chip.textContent?.includes("kimi-k2.7-code:cloud"))!;
   clickElement(booted, modelChip);
   await new Promise(resolve => setTimeout(resolve, 150));
-  const slider = booted.document.querySelector(".thinking-slider");
+  const slider = booted.document.querySelector(".thinking-track");
   assert.ok(slider, "the popover shows a thinking slider");
-  assert.equal(slider.getAttribute("max"), "2", "one stop per level the policy allows");
+  assert.equal(slider.getAttribute("aria-valuemax"), "2", "one stop per level the policy allows");
   assert.equal(booted.document.querySelector(".thinking-value")?.textContent, "Mặc định");
 
   /* Dragging it to the last stop stores that level. */
-  /* React only sees a change through the native value setter, not a plain assignment. */
-  const nativeSetter = Object.getOwnPropertyDescriptor(booted.window.HTMLInputElement.prototype, "value")!.set!;
-  nativeSetter.call(slider, "2");
-  slider.dispatchEvent(new booted.window.Event("input", { bubbles: true }) as unknown as Event);
+  /* Every level is a labelled button, so a pick is a plain click. */
+  const levels = Array.from(booted.document.querySelectorAll(".thinking-level")).map(level => level.textContent ?? "");
+  assert.deepEqual(levels, ["Mặc định", "Vừa", "Cao"], "one label per level the policy allows: " + JSON.stringify(levels));
+  const high = Array.from(booted.document.querySelectorAll(".thinking-level")).find(level => level.textContent === "Cao")!;
+  clickElement(booted, high);
   await new Promise(resolve => setTimeout(resolve, 150));
-  assert.ok(booted.posted.some(message => message.type === "model-settings/set-thinking" && (message as { choice?: string }).choice === "high"), "the slider writes the level: " + JSON.stringify(booted.posted.slice(-2)));
+  assert.ok(booted.posted.some(message => message.type === "model-settings/set-thinking" && (message as { choice?: string }).choice === "high"), "picking a level tells the host: " + JSON.stringify(booted.posted.slice(-2)));
 
   /* The model row opens the list of the provider's models. */
   clickElement(booted, booted.document.querySelector(".thinking-model")!);

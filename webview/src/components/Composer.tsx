@@ -112,19 +112,115 @@ function useDismiss(open: boolean, close: () => void, rootRef: React.RefObject<H
   }, [open, close, rootRef]);
 }
 
+/**
+ * The reasoning slider: drawn by hand because a native range input cannot show the level names, and because
+ * its value came from the host, so a drag snapped back until the round-trip finished.
+ */
+function ThinkingSlider({
+  options,
+  index,
+  onPick,
+}: {
+  options: readonly Readonly<{ label: string; value: string }>[];
+  index: number;
+  onPick: (value: string) => void;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);
+  const last = Math.max(0, options.length - 1);
+  const ratio = last === 0 ? 0 : index / last;
+  const pickAt = (clientX: number) => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0 || last === 0) return;
+    const stop = Math.min(last, Math.max(0, Math.round(((clientX - rect.left) / rect.width) * last)));
+    const value = options[stop]?.value;
+    if (value !== undefined && value !== options[index]?.value) onPick(value);
+  };
+  const step = (delta: number) => {
+    const stop = Math.min(last, Math.max(0, index + delta));
+    if (stop !== index) onPick(options[stop]!.value);
+  };
+  return (
+    <div className="thinking-slider-wrap">
+      <div
+        ref={trackRef}
+        className="thinking-track"
+        role="slider"
+        tabIndex={0}
+        aria-label="Mức suy luận"
+        aria-valuemin={0}
+        aria-valuemax={last}
+        aria-valuenow={index}
+        aria-valuetext={options[index]?.label ?? ""}
+        onPointerDown={event => {
+          draggingRef.current = true;
+          event.currentTarget.setPointerCapture(event.pointerId);
+          pickAt(event.clientX);
+        }}
+        onPointerMove={event => { if (draggingRef.current) pickAt(event.clientX); }}
+        onPointerUp={event => {
+          draggingRef.current = false;
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }}
+        onKeyDown={event => {
+          if (event.key === "ArrowLeft" || event.key === "ArrowDown") { event.preventDefault(); step(-1); }
+          if (event.key === "ArrowRight" || event.key === "ArrowUp") { event.preventDefault(); step(1); }
+        }}
+      >
+        <span className="thinking-track-line" />
+        <span className="thinking-track-fill" style={{ width: (ratio * 100).toFixed(1) + "%" }} />
+        {options.map((option, stop) => (
+          <button
+            key={option.value}
+            type="button"
+            tabIndex={-1}
+            className={"thinking-stop" + (stop <= index ? " stop-passed" : "") + (stop === index ? " stop-current" : "")}
+            style={{ left: (last === 0 ? 0 : (stop / last) * 100).toFixed(1) + "%" }}
+            aria-label={option.label}
+            title={option.label}
+            onPointerDown={event => event.stopPropagation()}
+            onClick={() => onPick(option.value)}
+          />
+        ))}
+        <span className="thinking-thumb" style={{ left: (ratio * 100).toFixed(1) + "%" }} aria-hidden="true" />
+      </div>
+      <div className="thinking-levels">
+        {options.map((option, stop) => (
+          <button
+            key={option.value}
+            type="button"
+            className={"thinking-level" + (stop === index ? " thinking-level-active" : "")}
+            onClick={() => onPick(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ModelChip({ info }: { info: HostInfo | null }) {
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<"main" | "models">("main");
+  const [draft, setDraft] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const { thinking } = useSyncExternalStore(subscribeUiState, getUiState);
   const activeProvider = info?.modelSettings?.providers.find(provider => provider.active);
   const models = activeProvider?.models ?? [];
   const activeModel = info?.model ?? models[0]?.id ?? "";
   const options = thinking?.options ?? [];
-  const choice = thinking?.choice ?? "default";
+  const stored = thinking?.choice ?? "default";
+  const choice = draft ?? stored;
   const index = Math.max(0, options.findIndex(option => option.value === choice));
   const current = options[index];
+  /* The host confirms a level by posting it back; until then the draft keeps the thumb where the user put it. */
+  useEffect(() => { setDraft(current => (current === stored ? null : current)); }, [stored]);
   useDismiss(open, () => { setOpen(false); setPanel("main"); }, rootRef);
+  const apply = (value: string) => {
+    setDraft(value);
+    setThinking(value);
+  };
   return (
     <div ref={rootRef} className="permission-root">
       <button
@@ -141,7 +237,7 @@ function ModelChip({ info }: { info: HostInfo | null }) {
           <div className="thinking-head">
             <span className="thinking-mark" aria-hidden="true">⚡</span>
             <span className={"thinking-value" + (choice === "default" ? "" : " title-gold")}>{current?.label ?? "Mặc định"}</span>
-            <button type="button" className="thinking-reset" aria-label="Về mặc định" title="Về mặc định" disabled={choice === "default"} onClick={() => setThinking("default")}>↺</button>
+            <button type="button" className="thinking-reset" aria-label="Về mặc định" title="Về mặc định" disabled={choice === "default"} onClick={() => apply("default")}>↺</button>
           </div>
           <button type="button" className="thinking-model" aria-label="Đổi model" onClick={() => setPanel(panel === "models" ? "main" : "models")}>
             <span className="chip-label">{activeModel.length > 0 ? activeModel : "Model"}</span>
@@ -165,29 +261,9 @@ function ModelChip({ info }: { info: HostInfo | null }) {
                 </button>
               ))}
             </div>
-          ) : (
-            <div className="thinking-slider-wrap">
-              <input
-                type="range"
-                className="thinking-slider"
-                min={0}
-                max={Math.max(0, options.length - 1)}
-                step={1}
-                value={index}
-                aria-label="Mức suy luận"
-                onChange={event => setThinking(options[Number(event.target.value)]?.value ?? "default")}
-              />
-              <div className="thinking-stops" aria-hidden="true">
-                {options.map((option, stop) => (
-                  <span key={option.value} className={"stop" + (stop === index ? " stop-active" : "")} title={option.label} />
-                ))}
-              </div>
-              <div className="thinking-labels" aria-hidden="true">
-                <span>{options[0]?.label ?? ""}</span>
-                <span>{options[options.length - 1]?.label ?? ""}</span>
-              </div>
-            </div>
-          )}
+          ) : options.length > 0 ? (
+            <ThinkingSlider options={options} index={index} onPick={apply} />
+          ) : <p className="thinking-empty">Model này không cho chọn mức suy luận.</p>}
         </div>
       )}
     </div>

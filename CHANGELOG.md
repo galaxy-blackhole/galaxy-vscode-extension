@@ -118,6 +118,9 @@ gói nên dừng ở đó.
 - **Test host xanh trở lại (38/38)**: cắt vòng import `ui-store → host-bridge` bằng cách tách các registry sự
   kiện ra module lá `webview/src/host-events.ts`. Trước đó bundle ném `Cannot access 'uiEventListeners'
   before initialization` ở module-scope nên **10 test DOM đỏ**.
+- **Slider thinking vẽ tay, kéo được**: thay `input[type=range]` bằng thanh trượt tự vẽ — thumb 18px, kéo được
+  từ bất kỳ đâu trên thanh (pointer capture), **có nhãn từng mức** bên dưới và mức đang chọn tô xanh; giá trị
+  được giữ tạm (draft) nên không còn giật về khi host chưa trả lời; hỗ trợ cả bàn phím ←/→.
 - Bỏ 2 test của thanh Phiên (đã gỡ theo yêu cầu) và thay bằng test chốt: khung nhập liệu không còn thanh đó,
   và message phiên vẫn không làm hỏng view.
 
