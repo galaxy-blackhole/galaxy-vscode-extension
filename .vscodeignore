@@ -7,6 +7,8 @@ out/**
 node_modules/**
 !node_modules/playwright-core/**
 src/**
+test/**
+scripts/**
 webview/**
 .gitignore
 .yarnrc

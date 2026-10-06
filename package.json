@@ -7,7 +7,7 @@
   "publisher": "kevinbui",
   "license": "MIT",
   "engines": {
-    "vscode": "^1.95.0",
+    "vscode": "^1.113.0",
     "node": ">=20"
   },
   "main": "./dist/extension.js",
@@ -72,7 +72,15 @@
     "lint": "eslint src",
     "test:webview": "node scripts/webview-smoke.mjs",
     "test:host": "node --import ./test/helpers/ts-resolve.mjs --test test/*.test.ts",
-    "test:vscode": "yarn compile && node test/vscode/run.mjs"
+    "test:vscode": "yarn compile && node test/vscode/run.mjs",
+    "vscode:prepublish": "yarn run package",
+    "package": "yarn run check-types && yarn run compile:production",
+    "marketplace:login": "npx @vscode/vsce login kevinbui",
+    "marketplace:package": "npx @vscode/vsce package",
+    "marketplace:publish": "npx @vscode/vsce publish",
+    "marketplace:publish:ci": "npx @vscode/vsce publish --pat ",
+    "marketplace:publish:pre-release": "npx @vscode/vsce publish --pre-release",
+    "marketplace:publish:pre-release:ci": "npx @vscode/vsce publish --pre-release --pat "
   },
   "dependencies": {
     "@galaxy-stack/ai-coder-core": "link:../galaxy-ai-coder-core"

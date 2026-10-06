@@ -28,6 +28,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # The source checkout links the core as file:../galaxy-ai-coder-core, which no runner has.
+      # Point it at the published version before installing; esbuild bundles it from there.
+      - name: Use the published ai-coder-core
+        run: |
+          core_version=$(npm view @galaxy-stack/ai-coder-core version)
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));p.dependencies['@galaxy-stack/ai-coder-core']=process.argv[1];fs.writeFileSync('package.json',JSON.stringify(p,null,2)+String.fromCharCode(10))" "$core_version"
+          echo "bundling @galaxy-stack/ai-coder-core@$core_version from the registry"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -38,7 +46,8 @@ jobs:
         run: corepack enable
 
       - name: Install Dependencies
-        run: yarn install --frozen-lockfile
+        # --no-immutable: the step above legitimately changed the dependency, so the lock must move.
+        run: yarn install --no-immutable
 
       - name: Validate VSCE_PAT
         run: |
