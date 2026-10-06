@@ -11,6 +11,8 @@ import {
 import { setModel, setPermissionMode as sendPermissionMode, setThinking } from "../host-bridge";
 import { getUiState, subscribeUiState } from "../ui-store";
 import { openSettings } from "../settings-store";
+import { useT } from "../i18n";
+import { getPreferences, subscribePreferences } from "../preferences";
 import { openExternal, type HostInfo } from "../host-bridge";
 
 interface ModeOption {
@@ -27,6 +29,7 @@ export const MODE_OPTIONS: readonly ModeOption[] = [
 ];
 
 function PermissionMenu() {
+  const t = useT();
   const mode = useSyncExternalStore(subscribePermissionMode, getPermissionMode);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -68,7 +71,7 @@ function PermissionMenu() {
       {open && (
         <div className="permission-menu" role="menu">
           <div className="permission-menu-header">
-            <span>Nên phê duyệt các hành động của Galaxy thế nào?</span>
+            <span>{t("Nên phê duyệt các hành động của Galaxy thế nào?")}</span>
           </div>
           {MODE_OPTIONS.map((option) => (
             <button
@@ -216,6 +219,7 @@ function ThinkingSlider({
 }
 
 function ModelChip({ info }: { info: HostInfo | null }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<"main" | "models">("main");
   const [draft, setDraft] = useState<string | null>(null);
@@ -279,7 +283,7 @@ function ModelChip({ info }: { info: HostInfo | null }) {
             </div>
           ) : options.length > 0 ? (
             <ThinkingSlider options={options} index={index} onPick={apply} tone={tone} />
-          ) : <p className="thinking-empty">Model này không cho chọn mức suy luận.</p>}
+          ) : <p className="thinking-empty">{t("Model này không cho chọn mức suy luận.")}</p>}
         </div>
       )}
     </div>
@@ -287,11 +291,12 @@ function ModelChip({ info }: { info: HostInfo | null }) {
 }
 
 export function Composer({ info }: { info: HostInfo | null }) {
+  const t = useT();
   return (
     <ComposerPrimitive.Root className="composer-card">
       <ComposerPrimitive.Input
         submitOnEnter
-        placeholder="Thử bất cứ điều gì"
+        placeholder={t("Thử bất cứ điều gì")}
         className="composer-card-input"
         aria-label="Message Galaxy Code"
         autoFocus
@@ -301,7 +306,7 @@ export function Composer({ info }: { info: HostInfo | null }) {
           <button
             type="button"
             className="composer-icon-btn"
-            title="Đính kèm file (chưa hỗ trợ trong prototype)"
+            title={t("Đính kèm file (chưa hỗ trợ trong prototype)")}
           >
             <PlusIcon />
           </button>
