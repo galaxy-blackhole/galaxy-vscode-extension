@@ -7,6 +7,7 @@ import {
   readGalaxyCredential,
   upsertGalaxyCredential,
 } from "@galaxy-stack/ai-coder-core/adapters/node/config/galaxy-credentials";
+import { galaxyHome } from "./config";
 import type { ModelSettings, ModelSettingsSummary, ProviderApi, ProviderEntry, ProviderModel, ProviderSummary } from "../model-settings-types";
 
 export type { ModelSettings, ModelSettingsSummary, ProviderApi, ProviderEntry, ProviderModel, ProviderSummary } from "../model-settings-types";
@@ -36,8 +37,10 @@ const DEFAULT_PROVIDER: ProviderEntry = Object.freeze({
 const DEFAULT_MODEL = "deepseek-v4.1-flash:cloud";
 
 /** `~/.galaxy/config.json`, or an explicit path for tests. */
-export function configPath(home: string = homedir()): string {
-  return join(home, ".galaxy", "config.json");
+export function configPath(home?: string): string {
+  /* A harness can move the whole directory with GALAXY_HOME; an explicit home still wins for tests. */
+  if (home !== undefined) return join(home, ".galaxy", "config.json");
+  return join(galaxyHome(), "config.json");
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

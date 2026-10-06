@@ -115,6 +115,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         return;
       }
       case "ui-ready": {
+        this.testLog.push("ui-ready");
         const connection = resolveOllamaConnection();
         this.connection = connection;
         const workspace = vscode.workspace.workspaceFolders?.[0];
@@ -162,6 +163,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         return;
       }
       case "session/action": {
+        this.testLog.push("session/" + message.action.type + (typeof message.action.id === "string" ? ":" + message.action.id : ""));
         await this.handleSessionAction(message.action);
         return;
       }
@@ -210,6 +212,17 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
 
   /** Set by `/compact` while idle: the next run compacts before its first model turn. */
   private compactOnNextRun = false;
+
+  /**
+   * Test-only breadcrumbs of what the webview asked for. The extension-host suite reads them through
+   * the galaxy-code.__e2e command to prove the round trip happened inside a real editor.
+   */
+  readonly testLog: string[] = [];
+
+  /** Test-only: send a command into the webview, i.e. do what a click in it would do. */
+  sendTestCommand(command: Readonly<{ kind: "submit"; text: string } | { kind: "open-session"; id: string }>): void {
+    this.post({ type: "test/command", command });
+  }
 
   /** The Galaxy session this view shows; created lazily by the first run. */
   private sessionId: string | null = null;
@@ -274,6 +287,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
     const session = typeof action.id === "string" ? await readSession(root, action.id) : null;
     if (session === null) { await this.postSessionList(); return; }
     this.sessionId = session.id;
+    this.testLog.push("session-loaded:" + session.id);
     this.post({
       type: "session-loaded",
       id: session.id,
@@ -292,6 +306,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   private async handleUiAction(action: GalaxyUiAction): Promise<void> {
     switch (action.type) {
       case "run/start": {
+        this.testLog.push("run/start:" + action.input.slice(0, 60));
         if (this.session) return; // one run at a time in the prototype
         if (!this.connection || !this.workspaceRoot) return;
         this.post({ type: "ui-event", event: { kind: "run/status", status: "running" } });
@@ -306,6 +321,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
             const session = existing ?? await createSession(sessionsRoot, action.input);
             this.sessionId = session.id;
             await appendSessionTurn(sessionsRoot, session.id, "user", action.input);
+            this.testLog.push("session-created:" + session.id);
           }
           this.session = await startCoreRun({
             compactOnStart,

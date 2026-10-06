@@ -10,6 +10,18 @@ export interface OllamaConnection {
   readonly credentialSource: "manual-config" | "environment" | "none";
 }
 
+/**
+ * Where the shared Galaxy documents live (config.json, credentials.yaml).
+ *
+ * `GALAXY_HOME` lets CI and the extension-host tests point at a throwaway directory without moving the
+ * editor's own HOME — on macOS a moved HOME hides the login keychain, and VS Code answers with a
+ * "Keychain Not Found" dialog on every launch.
+ */
+export function galaxyHome(): string {
+  const override = process.env.GALAXY_HOME?.trim();
+  return override !== undefined && override.length > 0 ? override : path.join(os.homedir(), ".galaxy");
+}
+
 const DEFAULT_BASE_URL = "https://ollama.com";
 const DEFAULT_MODEL = "kimi-k2.7-code:cloud";
 
@@ -18,7 +30,7 @@ const DEFAULT_MODEL = "kimi-k2.7-code:cloud";
  * `{ agent: [{ type: "manual", apiKey, baseUrl?, model?, enabled? }, ...] }`.
  */
 export function resolveOllamaConnection(): OllamaConnection {
-  const configPath = path.join(os.homedir(), ".galaxy", "config.json");
+  const configPath = path.join(galaxyHome(), "config.json");
   let manual: Record<string, unknown> | undefined;
   try {
     const parsed = JSON.parse(fs.readFileSync(configPath, "utf8")) as { agent?: unknown };

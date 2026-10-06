@@ -27,6 +27,21 @@ function toThreadMessageLike(message: UiMessage): ThreadMessageLike {
   };
 }
 
+/**
+ * Send one prompt exactly as the composer does: append it, let \`/compact\` act on the live run instead of
+ * becoming a model turn, and otherwise start one. The extension-host suite drives this through the
+ * test-only channel, so a real editor can be exercised without reaching into the DOM.
+ */
+export function submitPrompt(text: string, workspacePath: string): void {
+  if (!text) return;
+  appendUserMessage(text);
+  if (text === "/compact") {
+    dispatchUiAction({ type: "context/compact" });
+    return;
+  }
+  startUiRun(text, workspacePath || ".");
+}
+
 export function useGalaxyUiRuntime(workspacePath: string) {
   const state = getUiState();
   const adapter: ExternalStoreAdapter<UiMessage> = {
@@ -35,19 +50,7 @@ export function useGalaxyUiRuntime(workspacePath: string) {
     messages: state.messages,
     onCancel: async () => cancelUiRun(),
     onNew: async (message: AppendMessage) => {
-      const text = message.content
-        .map((part) => (part.type === "text" ? part.text : ""))
-        .join("\n")
-        .trim();
-      if (!text) return;
-      appendUserMessage(text);
-      /* The composer's /compact mirrors the web GUI: it asks the runtime to compact the
-         live run instead of becoming a model turn, and the host answers context/compacted. */
-      if (text === "/compact") {
-        dispatchUiAction({ type: "context/compact" });
-        return;
-      }
-      startUiRun(text, workspacePath || ".");
+      submitPrompt(message.content.map((part) => (part.type === "text" ? part.text : "")).join("\n").trim(), workspacePath);
     },
   };
   return useExternalStoreRuntime(adapter);

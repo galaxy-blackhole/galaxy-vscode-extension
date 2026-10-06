@@ -10,7 +10,18 @@ export function activate(context: vscode.ExtensionContext): void {
    * session store). The probe exists only while VS Code runs our tests, and is not part of the product.
    */
   if (context.extensionMode === vscode.ExtensionMode.Test) {
-    context.subscriptions.push(vscode.commands.registerCommand("galaxy-code.__e2e", async (request?: Readonly<{ goal?: string }>) => {
+    context.subscriptions.push(vscode.commands.registerCommand("galaxy-code.__e2e", async (request?: Readonly<{ goal?: string; id?: string; kind?: string; text?: string }>) => {
+      /*
+       * The two webview kinds ask the view to do what a click would, then report the breadcrumbs the
+       * provider collected, so the suite can prove the round trip happened inside a real editor.
+       */
+      if (request?.kind === "webview-submit" || request?.kind === "webview-open-session") {
+        provider.testLog.push("test-sent:" + request.kind + (request.kind === "webview-open-session" ? ":" + String(request.id ?? "") : ""));
+        if (request.kind === "webview-submit") provider.sendTestCommand({ kind: "submit", text: String(request.text ?? "") });
+        else provider.sendTestCommand({ kind: "open-session", id: String(request.id ?? "") });
+        return { ok: true, testLog: [...provider.testLog] };
+      }
+      if (request?.kind === "log") return { ok: true, testLog: [...provider.testLog] };
       const storageRoot = context.globalStorageUri.fsPath;
       const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? storageRoot;
       const { runGoalForTest } = await import("./host/e2e.js");

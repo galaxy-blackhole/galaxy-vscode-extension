@@ -1,3 +1,4 @@
+import { submitPrompt } from "./galaxy-ui-runtime";
 import { postToHost } from "./vscode";
 import type { GalaxyUiAction, GalaxyUiEvent } from "../../src/ui-protocol";
 import type { OllamaChatMessage, OllamaToolSchema } from "../../src/protocol";
@@ -32,6 +33,18 @@ export function subscribeSessionMessages(listener: (message: SessionMessage) => 
 /** The session list panel: new, list, open and delete all travel as one action. */
 export function sessionAction(action: Readonly<{ type: "delete" | "list" | "new" | "open"; id?: string }>): void {
   postToHost({ type: "session/action", action });
+}
+
+/**
+ * Test-only driver (see test/vscode/suite.cjs): the host asks for what a click in the view would do, so
+ * the extension-host suite can exercise the editor↔webview round trip it otherwise cannot reach.
+ */
+function handleTestCommand(command: Readonly<{ kind: "submit"; text: string } | { kind: "open-session"; id: string }>): void {
+  if (command.kind === "open-session") {
+    sessionAction({ type: "open", id: command.id });
+    return;
+  }
+  submitPrompt(command.text, hostInfo?.workspacePath ?? ".");
 }
 
 export function subscribeUiEvents(listener: UiEventListener): () => void {
@@ -177,6 +190,9 @@ if (typeof window !== "undefined") {
       case "tool-result":
         toolPending.get(message.requestId)?.resolve({ ok: message.ok, result: message.result });
         toolPending.delete(message.requestId);
+        return;
+      case "test/command":
+        handleTestCommand(message.command);
         return;
       case "session-list":
       case "session-loaded":

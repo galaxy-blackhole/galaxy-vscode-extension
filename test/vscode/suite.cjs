@@ -14,6 +14,22 @@ const vscode = require("vscode");
 const EXTENSION_ID = "kevinbui.galaxy-code-vscode";
 const COMMANDS = ["galaxy-code.openChat", "galaxy-code.newThread", "galaxy-code.openWeb"];
 const GOAL = "Đếm các tệp ở gốc workspace giúp tôi";
+const WEBVIEW_GOAL = "Liệt kê giúp tôi những gì có ở gốc workspace";
+
+/** Poll the provider's breadcrumbs through the probe until one matches, or give up. */
+async function logUntil(predicate, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const answer = await vscode.commands.executeCommand("galaxy-code.__e2e", { kind: "log" });
+    const entries = (answer && answer.testLog) || [];
+    if (entries.some(predicate)) return entries;
+    if (Date.now() > deadline) {
+      console.log("[galaxy] timed out waiting for a breadcrumb; log so far: " + entries.join(", "));
+      return null;
+    }
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
+}
 
 async function run() {
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
@@ -51,6 +67,28 @@ async function run() {
   assert.ok(report.events.filter(kind => kind === "run/status").length >= 2, "both runs reported status to the view");
   assert.ok(report.events.includes("tool/start") && report.events.includes("tool/result"), "the tool loop reached the view");
   assert.equal(report.messages.filter(turn => turn.role === "assistant").length, 2, "both runs left their answer in the history");
+  /*
+   * The editor's own webview: it must have booted, and it must do what a click would do. This is the
+   * one direction the host suite cannot reach on its own — the host posts a command, the view acts, and
+   * the breadcrumbs prove the round trip.
+   */
+  const ready = await logUntil(entry => entry === "ui-ready", 45000);
+  assert.ok(ready, "the webview booted inside the real editor");
+  await vscode.commands.executeCommand("galaxy-code.__e2e", { kind: "webview-submit", text: WEBVIEW_GOAL });
+  assert.ok(await logUntil(entry => entry.startsWith("run/start:"), 45000), "submitting from the view started a run");
+  const created = await logUntil(entry => entry.startsWith("session-created:"), 60000);
+  assert.ok(created, "and the run opened a session");
+  const sessionId = created.find(entry => entry.startsWith("session-created:")).slice("session-created:".length);
+  /* Now ask the view to open that session, i.e. what clicking it in the panel does. */
+  await vscode.commands.executeCommand("galaxy-code.__e2e", { kind: "webview-open-session", id: sessionId });
+  assert.ok(await logUntil(entry => entry === "session/open:" + sessionId, 30000), "the view asked the host to open that session");
+  assert.ok(await logUntil(entry => entry === "session-loaded:" + sessionId, 30000), "and the host handed the transcript back");
+
+  const driven = JSON.parse(await fs.readFile(path.join(report.storageRoot, "sessions", sessionId + ".json"), "utf8"));
+  assert.ok(driven.messages.some(turn => turn.role === "user" && turn.content === WEBVIEW_GOAL), "the prompt typed in the view reached the model");
+  assert.ok(driven.messages.some(turn => turn.role === "assistant" && turn.content.includes("đếm được")), "and its answer came back to the view");
+
+  console.log("[galaxy] view flow ok: ui-ready, submit, session opened and reloaded");
   console.log("[galaxy] UI events seen: " + [...new Set(report.events)].sort().join(", "));
   console.log("[galaxy] flow ok: 2 runs, " + String(document.messages.length) + " turns stored, session " + report.sessionId);
   console.log("[galaxy] extension host flows passed");

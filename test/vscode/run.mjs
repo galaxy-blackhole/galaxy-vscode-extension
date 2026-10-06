@@ -16,6 +16,7 @@ import { runTests } from "@vscode/test-electron";
 
 const root = fileURLToPath(new URL("../../", import.meta.url)).replace(/\/$/, "");
 const GOAL = "Đếm các tệp ở gốc workspace giúp tôi";
+const WEBVIEW_GOAL = "Liệt kê giúp tôi những gì có ở gốc workspace";
 const line = payload => JSON.stringify(payload) + String.fromCharCode(10);
 
 /* Each run gets two rounds: the model lists the workspace for evidence, then reports. */
@@ -24,6 +25,8 @@ const reportRound = text => line({ done: true, done_reason: "stop", message: { c
 const rounds = [
   toolRound(1), reportRound("Đã xong: kể ra các mục ở gốc workspace."),
   toolRound(2), reportRound("Tóm tắt: workspace chỉ có .vscode/mcp.json."),
+  /* The run the suite starts from inside the webview. */
+  toolRound(3), reportRound("Đã xong: đếm được các mục ở gốc workspace."),
 ];
 const bodies = [];
 const server = createServer(async (request, response) => {
@@ -51,8 +54,9 @@ await mkdir(join(workspace, ".vscode"), { recursive: true });
 await writeFile(join(workspace, ".vscode", "mcp.json"), JSON.stringify({ servers: { "broken-docs": { args: [], command: "galaxy-missing-binary" } } }), "utf8");
 
 const userData = await mkdtemp(join(tmpdir(), "galaxy-vscode-"));
-const previousHome = process.env.HOME;
-process.env.HOME = home;
+/* GALAXY_HOME, not HOME: moving the editor's HOME hides the macOS login keychain and pops a dialog. */
+const previousGalaxyHome = process.env.GALAXY_HOME;
+process.env.GALAXY_HOME = join(home, ".galaxy");
 let failures = 1;
 try {
   failures = await runTests({
@@ -68,13 +72,13 @@ try {
     ],
   });
 } finally {
-  if (previousHome === undefined) delete process.env.HOME;
-  else process.env.HOME = previousHome;
+  if (previousGalaxyHome === undefined) delete process.env.GALAXY_HOME;
+  else process.env.GALAXY_HOME = previousGalaxyHome;
   await new Promise(resolve => server.close(resolve));
 }
 
 /* The suite asserts what happened inside the editor; this asserts the extension really called the model. */
-const asked = bodies.some(body => body.includes(GOAL));
+const asked = bodies.some(body => body.includes(GOAL)) && bodies.some(body => body.includes(WEBVIEW_GOAL));
 console.log("[galaxy] the scripted model endpoint saw the goal: " + String(asked) + " (of " + String(bodies.length) + " request(s))");
 console.log("[galaxy] VS Code extension host finished with " + String(failures) + " failure(s)");
 if (failures !== 0 || !asked) process.exitCode = 1;
