@@ -61,7 +61,7 @@ jobs:
         run: node scripts/webview-smoke.mjs
 
   brand-assets:
-name: Brand Assets In Step With galaxy-code
+    name: Brand Assets In Step With galaxy-code
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
