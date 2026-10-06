@@ -10,10 +10,10 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { fileURLToPath } from "node:url";
 
 const run = promisify(execFile);
-const repo = fileURLToPath(new URL("../", import.meta.url));
+/* The host tests are run from the extension root (yarn test:host), which is how this finds its script. */
+const repo = process.cwd();
 const script = join(repo, "scripts", "sync-brand-assets.mjs");
 
 /** Copy the script into a throwaway repo so it syncs there instead of the real tree. */
