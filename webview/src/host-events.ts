@@ -17,6 +17,7 @@ export type HostInfo = Readonly<{
   credentialSource: string;
   modelLibraryUrl?: string;
   modelSettings: ModelSettingsSummary;
+  version: string;
 }>;
 
 export type UiEventListener = (event: GalaxyUiEvent) => void;

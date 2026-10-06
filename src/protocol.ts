@@ -63,7 +63,7 @@ export type HostToWebviewMessage =
   | Readonly<{ type: "ui-event"; event: GalaxyUiEvent }>
   | Readonly<{ type: "pending-approval"; requestId: string; tool: string; args: Readonly<Record<string, unknown>>; reason: string }>
   | Readonly<{ type: "tool-result"; requestId: string; ok: boolean; result: string }>
-  | Readonly<{ type: "host-info"; workspaceName: string; workspacePath: string; platform: string; shell: string; model: string; baseUrl: string; credentialSource: string; modelLibraryUrl?: string; modelSettings: ModelSettingsSummary }>
+  | Readonly<{ type: "host-info"; workspaceName: string; workspacePath: string; platform: string; shell: string; model: string; baseUrl: string; credentialSource: string; modelLibraryUrl?: string; modelSettings: ModelSettingsSummary; version: string }>
   | Readonly<{ type: "model-settings"; settings: ModelSettingsSummary }>
   | Readonly<{ type: "new-thread" }>
   /* Test-only: the extension-host suite drives the webview the way a click would (see test/vscode). */

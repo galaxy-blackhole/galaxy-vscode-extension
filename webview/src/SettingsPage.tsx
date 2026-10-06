@@ -5,7 +5,8 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { MODE_OPTIONS } from "./components/Composer";
 import { ModelSetup } from "./components/ModelSetup";
-import { announceReady, currentHostInfo, setPermissionMode as sendPermissionMode, subscribeHostInfo, type HostInfo } from "./host-bridge";
+import { announceReady, currentHostInfo, openExternal, setPermissionMode as sendPermissionMode, subscribeHostInfo, type HostInfo } from "./host-bridge";
+import { ZALO_QR_URI } from "./zalo-qr";
 import { getPermissionMode, setPermissionMode, subscribePermissionMode } from "./permission-mode";
 import { getPreferences, setPreferences, subscribePreferences, type Locale, type NextMessage, type WorkDetail } from "./preferences";
 
@@ -99,14 +100,24 @@ export function SettingsPage() {
         <h2 className="settings-h1">{section === "Chung" ? "Cài đặt chung" : section}</h2>
         {section === "Chung" ? general : null}
         {section === "Model" ? (
-          info?.modelSettings ? <ModelSetup settings={info.modelSettings} onClose={() => undefined} /> : <p className="settings-row-desc">Đang đọc ~/.galaxy/config.json…</p>
+          info?.modelSettings ? <ModelSetup settings={info.modelSettings} /> : <p className="settings-row-desc">Đang đọc ~/.galaxy/config.json…</p>
         ) : null}
         {section === "Thông tin" ? (
           <div className="settings-group">
+            <Row label="Tác giả" description="Người làm ra Galaxy Blackhole" control={<span>Bùi Trọng Hiếu</span>} />
+            <Row label="Email" description="Liên hệ công việc" control={<span>kevinbui210191@gmail.com</span>} />
+            <Row label="Website" description="Trang chủ dự án" control={<button type="button" className="settings-link" onClick={() => openExternal("https://galaxy-blackhole.vercel.app/")}>galaxy-blackhole.vercel.app</button>} />
+            <Row label="Phiên bản" description="Extension đang cài" control={<span>{"v" + (info?.version ?? "—")}</span>} />
             <Row label="Model" description="Model mà lượt chạy kế tiếp sẽ dùng" control={<span>{info?.model ?? "—"}</span>} />
             <Row label="Endpoint" description="Nơi gửi yêu cầu model" control={<span>{info?.baseUrl ?? "—"}</span>} />
             <Row label="Workspace" description="Thư mục đang mở" control={<span className="settings-mono">{info?.workspacePath ?? "—"}</span>} />
             <Row label="Nền tảng" description="Hệ điều hành và shell" control={<span>{(info?.platform ?? "—") + " · " + (info?.shell ?? "—")}</span>} />
+          </div>
+        ) : null}
+        {section === "Thông tin" ? (
+          <div className="settings-group settings-qr">
+            <img src={ZALO_QR_URI} alt="QR Zalo của tác giả" width={190} height={190} />
+            <div className="settings-row-desc">Quét mã để nhắn Zalo cho tác giả.</div>
           </div>
         ) : null}
       </main>

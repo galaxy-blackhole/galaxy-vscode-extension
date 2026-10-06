@@ -11,7 +11,6 @@ import { useGalaxyUiRuntime } from "./galaxy-ui-runtime";
 import { ApprovalBar } from "./components/ApprovalBar";
 import { Composer } from "./components/Composer";
 import { PlanStrip } from "./components/PlanStrip";
-import { ModelSetup } from "./components/ModelSetup";
 import { GearIcon, NewThreadIcon } from "./components/icons";
 import { startNewThread } from "./host-bridge";
 import { ReasoningPart, TextPart, ToolFallback } from "./components/parts";

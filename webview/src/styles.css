@@ -641,3 +641,9 @@ html, body, #app {
 
 /* The conversation follows the font size chosen in Settings. */
 .thread-viewport, .composer-card-input { font-size: var(--ui-font-size, 14px); }
+
+/* Thông tin: the author's details and the Zalo QR, the same content the web GUI shows. */
+.settings-link { border: none; background: transparent; color: var(--vscode-textLink-foreground, #4a9eff); cursor: pointer; font-size: 13px; padding: 0; }
+.settings-link:hover { text-decoration: underline; }
+.settings-qr { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 16px; }
+.settings-qr img { border-radius: 10px; background: #fff; padding: 6px; }

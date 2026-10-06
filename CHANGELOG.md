@@ -135,6 +135,10 @@ gói nên dừng ở đó.
 - **Chip model hiện `auto`** khi dùng nhà cung cấp mặc định, đúng quy ước của CLI và blackhole web (trước đó
   hiện thẳng `deepseek-v4.1-flash:cloud`); rê chuột vẫn thấy model ngầm hiểu trong tooltip.
 - **Slider nằm gọn trong khung**: đệm hai bên 20px nên chấm và thumb không còn thò ra ngoài viền popover.
+- **Mục Model gọn như blackhole web**: bỏ khối **Quyền** trùng lặp (đã có trong *Chung*), bỏ luôn tiêu đề
+  "Cài đặt" và nút ✕ lồng bên trong — panel model giờ chỉ còn danh sách nhà cung cấp và API key.
+- **Mục Thông tin như blackhole web**: Tác giả (Bùi Trọng Hiếu), Email, Website (bấm mở được), Phiên bản
+  extension đang cài, và **QR Zalo** nhúng sẵn trong webview (không cần file rời).
 - Bỏ 2 test của thanh Phiên (đã gỡ theo yêu cầu) và thay bằng test chốt: khung nhập liệu không còn thanh đó,
   và message phiên vẫn không làm hỏng view.
 

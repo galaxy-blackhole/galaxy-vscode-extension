@@ -156,6 +156,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
           credentialSource: connection.credentialSource,
           ...(modelLibraryUrl ? { modelLibraryUrl } : {}),
           modelSettings: summarize(hydrateKeys(readModelSettings(this.configPath))),
+          version: this.context.extension.packageJSON.version as string,
         });
         return;
       }
@@ -230,6 +231,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       baseUrl: this.connection?.baseUrl ?? "",
       credentialSource: this.connection?.credentialSource ?? "none",
       modelSettings: settings,
+      version: this.context.extension.packageJSON.version as string,
     });
     if (error !== undefined) void vscode.window.showWarningMessage(error);
   }
