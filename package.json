@@ -78,9 +78,9 @@
     "marketplace:login": "npx @vscode/vsce login kevinbui",
     "marketplace:package": "npx @vscode/vsce package",
     "marketplace:publish": "npx @vscode/vsce publish",
-    "marketplace:publish:ci": "npx @vscode/vsce publish --pat ",
+    "marketplace:publish:ci": "npx @vscode/vsce publish --pat $VSCE_PAT",
     "marketplace:publish:pre-release": "npx @vscode/vsce publish --pre-release",
-    "marketplace:publish:pre-release:ci": "npx @vscode/vsce publish --pre-release --pat "
+    "marketplace:publish:pre-release:ci": "npx @vscode/vsce publish --pre-release --pat $VSCE_PAT"
   },
   "dependencies": {
     "@galaxy-stack/ai-coder-core": "link:../galaxy-ai-coder-core"
