@@ -30,9 +30,19 @@ export function subscribeSessionMessages(listener: (message: SessionMessage) => 
   return () => sessionListeners.delete(listener);
 }
 
+/** Switch the model the next run will use, inside the active provider. */
+export function setModel(model: string): void {
+  postToHost({ type: "model-settings/set-model", model });
+}
+
 /** The session list panel: new, list, open and delete all travel as one action. */
 export function sessionAction(action: Readonly<{ type: "delete" | "list" | "new" | "open"; id?: string }>): void {
   postToHost({ type: "session/action", action });
+}
+
+/** Ask the host for a fresh session: it clears the session and hands an empty transcript back. */
+export function startNewThread(): void {
+  sessionAction({ type: "new" });
 }
 
 /**
@@ -190,6 +200,9 @@ if (typeof window !== "undefined") {
       case "tool-result":
         toolPending.get(message.requestId)?.resolve({ ok: message.ok, result: message.result });
         toolPending.delete(message.requestId);
+        return;
+      case "new-thread":
+        for (const listener of newThreadListeners) listener();
         return;
       case "test/command":
         handleTestCommand(message.command);

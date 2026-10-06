@@ -230,6 +230,22 @@ export function setActiveProvider(settings: ModelSettings, id: string): ModelSet
   return Object.freeze({ active: id, providers: settings.providers });
 }
 
+/**
+ * Choose which of a provider's models is active. The first entry is the one the host runs, and the
+ * `agent[manual]` mirror is regenerated from it on every write.
+ */
+export function setProviderModel(settings: ModelSettings, id: string, modelId: string): ModelSettings {
+  let found = false;
+  const providers = settings.providers.map(provider => {
+    if (provider.id !== id) return provider;
+    const chosen = provider.models.find(model => model.id === modelId);
+    if (chosen === undefined) return provider;
+    found = true;
+    return Object.freeze({ ...provider, models: Object.freeze([chosen, ...provider.models.filter(model => model.id !== modelId)]) });
+  });
+  return found ? Object.freeze({ active: settings.active, providers: Object.freeze(providers) }) : settings;
+}
+
 /** Store a key for one provider; an empty value clears it. */
 export function setApiKey(settings: ModelSettings, id: string, apiKey: string): ModelSettings {
   const trimmed = apiKey.trim();

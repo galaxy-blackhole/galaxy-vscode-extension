@@ -41,6 +41,7 @@ export type WebviewToHostMessage =
   | Readonly<{ type: "model-settings/save-key"; providerId: string; apiKey: string }>
   | Readonly<{ type: "model-settings/save-provider"; provider: ProviderDraft }>
   | Readonly<{ type: "model-settings/set-active"; providerId: string }>
+  | Readonly<{ type: "model-settings/set-model"; model: string }>
   | Readonly<{ type: "model-settings/remove"; providerId: string }>
   | Readonly<{ type: "session/action"; action: Readonly<{ type: "delete" | "list" | "new" | "open"; id?: string }> }>;
 
@@ -51,7 +52,7 @@ export type OllamaStreamDelta = Readonly<{
 }>;
 
 /** Bump when the shape of host↔webview messages changes. */
-export const HOST_WEBVIEW_PROTOCOL_VERSION = 3;
+export const HOST_WEBVIEW_PROTOCOL_VERSION = 4;
 
 export type HostToWebviewMessage =
   | Readonly<{ type: "chat-delta"; runId: string; delta: OllamaStreamDelta }>

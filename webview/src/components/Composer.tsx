@@ -8,7 +8,7 @@ import {
   getPermissionMode, setPermissionMode, subscribePermissionMode,
   type PermissionMode,
 } from "../permission-mode";
-import { setPermissionMode as sendPermissionMode } from "../host-bridge";
+import { setModel, setPermissionMode as sendPermissionMode } from "../host-bridge";
 import { openSettings } from "../settings-store";
 import { openExternal, type HostInfo } from "../host-bridge";
 
@@ -102,26 +102,45 @@ function PermissionMenu() {
 function ModelChip({ info }: { info: HostInfo | null }) {
   const [open, setOpen] = useState(false);
   const url = info?.modelLibraryUrl;
+  const activeProvider = info?.modelSettings?.providers.find(provider => provider.active);
+  const models = activeProvider?.models ?? [];
+  const activeModel = info?.model ?? models[0]?.id ?? "";
   return (
     <div className="permission-root">
       <button
         type="button"
         className="composer-chip chip-model"
-        title={url ? `Auto = entry 'manual' trong ~/.galaxy/config.json → ${info?.model ?? ""}` : `${info?.model ?? ""} — ${info?.baseUrl ?? ""}`}
-        onClick={() => setOpen((v) => !v)}
+        title={"Model cho lượt chạy tiếp theo: " + (activeModel.length > 0 ? activeModel : "chưa rõ")}
+        onClick={() => setOpen(v => !v)}
       >
-        <span className="chip-label">{info?.model ?? "Model"}</span>
+        <span className="chip-label">{activeModel.length > 0 ? activeModel : "Model"}</span>
         <ChevronDownIcon />
       </button>
       {open && (
         <div className="permission-menu model-menu" role="menu">
-          <button type="button" role="menuitem" className="permission-option option-active" onClick={() => setOpen(false)}>
-            <span className="option-icon"><CheckIcon /></span>
-            <span className="option-texts">
-              <span className="option-title title-gold">{info?.model ?? "Model"}</span>
-              <span className="option-desc">
-                {info ? `Entry 'manual' trong ~/.galaxy/config.json → ${info.model} (thinking: max)` : "Đang đọc ~/.galaxy/config.json…"}
+          <div className="permission-menu-header">
+            <span>Model cho lượt chạy tiếp theo</span>
+          </div>
+          {models.map(model => (
+            <button
+              key={model.id}
+              type="button"
+              role="menuitem"
+              className={"permission-option" + (model.id === activeModel ? " option-active" : "")}
+              onClick={() => { setModel(model.id); setOpen(false); }}
+            >
+              <span className="option-icon">{model.id === activeModel ? <CheckIcon /> : null}</span>
+              <span className="option-texts">
+                <span className={"option-title" + (model.id === activeModel ? " title-gold" : "")}>{model.name ?? model.id}</span>
+                <span className="option-desc">{model.id}</span>
               </span>
+            </button>
+          ))}
+          <button type="button" role="menuitem" className="permission-option" onClick={() => { openSettings(); setOpen(false); }}>
+            <span className="option-icon"><GearIcon /></span>
+            <span className="option-texts">
+              <span className="option-title">Cài đặt model</span>
+              <span className="option-desc">Nhà cung cấp, API key và chế độ phê duyệt</span>
             </span>
           </button>
           {url && (

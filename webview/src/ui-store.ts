@@ -1,5 +1,5 @@
 import type { GalaxyUiEvent, GalaxyUiRunStatus } from "../../src/ui-protocol";
-import { subscribeSessionMessages, subscribeUiEvents } from "./host-bridge";
+import { subscribeNewThread, subscribeSessionMessages, subscribeUiEvents } from "./host-bridge";
 
 export interface UiToolPart {
   readonly type: "tool-call";
@@ -192,6 +192,9 @@ function handleEvent(event: GalaxyUiEvent): void {
 subscribeUiEvents(handleEvent);
 
 /** The host's session list and the transcript it hands back when a session is opened. */
+/* The New Thread command (host side) clears the conversation; so does the header's new-chat button. */
+subscribeNewThread(() => { resetConversation(); });
+
 subscribeSessionMessages(message => {
   if (message.type === "session-list") {
     sessions = message.sessions.map(item => Object.freeze({ ...item }));

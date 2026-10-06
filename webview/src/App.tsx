@@ -13,7 +13,8 @@ import { Composer } from "./components/Composer";
 import { PlanStrip } from "./components/PlanStrip";
 import { SessionPanel } from "./components/SessionPanel";
 import { ModelSetup } from "./components/ModelSetup";
-import { GearIcon } from "./components/icons";
+import { GearIcon, NewThreadIcon } from "./components/icons";
+import { startNewThread } from "./host-bridge";
 import { ReasoningPart, TextPart, ToolFallback } from "./components/parts";
 import { announceReady, currentHostInfo, subscribeHostInfo, type HostInfo } from "./host-bridge";
 
@@ -77,14 +78,16 @@ export function App() {
       <div className="app-shell">
         <header className="app-header">
           <span className="app-title">Galaxy Blackhole</span>
-          <span className="app-subtitle">
-            {info ? `${info.model} — ${info.workspaceName}` : "đang kết nối…"}
-          </span>
-          {settings !== null ? (
-            <button type="button" className="app-icon-btn" aria-label="Cài đặt" title="Cài đặt: model và quyền" onClick={() => setSettingsOpen(!setupOpen)}>
-              <GearIcon />
+          <span className="app-header-actions">
+            <button type="button" className="app-icon-btn" aria-label="Trò chuyện mới" title="Trò chuyện mới (xoá nội dung, mở phiên mới)" onClick={() => startNewThread()}>
+              <NewThreadIcon />
             </button>
-          ) : null}
+            {settings !== null ? (
+              <button type="button" className="app-icon-btn" aria-label="Cài đặt" title="Cài đặt: model và quyền" onClick={() => setSettingsOpen(!setupOpen)}>
+                <GearIcon />
+              </button>
+            ) : null}
+          </span>
         </header>
         <ThreadPrimitive.Root className="thread-root">
           <ThreadPrimitive.Viewport className="thread-viewport">

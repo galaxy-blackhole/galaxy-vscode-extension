@@ -15,6 +15,7 @@ import {
   readModelSettings,
   removeProvider,
   setActiveProvider,
+  setProviderModel,
   setApiKey,
   summarize,
   upsertProvider,
@@ -101,6 +102,12 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         if (apiKey !== undefined) writeCanonicalKey(entry.id, apiKey);
         const settings = upsertProvider(hydrateKeys(readModelSettings(this.configPath)), entry);
         writeModelSettings(settings, this.configPath);
+        this.refreshConnection();
+        return;
+      }
+      case "model-settings/set-model": {
+        const current = readModelSettings(this.configPath);
+        writeModelSettings(setProviderModel(current, current.active, message.model), this.configPath);
         this.refreshConnection();
         return;
       }

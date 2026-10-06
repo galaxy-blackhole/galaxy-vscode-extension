@@ -592,3 +592,6 @@ html, body, #app {
 .ms-mode-active { border-color: var(--vscode-focusBorder, #c7a23f); }
 .ms-mode-title { font-weight: 600; }
 .ms-mode-desc { font-size: 11px; color: var(--vscode-descriptionForeground, #999); }
+
+/* Header actions: new conversation, then settings — Codex's ordering. */
+.app-header-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; }

@@ -6,7 +6,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { bootWebview, clickElement } from "./helpers/webview-harness.ts";
 
-const SUMMARY = { active: "galaxy", configPath: "/tmp/galaxy/config.json", providers: [] };
+const SUMMARY = {
+  active: "galaxy",
+  configPath: "/tmp/galaxy/config.json",
+  providers: [
+    { active: true, api: "ollama" as const, baseUrl: "https://ollama.com", displayName: "Galaxy", id: "galaxy", keyConfigured: true, models: [{ id: "kimi-k2.7-code:cloud", name: "Kimi K2.7 Code" }, { id: "deepseek-v4.1-flash:cloud", name: "DeepSeek Flash" }] },
+  ],
+};
 
 async function withHost(booted: Awaited<ReturnType<typeof bootWebview>>) {
   booted.window.dispatchEvent(new booted.window.MessageEvent("message", { data: { type: "host-info", workspaceName: "ws", workspacePath: "/tmp/ws", platform: "darwin", shell: "zsh", model: "kimi-k2.7-code:cloud", baseUrl: "https://ollama.com", credentialSource: "manual-config", modelSettings: SUMMARY } }));
@@ -17,7 +23,7 @@ test("the header reads Galaxy Blackhole and its gear opens the settings panel", 
   const booted = await bootWebview();
   await withHost(booted);
   assert.equal(booted.document.querySelector(".app-title")?.textContent, "Galaxy Blackhole");
-  const gear = booted.document.querySelector(".app-icon-btn");
+  const gear = booted.document.querySelector('[aria-label="Cài đặt"]');
   assert.ok(gear, "the header has a settings button");
   clickElement(booted, gear);
   await new Promise(resolve => setTimeout(resolve, 150));
@@ -25,6 +31,13 @@ test("the header reads Galaxy Blackhole and its gear opens the settings panel", 
   assert.ok(panel, "the settings panel opens from the header");
   assert.match(panel.textContent ?? "", /Cài đặt/);
   assert.match(panel.textContent ?? "", /Quyền/, "and it carries the permissions section");
+
+  /* The header also offers a new conversation, which asks the host to clear the session. */
+  const newThread = booted.document.querySelector('[aria-label="Trò chuyện mới"]');
+  assert.ok(newThread, "the header has a new-conversation button");
+  clickElement(booted, newThread);
+  await new Promise(resolve => setTimeout(resolve, 150));
+  assert.ok(booted.posted.some(message => message.type === "session/action" && (message.action as { type?: string } | undefined)?.type === "new"), "and it asks for a fresh session: " + JSON.stringify(booted.posted.slice(-2)));
 });
 
 test("each composer chip says what it is, and the menus stay inside the sidebar", async () => {
@@ -43,4 +56,16 @@ test("each composer chip says what it is, and the menus stay inside the sidebar"
   assert.equal(options.length, 4, "three modes plus the settings link: " + JSON.stringify(options));
   assert.ok(options.some(option => option.includes("Cài đặt")), "the settings link is in the menu");
   assert.ok(!options.some(option => option.includes("có sau khi tích hợp")), "no placeholder entry is shipped");
+
+  /* The model chip is a picker now: it lists the active provider's models and switches between them. */
+  const modelChip = chips.find(chip => chip.textContent?.includes("kimi-k2.7-code:cloud"))!;
+  clickElement(booted, modelChip);
+  await new Promise(resolve => setTimeout(resolve, 150));
+  const models = Array.from(booted.document.querySelectorAll(".model-menu .permission-option")).map(option => option.textContent ?? "");
+  assert.ok(models.some(entry => entry.includes("Kimi K2.7 Code")), "the picker lists the current model: " + JSON.stringify(models));
+  assert.ok(models.some(entry => entry.includes("DeepSeek Flash")), "and the provider\u2019s other models");
+  const other = Array.from(booted.document.querySelectorAll(".model-menu .permission-option")).find(option => option.textContent?.includes("DeepSeek Flash"))!;
+  clickElement(booted, other);
+  await new Promise(resolve => setTimeout(resolve, 150));
+  assert.ok(booted.posted.some(message => message.type === "model-settings/set-model" && (message as { model?: string }).model === "deepseek-v4.1-flash:cloud"), "picking a model tells the host: " + JSON.stringify(booted.posted.slice(-3)));
 });

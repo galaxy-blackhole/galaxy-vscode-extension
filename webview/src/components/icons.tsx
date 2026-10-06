@@ -45,6 +45,16 @@ export function GearIcon() {
   );
 }
 
+/** A square with a pen: the same idea as Codex's new-conversation button. */
+export function NewThreadIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
+      <path d="M8.5 2.5H3.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V7.5" strokeLinecap="round" />
+      <path d="M12.2 2.3a1.1 1.1 0 0 1 1.6 1.6l-5 5-2.1.5.5-2.1 5-5Z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function ChevronDownIcon() {
   return (
     <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">

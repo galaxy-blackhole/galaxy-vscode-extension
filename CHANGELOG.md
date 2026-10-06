@@ -68,6 +68,19 @@ engine as the CLI — instead of its own loop.
 Cùng nội dung với 2.0.5, vốn không lên marketplace: tag của nó nằm trên commit còn lỗi type-check (test mới
 dùng spread một NodeList trong project build ra CommonJS), và job publish chạy `check-types` trước khi đóng
 gói nên dừng ở đó.
+## [2.0.7] - 2026-10-06 18:05 +0700
+
+### Changed
+
+- **Header gọn theo kiểu Codex**: bỏ dòng `model — workspace` và bỏ nút Model; còn tên **Galaxy Blackhole**
+  cùng hai icon: **trò chuyện mới** (xoá nội dung, mở phiên mới) và **bánh răng** mở Cài đặt.
+- **Chip model thành model picker**: menu liệt kê các model của nhà cung cấp đang dùng và đổi được ngay —
+  ghi vào `~/.galaxy/config.json`, lượt chạy kế tiếp dùng model mới — kèm mục mở Cài đặt và mở thư viện model.
+
+### Chưa có
+
+- Chọn **thinking / reasoning effort** ngay trong picker: policy hiện chỉ nằm ở CLI (`thinking-policy.ts`),
+  core chưa có. Bước tiếp theo là đưa policy đó vào core để CLI, web GUI và extension dùng chung một nguồn.
 ## [Unreleased]
 
 ### Changed
