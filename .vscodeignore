@@ -30,3 +30,4 @@ bun.lock
 **/*.ts
 **/*.tsx
 **/.vscode-test.*
+resources/brand-assets.json

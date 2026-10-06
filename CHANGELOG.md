@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# 2.0.3
+
+## Added
+
+- `yarn resources:sync` / `yarn resources:check`: the marketplace icon and the activity bar art are copied
+  from the brand directory of the CLI repo and their hashes recorded, so a brand update can no longer
+  leave a stale icon behind. CI clones the brand repo and runs the check.
+
+## Fixed
+
+- Command Palette entries still read "Galaxy Code"; they now read **Galaxy Blackhole**, matching the listing.
 # 2.0.2
 
 ## Fixed

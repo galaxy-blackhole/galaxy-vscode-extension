@@ -1,0 +1,18 @@
+{
+  "assets": [
+    {
+      "source": "app-icon-512.png",
+      "target": "resources/icon.png",
+      "why": "marketplace listing icon",
+      "sha256": "c521d70af788c3bece9b40e189bc41a3a49839c09b9b3b398c11c386aa014945",
+      "bytes": 49112
+    },
+    {
+      "source": "logo.svg",
+      "target": "resources/icon.svg",
+      "why": "activity bar icon",
+      "sha256": "d7fac4b4c9d2b4b876e0e354a6d650cea2249dddb84247179e94b58e564333d9",
+      "bytes": 1225
+    }
+  ]
+}

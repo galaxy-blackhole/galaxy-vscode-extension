@@ -36,13 +36,27 @@ displayName "Galaxy Blackhole".
 | `src/host/web-launcher-core.ts` / `web-launcher.ts` | `blackhole web` launcher: argv builder + URL scrape (pure), process handling and `openExternal` (VS Code). |
 | `src/ui-protocol.ts` | The only contract the webview sees; core event shapes never cross it. |
 | `webview/src/` | React 19 + assistant-ui app rendered inside the sidebar. |
+| `resources/` | Brand art synced from the brand repo (see below), never hand-drawn. |
 
+
+## Brand assets
+
+The icon the marketplace shows (`resources/icon.png`) and the activity bar art (`resources/icon.svg`) come
+from the brand directory of the CLI repo — the same mark the web GUI uses — so they are copied, never drawn:
+
+```bash
+yarn resources:sync     # copy from ../galaxy-code/web/brand and record what was copied
+yarn resources:check    # fail when the brand art moved on, or when a shipped file was edited by hand
+```
+
+`resources/brand-assets.json` records the source and hash of each file. CI clones the brand repo and runs
+the check, so a brand update that never reaches this extension fails the build instead of shipping a stale icon.
 ## Commands and settings
 
 | Command | Behaviour |
 | --- | --- |
-| `Galaxy Code: Open Chat` | Focus the sidebar view. |
-| `Galaxy Code: New Thread` | Clear the webview transcript. |
+| `Galaxy Blackhole: Open Chat` | Focus the sidebar view. |
+| `Galaxy Blackhole: New Thread` | Clear the webview transcript. |
 | `Galaxy Blackhole: Open Web GUI` | Runs `blackhole web --no-open`, scrapes the token URL from its stdout, and opens it in the real browser. |
 
 | Setting | Default | Meaning |

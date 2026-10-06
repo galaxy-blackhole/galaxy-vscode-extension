@@ -59,3 +59,20 @@ jobs:
 
       - name: Webview Smoke
         run: node scripts/webview-smoke.mjs
+
+  brand-assets:
+    name: Brand Assets In Step With galaxy-code
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: galaxy-blackhole/galaxy-code
+          path: galaxy-code
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # The icons ship from galaxy-code/web/brand; a brand update that does not reach this repo fails here.
+      - name: Compare the shipped icons with the brand source
+        run: node scripts/sync-brand-assets.mjs --check --brand galaxy-code/web/brand

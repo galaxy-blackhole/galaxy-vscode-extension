@@ -3,7 +3,7 @@
   "displayName": "Galaxy Blackhole",
   "icon": "resources/icon.png",
   "description": "AI coding chat for VS Code with per-workspace sessions, project MCP servers, plan checklists and approvals, built on the Galaxy Blackhole core.",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "private": true,
   "publisher": "kevinbui",
   "license": "MIT",
@@ -36,11 +36,13 @@
     "commands": [
       {
         "command": "galaxy-code.openChat",
-        "title": "Galaxy Code: Open Chat"
+        "title": "Galaxy Blackhole: Open Chat",
+        "category": "Galaxy Blackhole"
       },
       {
         "command": "galaxy-code.newThread",
-        "title": "Galaxy Code: New Thread"
+        "title": "Galaxy Blackhole: New Thread",
+        "category": "Galaxy Blackhole"
       },
       {
         "command": "galaxy-code.openWeb",
@@ -74,14 +76,16 @@
     "test:webview": "node scripts/webview-smoke.mjs",
     "test:host": "node --import ./test/helpers/ts-resolve.mjs --test test/*.test.ts",
     "test:vscode": "yarn compile && node test/vscode/run.mjs",
-    "vscode:prepublish": "yarn run package",
+    "vscode:prepublish": "yarn run package && yarn run resources:check",
     "package": "yarn run check-types && yarn run compile:production",
     "marketplace:login": "npx @vscode/vsce login kevinbui",
     "marketplace:package": "npx @vscode/vsce package",
     "marketplace:publish": "npx @vscode/vsce publish",
     "marketplace:publish:ci": "npx @vscode/vsce publish --pat $VSCE_PAT",
     "marketplace:publish:pre-release": "npx @vscode/vsce publish --pre-release",
-    "marketplace:publish:pre-release:ci": "npx @vscode/vsce publish --pre-release --pat $VSCE_PAT"
+    "marketplace:publish:pre-release:ci": "npx @vscode/vsce publish --pre-release --pat $VSCE_PAT",
+    "resources:sync": "node scripts/sync-brand-assets.mjs",
+    "resources:check": "node scripts/sync-brand-assets.mjs --check"
   },
   "dependencies": {
     "@galaxy-stack/ai-coder-core": "link:../galaxy-ai-coder-core"
