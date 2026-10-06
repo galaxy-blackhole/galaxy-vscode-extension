@@ -41,7 +41,8 @@ export type WebviewToHostMessage =
   | Readonly<{ type: "model-settings/save-key"; providerId: string; apiKey: string }>
   | Readonly<{ type: "model-settings/save-provider"; provider: ProviderDraft }>
   | Readonly<{ type: "model-settings/set-active"; providerId: string }>
-  | Readonly<{ type: "model-settings/remove"; providerId: string }>;
+  | Readonly<{ type: "model-settings/remove"; providerId: string }>
+  | Readonly<{ type: "session/action"; action: Readonly<{ type: "delete" | "list" | "new" | "open"; id?: string }> }>;
 
 export type OllamaStreamDelta = Readonly<{
   content?: string;
@@ -50,7 +51,7 @@ export type OllamaStreamDelta = Readonly<{
 }>;
 
 /** Bump when the shape of host↔webview messages changes. */
-export const HOST_WEBVIEW_PROTOCOL_VERSION = 1;
+export const HOST_WEBVIEW_PROTOCOL_VERSION = 2;
 
 export type HostToWebviewMessage =
   | Readonly<{ type: "chat-delta"; runId: string; delta: OllamaStreamDelta }>
@@ -61,4 +62,6 @@ export type HostToWebviewMessage =
   | Readonly<{ type: "tool-result"; requestId: string; ok: boolean; result: string }>
   | Readonly<{ type: "host-info"; workspaceName: string; workspacePath: string; platform: string; shell: string; model: string; baseUrl: string; credentialSource: string; modelLibraryUrl?: string; modelSettings: ModelSettingsSummary }>
   | Readonly<{ type: "model-settings"; settings: ModelSettingsSummary }>
-  | Readonly<{ type: "new-thread" }>;
+  | Readonly<{ type: "new-thread" }>
+  | Readonly<{ type: "session-list"; sessions: readonly Readonly<{ id: string; messageCount: number; title: string; updatedAt: string }>[] }>
+  | Readonly<{ type: "session-loaded"; id: string | null; messages: readonly Readonly<{ content: string; role: "assistant" | "user" }>[]; title: string }>;

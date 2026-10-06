@@ -542,3 +542,17 @@ html, body, #app {
 .plan-step-muted { opacity: .7; }
 .plan-chip { border: 1px solid var(--vscode-panel-border, #333); background: transparent; color: inherit; border-radius: 999px; padding: 2px 10px; font-size: 12px; cursor: pointer; }
 .plan-chip-on { background: var(--vscode-statusBarItem-warningBackground, #7d5a00); color: var(--vscode-statusBarItem-warningForeground, #fff); border-color: transparent; }
+
+/* Sessions: a self-contained chip that opens the workspace's history. */
+.session-chip { border: 1px solid var(--vscode-panel-border, #333); background: transparent; color: inherit; border-radius: 999px; padding: 2px 10px; font-size: 12px; cursor: pointer; }
+.session-panel { border: 1px solid var(--vscode-panel-border, #333); border-radius: 10px; background: var(--vscode-editorWidget-background, #1f1f1f); padding: 8px 10px; font-size: 12px; }
+.session-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; color: var(--vscode-descriptionForeground, #aaa); }
+.session-new { border: 1px solid var(--vscode-panel-border, #333); background: transparent; color: inherit; border-radius: 6px; padding: 2px 8px; cursor: pointer; font-size: 12px; }
+.session-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; }
+.session-item { display: flex; align-items: center; gap: 6px; border-radius: 8px; padding: 2px 4px; }
+.session-item-active { background: var(--vscode-list-activeSelectionBackground, #2a2d2e); }
+.session-open { flex: 1; display: flex; flex-direction: column; gap: 2px; background: transparent; border: none; color: inherit; text-align: left; cursor: pointer; padding: 4px 6px; }
+.session-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session-meta { color: var(--vscode-descriptionForeground, #888); font-size: 11px; }
+.session-delete { border: none; background: transparent; color: var(--vscode-descriptionForeground, #888); cursor: pointer; }
+.session-empty { color: var(--vscode-descriptionForeground, #888); margin: 4px 0; }

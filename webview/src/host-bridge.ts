@@ -21,6 +21,18 @@ type PendingApprovalListener = (pending: { requestId: string; tool: string; args
 
 const uiEventListeners = new Set<UiEventListener>();
 const pendingApprovalListeners = new Set<PendingApprovalListener>();
+type SessionMessage = Extract<HostToWebviewMessage, { type: "session-list" | "session-loaded" }>;
+const sessionListeners = new Set<(message: SessionMessage) => void>();
+
+export function subscribeSessionMessages(listener: (message: SessionMessage) => void): () => void {
+  sessionListeners.add(listener);
+  return () => sessionListeners.delete(listener);
+}
+
+/** The session list panel: new, list, open and delete all travel as one action. */
+export function sessionAction(action: Readonly<{ type: "delete" | "list" | "new" | "open"; id?: string }>): void {
+  postToHost({ type: "session/action", action });
+}
 
 export function subscribeUiEvents(listener: UiEventListener): () => void {
   uiEventListeners.add(listener);
@@ -165,6 +177,10 @@ if (typeof window !== "undefined") {
       case "tool-result":
         toolPending.get(message.requestId)?.resolve({ ok: message.ok, result: message.result });
         toolPending.delete(message.requestId);
+        return;
+      case "session-list":
+      case "session-loaded":
+        for (const listener of sessionListeners) listener(message);
         return;
       case "host-info":
         hostInfo = message;

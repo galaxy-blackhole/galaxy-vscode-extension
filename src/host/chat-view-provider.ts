@@ -3,6 +3,7 @@ import type { HostToWebviewMessage, WebviewToHostMessage } from "../protocol";
 import { resolveModelLibraryUrl, resolveOllamaConnection, type OllamaConnection } from "./config";
 import { streamOllamaChat } from "./ollama-client";
 import { startCoreRun, type CoreRunSession } from "./core-run-session";
+import { appendSessionTurn, createSession, deleteSession, listSessions, readSession } from "./session-store";
 import type { PermissionMode } from "./core-tool-executor";
 import type { GalaxyUiAction } from "../ui-protocol";
 import {
@@ -158,6 +159,10 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         this.controllers.get(message.runId)?.abort(new Error("cancelled"));
         return;
       }
+      case "session/action": {
+        await this.handleSessionAction(message.action);
+        return;
+      }
       case "ui-action": {
         await this.handleUiAction(message.action);
         return;
@@ -204,6 +209,49 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   /** Set by `/compact` while idle: the next run compacts before its first model turn. */
   private compactOnNextRun = false;
 
+  /** The Galaxy session this view shows; created lazily by the first run. */
+  private sessionId: string | null = null;
+
+  /** Whether history can be kept at all: without a storage root there is nowhere safe to write. */
+  private get sessionsRoot(): string | null {
+    return typeof this.storageRoot === "string" && this.storageRoot.length > 0 ? this.storageRoot : null;
+  }
+
+  /** Session list, open, new and delete: the webview's history panel talks to these. */
+  private async handleSessionAction(action: Readonly<{ type: "delete" | "list" | "new" | "open"; id?: string }>): Promise<void> {
+    const root = this.sessionsRoot;
+    if (root === null) return;
+    if (action.type === "list") { await this.postSessionList(); return; }
+    if (action.type === "new") {
+      this.sessionId = null;
+      this.post({ type: "session-loaded", id: null, messages: [], title: "" });
+      return;
+    }
+    if (action.type === "delete") {
+      if (typeof action.id === "string" && await deleteSession(root, action.id)) {
+        if (this.sessionId === action.id) this.sessionId = null;
+        await this.postSessionList();
+      }
+      return;
+    }
+    const session = typeof action.id === "string" ? await readSession(root, action.id) : null;
+    if (session === null) { await this.postSessionList(); return; }
+    this.sessionId = session.id;
+    this.post({
+      type: "session-loaded",
+      id: session.id,
+      messages: session.messages.map(turn => Object.freeze({ content: turn.content, role: turn.role })),
+      title: session.title,
+    });
+  }
+
+  private async postSessionList(): Promise<void> {
+    const root = this.sessionsRoot;
+    if (root === null) return;
+    const sessions = await listSessions(root);
+    this.post({ type: "session-list", sessions: sessions.map(item => Object.freeze({ id: item.id, messageCount: item.messageCount, title: item.title, updatedAt: item.updatedAt })) });
+  }
+
   private async handleUiAction(action: GalaxyUiAction): Promise<void> {
     switch (action.type) {
       case "run/start": {
@@ -214,6 +262,14 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
           /* A `/compact` typed while idle rides into this run. */
           const compactOnStart = this.compactOnNextRun;
           this.compactOnNextRun = false;
+          /* History is per session: the first run of a view creates one, later runs append to it. */
+          const sessionsRoot = this.sessionsRoot;
+          if (sessionsRoot !== null) {
+            const existing = this.sessionId === null ? null : await readSession(sessionsRoot, this.sessionId);
+            const session = existing ?? await createSession(sessionsRoot, action.input);
+            this.sessionId = session.id;
+            await appendSessionTurn(sessionsRoot, session.id, "user", action.input);
+          }
           this.session = await startCoreRun({
             compactOnStart,
             connection: this.connection,
@@ -232,6 +288,13 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
             workspaceRoot: this.workspaceRoot,
           });
           const result = await this.session.handle.result;
+          if (sessionsRoot !== null && this.sessionId !== null) {
+            const finalReport = (result as { finalReport?: unknown }).finalReport;
+            const report = typeof finalReport === "string" ? finalReport.trim() : "";
+            const text = report.length > 0 ? report : (result.error?.message ?? "");
+            if (text.length > 0) await appendSessionTurn(sessionsRoot, this.sessionId, "assistant", text);
+            await this.postSessionList();
+          }
           this.post({ type: "ui-event", event: { kind: "run/status", reason: result.error?.message, status: result.state === "completed" ? "completed" : result.state === "failed" ? "failed" : result.state === "paused" ? "paused" : "cancelled" } });
         } catch (error) {
           this.post({ type: "ui-event", event: { kind: "error", code: "SESSION_ERROR", message: error instanceof Error ? error.message : String(error), retryable: false } });

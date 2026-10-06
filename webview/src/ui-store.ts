@@ -1,5 +1,5 @@
 import type { GalaxyUiEvent, GalaxyUiRunStatus } from "../../src/ui-protocol";
-import { subscribeUiEvents } from "./host-bridge";
+import { subscribeSessionMessages, subscribeUiEvents } from "./host-bridge";
 
 export interface UiToolPart {
   readonly type: "tool-call";
@@ -21,6 +21,13 @@ export interface UiMessage {
   )[];
 }
 
+export interface UiSessionSummary {
+  readonly id: string;
+  readonly messageCount: number;
+  readonly title: string;
+  readonly updatedAt: string;
+}
+
 export interface UiPlan {
   readonly steps: readonly Readonly<{ id: string; status: "completed" | "in_progress" | "pending" | "skipped"; title: string }>[];
 }
@@ -29,6 +36,8 @@ export interface UiState {
   readonly messages: readonly UiMessage[];
   readonly status: GalaxyUiRunStatus | "idle";
   readonly plan: UiPlan | null;
+  readonly sessions: readonly UiSessionSummary[];
+  readonly activeSessionId: string | null;
   readonly planMode: boolean;
   readonly statusReason: string | null;
 }
@@ -39,6 +48,8 @@ let messages: UiMessage[] = [];
 let status: GalaxyUiRunStatus | "idle" = "idle";
 let statusReason: string | null = null;
 let plan: UiPlan | null = null;
+let sessions: UiSessionSummary[] = [];
+let activeSessionId: string | null = null;
 let planMode = false;
 const listeners = new Set<Listener>();
 let pendingAssistant: { content: UiMessage["content"] } | null = null;
@@ -48,7 +59,7 @@ function notify(): void {
 }
 
 function snapshot(): UiState {
-  return { messages, plan, planMode, status, statusReason };
+  return { activeSessionId, messages, plan, planMode, sessions, status, statusReason };
 }
 
 let cachedSnapshot: UiState = snapshot();
@@ -179,6 +190,24 @@ function handleEvent(event: GalaxyUiEvent): void {
 }
 
 subscribeUiEvents(handleEvent);
+
+/** The host's session list and the transcript it hands back when a session is opened. */
+subscribeSessionMessages(message => {
+  if (message.type === "session-list") {
+    sessions = message.sessions.map(item => Object.freeze({ ...item }));
+    commit();
+    return;
+  }
+  activeSessionId = message.id;
+  messages = message.messages.map((turn, index) => ({
+    content: [{ type: "text" as const, text: turn.content }],
+    id: message.id + "-" + String(index),
+    role: turn.role,
+  }));
+  status = "idle";
+  statusReason = message.id === null ? null : "Đã mở phiên: " + message.title;
+  commit();
+});
 
 /** Called when the composer submits a new user message. */
 export function appendUserMessage(text: string): void {

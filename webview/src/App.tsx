@@ -10,6 +10,7 @@ import { useGalaxyUiRuntime } from "./galaxy-ui-runtime";
 import { ApprovalBar } from "./components/ApprovalBar";
 import { Composer } from "./components/Composer";
 import { PlanStrip } from "./components/PlanStrip";
+import { SessionPanel } from "./components/SessionPanel";
 import { ModelSetup } from "./components/ModelSetup";
 import { ReasoningPart, TextPart, ToolFallback } from "./components/parts";
 import { announceReady, currentHostInfo, subscribeHostInfo, type HostInfo } from "./host-bridge";
@@ -94,6 +95,7 @@ export function App() {
         </ThreadPrimitive.Root>
         <ApprovalBar />
         {setupOpen && settings !== null ? <ModelSetup settings={settings} onClose={() => setSetupOpen(false)} /> : null}
+        <SessionPanel />
         <PlanStrip />
         <Composer info={info} />
       </div>
