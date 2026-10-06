@@ -128,6 +128,13 @@ gói nên dừng ở đó.
 - **Sửa lỗi tab Cài đặt mở ra chat**: cờ chọn giao diện được host bơm thẳng vào HTML
   (`window.__GALAXY_VIEW__`) — trước đó nó nằm trên URL của script, mà `location.hash` là của *trang*, nên tab
   Cài đặt lại render giao diện chat.
+- **Cài đặt xếp lại theo bố cục Codex**: rail chọn mục bên trái, bên phải là các nhóm hàng có nhãn + mô tả và
+  điều khiển nằm ngoài cùng. Mục **Chung** gồm: Quyền, **Ngôn ngữ (vi/en)**, **Cỡ chữ** (áp dụng thật cho nội
+  dung hội thoại), **Cách xử lý tin nhắn tiếp theo** (Xếp hàng / Chuyển hướng) và **Chi tiết công việc**
+  (Tiêu chuẩn / Gọn — Gọn ẩn phần args/result của tool).
+- **Chip model hiện `auto`** khi dùng nhà cung cấp mặc định, đúng quy ước của CLI và blackhole web (trước đó
+  hiện thẳng `deepseek-v4.1-flash:cloud`); rê chuột vẫn thấy model ngầm hiểu trong tooltip.
+- **Slider nằm gọn trong khung**: đệm hai bên 20px nên chấm và thumb không còn thò ra ngoài viền popover.
 - Bỏ 2 test của thanh Phiên (đã gỡ theo yêu cầu) và thay bằng test chốt: khung nhập liệu không còn thanh đó,
   và message phiên vẫn không làm hỏng view.
 

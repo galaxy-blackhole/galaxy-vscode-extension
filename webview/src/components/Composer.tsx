@@ -223,7 +223,9 @@ function ModelChip({ info }: { info: HostInfo | null }) {
   const { thinking } = useSyncExternalStore(subscribeUiState, getUiState);
   const activeProvider = info?.modelSettings?.providers.find(provider => provider.active);
   const models = activeProvider?.models ?? [];
-  const activeModel = info?.model ?? models[0]?.id ?? "";
+  const resolvedModel = info?.model ?? models[0]?.id ?? "";
+  /* The built-in provider stands for "auto": the seam picks the usable provider, the way the CLI and the web GUI read it. */
+  const activeModel = activeProvider?.id === "galaxy" ? "auto" : resolvedModel;
   const options = thinking?.options ?? [];
   const stored = thinking?.choice ?? "default";
   const choice = draft ?? stored;
@@ -242,7 +244,7 @@ function ModelChip({ info }: { info: HostInfo | null }) {
       <button
         type="button"
         className="composer-chip chip-model"
-        title={"Model: " + (activeModel.length > 0 ? activeModel : "chưa rõ")}
+        title={"Model: " + (activeModel.length > 0 ? activeModel : "chưa rõ") + (activeModel === "auto" ? " (ngầm hiểu " + resolvedModel + ")" : "")}
         onClick={() => setOpen(v => !v)}
       >
         <span className="chip-label">{activeModel.length > 0 ? activeModel : "Model"}</span>

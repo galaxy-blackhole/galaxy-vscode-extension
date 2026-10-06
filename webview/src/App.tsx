@@ -16,6 +16,7 @@ import { GearIcon, NewThreadIcon } from "./components/icons";
 import { startNewThread } from "./host-bridge";
 import { ReasoningPart, TextPart, ToolFallback } from "./components/parts";
 import { announceReady, currentHostInfo, subscribeHostInfo, type HostInfo } from "./host-bridge";
+import { getPreferences, subscribePreferences } from "./preferences";
 
 function UserMessage() {
   return (
@@ -58,6 +59,9 @@ export function App() {
   const [info, setInfo] = useState<HostInfo | null>(currentHostInfo());
   const runtime = useGalaxyUiRuntime(info?.workspacePath ?? "");
   const settings = info?.modelSettings ?? null;
+  /* Đổi cỡ chữ trong Cài đặt là đổi luôn nội dung hội thoại. */
+  const fontSize = useSyncExternalStore(subscribePreferences, getPreferences).fontSize;
+  useEffect(() => { document.documentElement.style.setProperty("--ui-font-size", fontSize + "px"); }, [fontSize]);
   /* No key on the active provider means the first run cannot start: open the panel. */
   const needsKey = settings !== null && info?.credentialSource !== "environment"
     && settings.providers.some(provider => provider.active && !provider.keyConfigured);

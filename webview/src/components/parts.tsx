@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { getPreferences, subscribePreferences } from "../preferences";
 import type { ToolCallMessagePartComponent } from "@assistant-ui/react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 
@@ -24,6 +25,8 @@ function preview(value: unknown, max = 800): string {
 }
 
 export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(props) {
+  /* "Gọn" hides the args/result detail so a long run reads as a list of tool names. */
+  const compact = useSyncExternalStore(subscribePreferences, getPreferences).workDetail === "compact";
   const [open, setOpen] = useState(false);
   const part = props;
   const running = part.status?.type === "running";
@@ -32,13 +35,13 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
   const status = running ? "running" : failed ? "error" : done ? "done" : "pending";
   return (
     <div className={`tool-card tool-${status}`}>
-      <button className="tool-header" onClick={() => setOpen((v) => !v)}>
+      <button className="tool-header" onClick={() => { if (!compact) setOpen((v) => !v); }}>
         <span className="tool-icon">{status === "running" ? "⏳" : status === "error" ? "✗" : status === "done" ? "✓" : "◔"}</span>
         <span className="tool-name">{part.toolName}</span>
         <span className="tool-status">{status}</span>
-        <span className="tool-caret">{open ? "▾" : "▸"}</span>
+        {compact ? null : <span className="tool-caret">{open ? "▾" : "▸"}</span>}
       </button>
-      {open && (
+      {open && !compact && (
         <div className="tool-detail">
           <div className="tool-section-label">args</div>
           <pre className="tool-pre">{preview(part.argsText || part.args)}</pre>

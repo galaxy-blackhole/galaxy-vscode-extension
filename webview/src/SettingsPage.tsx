@@ -1,21 +1,92 @@
 /**
- * The settings tab. Opened in an editor tab (the header's gear), mirroring the web GUI's three sections:
- * Chung, Model and Thông tin.
+ * The settings tab, laid out like Codex's: a rail of sections on the left, and on the right groups of rows
+ * whose control sits on the far side — the shape the web GUI and Codex both use.
  */
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { MODE_OPTIONS } from "./components/Composer";
 import { ModelSetup } from "./components/ModelSetup";
 import { announceReady, currentHostInfo, setPermissionMode as sendPermissionMode, subscribeHostInfo, type HostInfo } from "./host-bridge";
 import { getPermissionMode, setPermissionMode, subscribePermissionMode } from "./permission-mode";
+import { getPreferences, setPreferences, subscribePreferences, type Locale, type NextMessage, type WorkDetail } from "./preferences";
 
 const SECTIONS = ["Chung", "Model", "Thông tin"] as const;
 type Section = (typeof SECTIONS)[number];
+
+function Row({ control, description, label }: { control: ReactNode; description: string; label: string }) {
+  return (
+    <div className="settings-row">
+      <div className="settings-row-text">
+        <div className="settings-row-label">{label}</div>
+        <div className="settings-row-desc">{description}</div>
+      </div>
+      <div className="settings-row-control">{control}</div>
+    </div>
+  );
+}
 
 export function SettingsPage() {
   const [section, setSection] = useState<Section>("Chung");
   const [info, setInfo] = useState<HostInfo | null>(currentHostInfo());
   const mode = useSyncExternalStore(subscribePermissionMode, getPermissionMode);
+  const preferences = useSyncExternalStore(subscribePreferences, getPreferences);
   useEffect(() => { announceReady(); return subscribeHostInfo(setInfo); }, []);
+
+  const general = (
+    <>
+      <div className="settings-group">
+        <Row
+          label="Quyền"
+          description="Chọn chế độ quyền mặc định cho phiên mới"
+          control={
+            <select className="settings-select" aria-label="Quyền" value={mode} onChange={event => { const next = event.target.value as "ask" | "smart" | "auto"; setPermissionMode(next); sendPermissionMode(next); }}>
+              {MODE_OPTIONS.map(choice => <option key={choice.mode} value={choice.mode}>{choice.title}</option>)}
+            </select>
+          }
+        />
+        <Row
+          label="Ngôn ngữ"
+          description="Ngôn ngữ cho giao diện người dùng"
+          control={
+            <select className="settings-select" aria-label="Ngôn ngữ" value={preferences.locale} onChange={event => setPreferences({ locale: event.target.value as Locale })}>
+              <option value="vi">Tiếng Việt</option>
+              <option value="en">English</option>
+            </select>
+          }
+        />
+        <Row
+          label="Cỡ chữ"
+          description="Chỉ ảnh hưởng nội dung hội thoại"
+          control={
+            <span className="settings-number-wrap">
+              <input className="settings-number" aria-label="Cỡ chữ" type="number" min={10} max={20} value={preferences.fontSize} onChange={event => { const next = Number(event.target.value); if (Number.isFinite(next)) setPreferences({ fontSize: Math.min(20, Math.max(10, next)) }); }} />
+              <span>px</span>
+            </span>
+          }
+        />
+        <Row
+          label="Cách xử lý tin nhắn tiếp theo"
+          description="Khi agent đang chạy: xếp hàng chờ, hoặc chuyển hướng lượt đang chạy"
+          control={
+            <select className="settings-select" aria-label="Cách xử lý tin nhắn tiếp theo" value={preferences.nextMessage} onChange={event => setPreferences({ nextMessage: event.target.value as NextMessage })}>
+              <option value="queue">Xếp hàng</option>
+              <option value="steer">Chuyển hướng</option>
+            </select>
+          }
+        />
+        <Row
+          label="Chi tiết công việc"
+          description="Chọn mức chi tiết hiển thị cho lệnh gọi tool"
+          control={
+            <select className="settings-select" aria-label="Chi tiết công việc" value={preferences.workDetail} onChange={event => setPreferences({ workDetail: event.target.value as WorkDetail })}>
+              <option value="standard">Tiêu chuẩn</option>
+              <option value="compact">Gọn</option>
+            </select>
+          }
+        />
+      </div>
+    </>
+  );
+
   return (
     <div className="settings-page">
       <aside className="settings-nav">
@@ -25,38 +96,18 @@ export function SettingsPage() {
         ))}
       </aside>
       <main className="settings-body">
-        {section === "Chung" ? (
-          <section className="ms-section" aria-label="Quyền">
-            <h2 className="ms-section-title">Quyền</h2>
-            <p className="ms-sub">Galaxy hỏi trước khi ghi tệp hay chạy lệnh ở mức nào.</p>
-            <div className="ms-modes">
-              {MODE_OPTIONS.map(choice => (
-                <button
-                  key={choice.mode}
-                  type="button"
-                  className={"ms-mode" + (choice.mode === mode ? " ms-mode-active" : "")}
-                  onClick={() => { setPermissionMode(choice.mode); sendPermissionMode(choice.mode); }}
-                >
-                  <span className="ms-mode-title">{choice.title}</span>
-                  <span className="ms-mode-desc">{choice.description}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        ) : null}
+        <h2 className="settings-h1">{section === "Chung" ? "Cài đặt chung" : section}</h2>
+        {section === "Chung" ? general : null}
         {section === "Model" ? (
-          info?.modelSettings ? <ModelSetup settings={info.modelSettings} onClose={() => undefined} /> : <p className="ms-sub">Đang đọc ~/.galaxy/config.json…</p>
+          info?.modelSettings ? <ModelSetup settings={info.modelSettings} onClose={() => undefined} /> : <p className="settings-row-desc">Đang đọc ~/.galaxy/config.json…</p>
         ) : null}
         {section === "Thông tin" ? (
-          <section className="ms-section" aria-label="Thông tin">
-            <h2 className="ms-section-title">Thông tin</h2>
-            <dl className="settings-facts">
-              <dt>Model</dt><dd>{info?.model ?? "—"}</dd>
-              <dt>Endpoint</dt><dd>{info?.baseUrl ?? "—"}</dd>
-              <dt>Workspace</dt><dd>{info?.workspacePath ?? "—"}</dd>
-              <dt>Nền tảng</dt><dd>{(info?.platform ?? "—") + " · " + (info?.shell ?? "—")}</dd>
-            </dl>
-          </section>
+          <div className="settings-group">
+            <Row label="Model" description="Model mà lượt chạy kế tiếp sẽ dùng" control={<span>{info?.model ?? "—"}</span>} />
+            <Row label="Endpoint" description="Nơi gửi yêu cầu model" control={<span>{info?.baseUrl ?? "—"}</span>} />
+            <Row label="Workspace" description="Thư mục đang mở" control={<span className="settings-mono">{info?.workspacePath ?? "—"}</span>} />
+            <Row label="Nền tảng" description="Hệ điều hành và shell" control={<span>{(info?.platform ?? "—") + " · " + (info?.shell ?? "—")}</span>} />
+          </div>
         ) : null}
       </main>
     </div>

@@ -42,7 +42,7 @@ test("each composer chip says what it is, and the menus stay inside the sidebar"
   await withHost(booted);
   const chips = Array.from(booted.document.querySelectorAll(".composer-chip"));
   const labels = chips.map(chip => chip.textContent ?? "");
-  assert.ok(labels.some(label => label.includes("kimi-k2.7-code:cloud")), "the model chip names the model: " + JSON.stringify(labels));
+  assert.ok(labels.some(label => label === "auto"), "the built-in provider reads as auto, like the CLI and the web GUI: " + JSON.stringify(labels));
   assert.ok(labels.some(label => /Duyệt|Toàn quyền/.test(label)), "the permission chip names the mode: " + JSON.stringify(labels));
 
   const permissionChip = chips.find(chip => /Duyệt|Toàn quyền/.test(chip.textContent ?? ""))!;
@@ -57,7 +57,7 @@ test("each composer chip says what it is, and the menus stay inside the sidebar"
   /* The model chip is a Codex-style popover: a thinking slider on top, the model list under it. */
   booted.window.dispatchEvent(new booted.window.MessageEvent("message", { data: { type: "thinking", choice: "default", options: [{ label: "Mặc định", value: "default" }, { label: "Vừa", value: "medium" }, { label: "Cao", value: "high" }] } }));
   await new Promise(resolve => setTimeout(resolve, 150));
-  const modelChip = chips.find(chip => chip.textContent?.includes("kimi-k2.7-code:cloud"))!;
+  const modelChip = chips.find(chip => chip.textContent?.trim() === "auto")!;
   clickElement(booted, modelChip);
   await new Promise(resolve => setTimeout(resolve, 150));
   const slider = booted.document.querySelector(".thinking-track");
