@@ -63,6 +63,11 @@ engine as the CLI — instead of its own loop.
 
 - **Menu không còn bị cắt ở mép sidebar**: menu mở lên trên, giới hạn bề rộng theo panel, menu của chip
   model neo phải, thêm `max-height` và cuộn.
+## [2.0.6] - 2026-10-06 17:05 +0700
+
+Cùng nội dung với 2.0.5, vốn không lên marketplace: tag của nó nằm trên commit còn lỗi type-check (test mới
+dùng spread một NodeList trong project build ra CommonJS), và job publish chạy `check-types` trước khi đóng
+gói nên dừng ở đó.
 ## [Unreleased]
 
 ### Changed

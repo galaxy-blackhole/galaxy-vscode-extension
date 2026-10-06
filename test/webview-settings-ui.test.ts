@@ -30,7 +30,7 @@ test("the header reads Galaxy Blackhole and its gear opens the settings panel", 
 test("each composer chip says what it is, and the menus stay inside the sidebar", async () => {
   const booted = await bootWebview();
   await withHost(booted);
-  const chips = [...booted.document.querySelectorAll(".composer-chip")];
+  const chips = Array.from(booted.document.querySelectorAll(".composer-chip"));
   const labels = chips.map(chip => chip.textContent ?? "");
   assert.ok(labels.some(label => label.includes("kimi-k2.7-code:cloud")), "the model chip names the model: " + JSON.stringify(labels));
   assert.ok(labels.some(label => /Duyệt|Toàn quyền/.test(label)), "the permission chip names the mode: " + JSON.stringify(labels));
@@ -39,7 +39,7 @@ test("each composer chip says what it is, and the menus stay inside the sidebar"
   clickElement(booted, permissionChip);
   await new Promise(resolve => setTimeout(resolve, 150));
   assert.match(booted.document.querySelector(".permission-menu-header")?.textContent ?? "", /phê duyệt/i, "the menu explains itself");
-  const options = [...booted.document.querySelectorAll(".permission-menu .permission-option")].map(option => option.textContent ?? "");
+  const options = Array.from(booted.document.querySelectorAll(".permission-menu .permission-option")).map(option => option.textContent ?? "");
   assert.equal(options.length, 4, "three modes plus the settings link: " + JSON.stringify(options));
   assert.ok(options.some(option => option.includes("Cài đặt")), "the settings link is in the menu");
   assert.ok(!options.some(option => option.includes("có sau khi tích hợp")), "no placeholder entry is shipped");
