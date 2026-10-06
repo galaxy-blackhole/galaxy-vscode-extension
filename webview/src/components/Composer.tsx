@@ -116,19 +116,46 @@ function useDismiss(open: boolean, close: () => void, rootRef: React.RefObject<H
  * The reasoning slider: drawn by hand because a native range input cannot show the level names, and because
  * its value came from the host, so a drag snapped back until the round-trip finished.
  */
+/**
+ * One tone per reasoning level: the Codex slider shifts colour as it climbs, so the level reads at a glance
+ * without any labels under the track.
+ */
+const THINKING_TONES: Readonly<Record<string, Readonly<{ from: string; text: string; to: string }>>> = Object.freeze({
+  minimal: { from: "#0ea5e9", text: "#38bdf8", to: "#22d3ee" },
+  low: { from: "#3b82f6", text: "#60a5fa", to: "#22d3ee" },
+  medium: { from: "#6366f1", text: "#818cf8", to: "#3b82f6" },
+  high: { from: "#8b5cf6", text: "#a78bfa", to: "#6366f1" },
+  xhigh: { from: "#a855f7", text: "#c084fc", to: "#8b5cf6" },
+  max: { from: "#c026d3", text: "#e879f9", to: "#a855f7" },
+  on: { from: "#8b5cf6", text: "#a78bfa", to: "#6366f1" },
+  off: { from: "#52525b", text: "#a1a1aa", to: "#71717a" },
+});
+const NEUTRAL_TONE = Object.freeze({ from: "#52525b", text: "inherit", to: "#71717a" });
+
+function thinkingTone(choice: string) {
+  return THINKING_TONES[choice] ?? NEUTRAL_TONE;
+}
+
+/**
+ * The reasoning slider, drawn by hand: a rounded track whose gradient is the current level's tone, stop dots
+ * inside it, a white thumb, and drag from anywhere (a native range snapped back and showed no levels).
+ */
 function ThinkingSlider({
   options,
   index,
   onPick,
+  tone,
 }: {
   options: readonly Readonly<{ label: string; value: string }>[];
   index: number;
   onPick: (value: string) => void;
+  tone: Readonly<{ from: string; text: string; to: string }>;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const last = Math.max(0, options.length - 1);
-  const ratio = last === 0 ? 0 : index / last;
+  const ratio = last === 0 ? 1 : index / last;
+  const gradient = "linear-gradient(90deg, " + tone.from + ", " + tone.to + ")";
   const pickAt = (clientX: number) => {
     const rect = trackRef.current?.getBoundingClientRect();
     if (!rect || rect.width === 0 || last === 0) return;
@@ -167,8 +194,8 @@ function ThinkingSlider({
           if (event.key === "ArrowRight" || event.key === "ArrowUp") { event.preventDefault(); step(1); }
         }}
       >
-        <span className="thinking-track-line" />
-        <span className="thinking-track-fill" style={{ width: (ratio * 100).toFixed(1) + "%" }} />
+        <span className="thinking-track-base" />
+        <span className="thinking-track-fill" style={{ backgroundImage: gradient, width: (ratio * 100).toFixed(1) + "%" }} />
         {options.map((option, stop) => (
           <button
             key={option.value}
@@ -183,18 +210,6 @@ function ThinkingSlider({
           />
         ))}
         <span className="thinking-thumb" style={{ left: (ratio * 100).toFixed(1) + "%" }} aria-hidden="true" />
-      </div>
-      <div className="thinking-levels">
-        {options.map((option, stop) => (
-          <button
-            key={option.value}
-            type="button"
-            className={"thinking-level" + (stop === index ? " thinking-level-active" : "")}
-            onClick={() => onPick(option.value)}
-          >
-            {option.label}
-          </button>
-        ))}
       </div>
     </div>
   );
@@ -214,6 +229,7 @@ function ModelChip({ info }: { info: HostInfo | null }) {
   const choice = draft ?? stored;
   const index = Math.max(0, options.findIndex(option => option.value === choice));
   const current = options[index];
+  const tone = thinkingTone(choice);
   /* The host confirms a level by posting it back; until then the draft keeps the thumb where the user put it. */
   useEffect(() => { setDraft(current => (current === stored ? null : current)); }, [stored]);
   useDismiss(open, () => { setOpen(false); setPanel("main"); }, rootRef);
@@ -236,7 +252,7 @@ function ModelChip({ info }: { info: HostInfo | null }) {
         <div className="permission-menu model-menu" role="menu">
           <div className="thinking-head">
             <span className="thinking-mark" aria-hidden="true">⚡</span>
-            <span className={"thinking-value" + (choice === "default" ? "" : " title-gold")}>{current?.label ?? "Mặc định"}</span>
+            <span className="thinking-value" style={{ color: tone.text }}>{current?.label ?? "Mặc định"}</span>
             <button type="button" className="thinking-reset" aria-label="Về mặc định" title="Về mặc định" disabled={choice === "default"} onClick={() => apply("default")}>↺</button>
           </div>
           <button type="button" className="thinking-model" aria-label="Đổi model" onClick={() => setPanel(panel === "models" ? "main" : "models")}>
@@ -262,7 +278,7 @@ function ModelChip({ info }: { info: HostInfo | null }) {
               ))}
             </div>
           ) : options.length > 0 ? (
-            <ThinkingSlider options={options} index={index} onPick={apply} />
+            <ThinkingSlider options={options} index={index} onPick={apply} tone={tone} />
           ) : <p className="thinking-empty">Model này không cho chọn mức suy luận.</p>}
         </div>
       )}

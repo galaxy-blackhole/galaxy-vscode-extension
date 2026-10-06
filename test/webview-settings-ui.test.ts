@@ -67,9 +67,10 @@ test("each composer chip says what it is, and the menus stay inside the sidebar"
 
   /* Dragging it to the last stop stores that level. */
   /* Every level is a labelled button, so a pick is a plain click. */
-  const levels = Array.from(booted.document.querySelectorAll(".thinking-level")).map(level => level.textContent ?? "");
-  assert.deepEqual(levels, ["Mặc định", "Vừa", "Cao"], "one label per level the policy allows: " + JSON.stringify(levels));
-  const high = Array.from(booted.document.querySelectorAll(".thinking-level")).find(level => level.textContent === "Cao")!;
+  /* No labels under the track any more: each stop is a button named after its level. */
+  const stops = Array.from(booted.document.querySelectorAll(".thinking-stop")).map(stop => stop.getAttribute("aria-label") ?? "");
+  assert.deepEqual(stops, ["Mặc định", "Vừa", "Cao"], "one stop per level the policy allows: " + JSON.stringify(stops));
+  const high = Array.from(booted.document.querySelectorAll(".thinking-stop")).find(stop => stop.getAttribute("aria-label") === "Cao")!;
   clickElement(booted, high);
   await new Promise(resolve => setTimeout(resolve, 150));
   assert.ok(booted.posted.some(message => message.type === "model-settings/set-thinking" && (message as { choice?: string }).choice === "high"), "picking a level tells the host: " + JSON.stringify(booted.posted.slice(-2)));

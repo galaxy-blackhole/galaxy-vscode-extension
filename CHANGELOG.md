@@ -111,6 +111,7 @@ gói nên dừng ở đó.
 - **Trang Cài đặt có 3 phần như blackhole web**: **Chung** (chế độ phê duyệt), **Model** (nhà cung cấp, API
   key, model) và **Thông tin** (model, endpoint, workspace, nền tảng).
 - **Bỏ thanh Phiên** phía trên khung nhập liệu.
+
 ## [2.0.11] - 2026-10-06 21:20 +0700
 
 ### Fixed
@@ -118,13 +119,15 @@ gói nên dừng ở đó.
 - **Test host xanh trở lại (38/38)**: cắt vòng import `ui-store → host-bridge` bằng cách tách các registry sự
   kiện ra module lá `webview/src/host-events.ts`. Trước đó bundle ném `Cannot access 'uiEventListeners'
   before initialization` ở module-scope nên **10 test DOM đỏ**.
-- **Slider thinking vẽ tay, kéo được**: thay `input[type=range]` bằng thanh trượt tự vẽ — thumb 18px, kéo được
-  từ bất kỳ đâu trên thanh (pointer capture), **có nhãn từng mức** bên dưới và mức đang chọn tô xanh; giá trị
-  được giữ tạm (draft) nên không còn giật về khi host chưa trả lời; hỗ trợ cả bàn phím ←/→.
+- **Slider thinking kiểu Codex**: thanh pill bo tròn 14px với **gradient đổi màu theo từng mức** (xám → lam →
+  chàm → tím → hồng), chấm mức nằm trong thanh, thumb trắng 20px; **bỏ hàng chữ dưới thanh** — tên mức hiện
+  lớn ở trên và **đổi màu theo mức**; kéo được từ bất kỳ đâu (pointer capture), giữ giá trị tạm (draft) nên
+  không giật về khi host chưa trả lời; hỗ trợ bàn phím ←/→.
 - Bỏ 2 test của thanh Phiên (đã gỡ theo yêu cầu) và thay bằng test chốt: khung nhập liệu không còn thanh đó,
   và message phiên vẫn không làm hỏng view.
 
 > Chưa publish marketplace — bản này chỉ nằm trên git; tag `v2.0.11` sẽ tạo khi có yêu cầu.
+
 ## [Unreleased]
 
 ### Changed

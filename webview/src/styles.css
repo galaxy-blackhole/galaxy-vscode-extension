@@ -599,7 +599,7 @@ html, body, #app {
 /* Codex-style thinking picker: the level on top, the model under it, a slider for the stops. */
 .thinking-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px 2px; }
 .thinking-mark { font-size: 14px; opacity: 0.85; }
-.thinking-value { flex: 1; text-align: center; font-size: 14px; font-weight: 600; }
+.thinking-value { flex: 1; text-align: center; font-size: 13.5px; font-weight: 600; letter-spacing: 0.2px; }
 .thinking-reset { border: none; background: transparent; color: inherit; cursor: pointer; font-size: 14px; opacity: 0.8; }
 .thinking-reset:disabled { opacity: 0.25; cursor: default; }
 .thinking-model { display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; border: none; background: transparent; color: var(--vscode-descriptionForeground, #aaa); cursor: pointer; padding: 2px 8px 8px; font-size: 12px; }
@@ -614,15 +614,12 @@ html, body, #app {
 
 /* The hand-drawn reasoning slider: big thumb, a labelled button per level, drag anywhere on the track. */
 .thinking-slider-wrap { padding: 6px 12px 10px; }
-.thinking-track { position: relative; height: 22px; display: flex; align-items: center; cursor: pointer; touch-action: none; }
-.thinking-track-line { position: absolute; left: 0; right: 0; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.18); }
-.thinking-track-fill { position: absolute; left: 0; height: 4px; border-radius: 2px; background: #4a9eff; }
-.thinking-stop { position: absolute; width: 10px; height: 10px; margin-left: -5px; padding: 0; border: none; border-radius: 50%; background: #4a4a4a; cursor: pointer; }
-.thinking-stop.stop-passed { background: #2f6fb5; }
-.thinking-stop.stop-current { background: #4a9eff; }
-.thinking-thumb { position: absolute; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.5); pointer-events: none; }
-.thinking-levels { display: flex; justify-content: space-between; gap: 2px; margin-top: 6px; }
-.thinking-level { flex: 1; min-width: 0; border: none; background: transparent; color: var(--vscode-descriptionForeground, #999); font-size: 9.5px; line-height: 1.2; padding: 2px 0; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.thinking-level:hover { color: inherit; }
-.thinking-level-active { color: #4a9eff; font-weight: 600; }
+.thinking-track { position: relative; height: 26px; display: flex; align-items: center; cursor: pointer; touch-action: none; }
+.thinking-track-base { position: absolute; left: 0; right: 0; height: 14px; border-radius: 999px; background: rgba(255,255,255,0.1); }
+.thinking-track-fill { position: absolute; left: 0; height: 14px; border-radius: 999px; }
+.thinking-stop { position: absolute; width: 6px; height: 6px; margin-left: -3px; padding: 0; border: none; border-radius: 50%; background: rgba(255,255,255,0.45); cursor: pointer; }
+.thinking-stop:hover { background: rgba(255,255,255,0.85); }
+.thinking-stop.stop-current { background: rgba(255,255,255,0.95); }
+.thinking-thumb { position: absolute; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: #fff; box-shadow: 0 1px 5px rgba(0,0,0,0.55); pointer-events: none; }
+
 .thinking-empty { margin: 4px 12px 10px; font-size: 11px; color: var(--vscode-descriptionForeground, #999); }
