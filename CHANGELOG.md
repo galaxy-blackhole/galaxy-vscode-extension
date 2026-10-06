@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# 2.0.2
+
+## Fixed
+
+- The marketplace showed a placeholder instead of the Galaxy mark: the manifest had no `icon` field.
+  It now ships the shared 512px app icon, and the activity bar carries the shared brand logo too.
+- The activity bar container is titled **Galaxy Blackhole**, matching the listing.
 # 2.0.1
 
 First stable release of the 2.0 line. (`2.0.0` went out as a pre-release; the marketplace keeps
