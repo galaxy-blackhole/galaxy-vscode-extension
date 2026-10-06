@@ -5,7 +5,7 @@ import { streamOllamaChat } from "./ollama-client";
 import { startCoreRun, type CoreRunSession } from "./core-run-session";
 import { appendSessionTurn, createSession, deleteSession, listSessions, readSession } from "./session-store";
 import type { AgentTool } from "@galaxy-stack/ai-coder-core/agent";
-import { connectWorkspaceMcp, workspaceMcpServers, type WorkspaceMcpHandle } from "./workspace-mcp";
+import { tryConnectWorkspaceMcp, workspaceMcpServers, type WorkspaceMcpHandle } from "./workspace-mcp";
 import type { PermissionMode } from "./core-tool-executor";
 import type { GalaxyUiAction } from "../ui-protocol";
 import {
@@ -216,6 +216,9 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
 
   /** The workspace's MCP servers, connected once per window and reused for every run. */
   private mcp: Promise<WorkspaceMcpHandle | null> | null = null;
+  /** Servers that did not come up; reported once per window instead of failing every run. */
+  private mcpError: string | null = null;
+  private mcpNoticeSent = false;
 
   private async mcpTools(): Promise<readonly AgentTool[]> {
     const workspaceRoot = this.workspaceRoot;
@@ -223,12 +226,22 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
     if (workspaceRoot === null || storageRoot === null) return [];
     if (this.mcp === null) {
       const servers = workspaceMcpServers(workspaceRoot);
-      this.mcp = servers.length === 0
-        ? Promise.resolve(null)
-        : connectWorkspaceMcp({ servers, stateDir: storageRoot }).catch(() => null);
+      if (servers.length === 0) {
+        this.mcp = Promise.resolve(null);
+      } else {
+        const attempt = await tryConnectWorkspaceMcp({ servers, stateDir: storageRoot });
+        this.mcp = Promise.resolve(attempt.handle);
+        this.mcpError = attempt.error;
+      }
     }
     const handle = await this.mcp;
-    if (handle === null) return [];
+    if (handle === null) {
+      if (this.mcpError !== null && !this.mcpNoticeSent) {
+        this.mcpNoticeSent = true;
+        this.post({ type: "ui-event", event: { code: "MCP_UNAVAILABLE", kind: "error", message: "Không nối được MCP server của workspace: " + this.mcpError, retryable: true } });
+      }
+      return [];
+    }
     try {
       return await handle.tools();
     } catch {

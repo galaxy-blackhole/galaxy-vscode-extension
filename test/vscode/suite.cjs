@@ -39,7 +39,20 @@ async function run() {
   assert.ok(answers.length >= 1 && answers[0].content.length > 0, "and so is the report");
   assert.ok(report.sessions.every(item => typeof item.id === "string" && item.messageCount >= 1), "the list carries the stored sessions");
 
-  console.log("[galaxy] flow ok: run completed with " + String(document.messages.length) + " turns in session " + report.sessionId);
+  /*
+   * The workspace declares one MCP server that cannot start: the run must still finish, and the failure
+   * must be reported rather than silently dropping those tools.
+   */
+  assert.equal(report.mcp.names.length, 0, "a broken server contributes no tools");
+  assert.match(String(report.mcp.error), /broken-docs/, "and it is named in the report");
+
+  /* The second run is the /compact path: it compacts as it starts, like the composer's command. */
+  assert.equal(report.secondState, "completed", "a run that compacts on start completes too");
+  assert.ok(report.events.filter(kind => kind === "run/status").length >= 2, "both runs reported status to the view");
+  assert.ok(report.events.includes("tool/start") && report.events.includes("tool/result"), "the tool loop reached the view");
+  assert.equal(report.messages.filter(turn => turn.role === "assistant").length, 2, "both runs left their answer in the history");
+  console.log("[galaxy] UI events seen: " + [...new Set(report.events)].sort().join(", "));
+  console.log("[galaxy] flow ok: 2 runs, " + String(document.messages.length) + " turns stored, session " + report.sessionId);
   console.log("[galaxy] extension host flows passed");
 }
 

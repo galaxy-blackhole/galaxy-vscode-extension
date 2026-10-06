@@ -18,10 +18,12 @@ const root = fileURLToPath(new URL("../../", import.meta.url)).replace(/\/$/, ""
 const GOAL = "Đếm các tệp ở gốc workspace giúp tôi";
 const line = payload => JSON.stringify(payload) + String.fromCharCode(10);
 
-/* Two rounds: the model lists the workspace for evidence, then reports. */
+/* Each run gets two rounds: the model lists the workspace for evidence, then reports. */
+const toolRound = index => line({ done: true, done_reason: "tool_calls", message: { content: "", role: "assistant", tool_calls: [{ function: { arguments: { path: "." }, name: "list_files" }, id: "call-" + String(index), type: "function" }] } });
+const reportRound = text => line({ done: true, done_reason: "stop", message: { content: text, role: "assistant", tool_calls: [] } });
 const rounds = [
-  line({ done: true, done_reason: "tool_calls", message: { content: "", role: "assistant", tool_calls: [{ function: { arguments: { path: "." }, name: "list_files" }, id: "call-1", type: "function" }] } }),
-  line({ done: true, done_reason: "stop", message: { content: "Đã xong: kể ra các mục ở gốc workspace.", role: "assistant", tool_calls: [] } }),
+  toolRound(1), reportRound("Đã xong: kể ra các mục ở gốc workspace."),
+  toolRound(2), reportRound("Tóm tắt: workspace chỉ có .vscode/mcp.json."),
 ];
 const bodies = [];
 const server = createServer(async (request, response) => {
@@ -34,7 +36,7 @@ const server = createServer(async (request, response) => {
     return;
   }
   response.setHeader("content-type", "application/x-ndjson");
-  response.end(rounds.shift() ?? line({ done: true, done_reason: "stop", message: { content: "hết.", role: "assistant", tool_calls: [] } }));
+  response.end(rounds.shift() ?? reportRound("Hết kịch bản."));
 });
 await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
 const port = server.address().port;
@@ -42,6 +44,11 @@ const port = server.address().port;
 const home = await mkdtemp(join(tmpdir(), "galaxy-e2e-home-"));
 await mkdir(join(home, ".galaxy"), { recursive: true });
 await writeFile(join(home, ".galaxy", "config.json"), JSON.stringify({ agent: [{ apiKey: "sk-e2e", baseUrl: "http://127.0.0.1:" + String(port), model: "test", type: "manual" }] }), "utf8");
+
+/* The workspace the editor opens: a temp folder whose .vscode/mcp.json names one server that cannot start. */
+const workspace = await mkdtemp(join(tmpdir(), "galaxy-e2e-ws-"));
+await mkdir(join(workspace, ".vscode"), { recursive: true });
+await writeFile(join(workspace, ".vscode", "mcp.json"), JSON.stringify({ servers: { "broken-docs": { args: [], command: "galaxy-missing-binary" } } }), "utf8");
 
 const userData = await mkdtemp(join(tmpdir(), "galaxy-vscode-"));
 const previousHome = process.env.HOME;
@@ -52,6 +59,7 @@ try {
     extensionDevelopmentPath: root,
     extensionTestsPath: join(root, "test", "vscode", "suite.cjs"),
     launchArgs: [
+      workspace,
       "--user-data-dir", userData,
       "--disable-extensions",
       "--disable-workspace-trust",

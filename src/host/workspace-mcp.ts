@@ -15,18 +15,39 @@ export function workspaceMcpServers(workspaceRoot: string, agentConfig: readonly
 }
 
 export interface WorkspaceMcpHandle {
+  readonly names: readonly string[];
   /** Re-list every run so a server that gained tools is picked up instead of cached forever. */
   tools(signal?: AbortSignal): Promise<readonly AgentTool[]>;
   close(): Promise<void>;
 }
 
-export async function connectWorkspaceMcp(input: Readonly<{ servers: readonly McpConnection[]; stateDir: string }>): Promise<WorkspaceMcpHandle> {
+export interface WorkspaceMcpAttempt {
+  /** A human-readable list of the servers that did not come up, or null when all of them did. */
+  readonly error: string | null;
+  readonly handle: WorkspaceMcpHandle | null;
+  readonly names: readonly string[];
+}
+
+/**
+ * Connect what can be connected.
+ *
+ * One broken server must not cost the whole run: the servers that came up stay usable and the ones that
+ * did not are reported so the view can say so instead of silently running without those tools.
+ */
+export async function tryConnectWorkspaceMcp(input: Readonly<{ servers: readonly McpConnection[]; stateDir: string }>): Promise<WorkspaceMcpAttempt> {
   const clients = new Map<string, McpAgentClient>();
+  const broken: string[] = [];
   for (const server of input.servers) {
     if (clients.has(server.name)) continue;
-    clients.set(server.name, await McpAgentClient.connect(server, undefined, { stateDir: input.stateDir }));
+    try {
+      clients.set(server.name, await McpAgentClient.connect(server, undefined, { stateDir: input.stateDir }));
+    } catch (error) {
+      broken.push(server.name + " (" + (error instanceof Error ? error.message : String(error)) + ")");
+    }
   }
-  return {
+  const names = Object.freeze([...clients.keys()]);
+  const handle: WorkspaceMcpHandle | null = clients.size === 0 ? null : {
+    names,
     async tools(signal?: AbortSignal) {
       const tools: AgentTool[] = [];
       for (const client of clients.values()) tools.push(...await client.tools(signal));
@@ -37,4 +58,5 @@ export async function connectWorkspaceMcp(input: Readonly<{ servers: readonly Mc
       clients.clear();
     },
   };
+  return Object.freeze({ error: broken.length === 0 ? null : broken.join("; "), handle, names });
 }
