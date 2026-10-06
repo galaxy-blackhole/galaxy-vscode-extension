@@ -71,6 +71,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
 
   private post(message: HostToWebviewMessage): void {
     void this.view?.webview.postMessage(message);
+    /* The settings tab listens to the same stream, so a key saved there refreshes in place. */
+    void this.settingsPanel?.webview.postMessage(message);
   }
 
   private async handleMessage(message: WebviewToHostMessage): Promise<void> {
