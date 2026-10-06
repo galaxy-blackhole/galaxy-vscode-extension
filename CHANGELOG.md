@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# 2.0.0
+
+The VS Code surface now runs the Galaxy Blackhole core (`@galaxy-stack/ai-coder-core`) — the same
+engine as the CLI — instead of its own loop.
+
+## Added
+
+- Per-workspace session list with history: open, delete, start a session; the transcript comes back on
+  screen, and the documents live outside the workspace.
+- Project MCP servers from `.vscode/mcp.json`, read through the same core module the CLI uses; a server
+  that will not start is reported instead of being dropped silently.
+- Plan checklist from the agent checkpoints, rendered above the composer.
+- `/compact` for the live run, and the compaction is reported to the view.
+- Model and key setup edits the shared `~/.galaxy` document.
+
+## Not in 2.0 yet (present in 0.1.x)
+
+- The preview/RAG/workflow-graph/review commands and their keybindings are not part of this surface.
+  They can return as the 2.0 line grows.
 ## [Unreleased]
 
 ### Changed

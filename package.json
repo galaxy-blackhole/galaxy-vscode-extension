@@ -1,7 +1,7 @@
 {
   "name": "galaxy-code-vscode",
   "displayName": "Galaxy Blackhole",
-  "description": "Galaxy Blackhole for VS Code (item ID kept: galaxy-code-vscode) — deterministic AI coding chat built on the Galaxy Blackhole line",
+  "description": "AI coding chat for VS Code with per-workspace sessions, project MCP servers, plan checklists and approvals, built on the Galaxy Blackhole core.",
   "version": "2.0.0",
   "private": true,
   "publisher": "kevinbui",

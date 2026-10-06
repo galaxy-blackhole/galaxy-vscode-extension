@@ -8,6 +8,20 @@ completion gate live in that package; this extension owns the VS Code surface
 
 Marketplace identity is frozen: item ID `kevinbui.galaxy-code-vscode`,
 displayName "Galaxy Blackhole".
+## What it does
+
+- **Chat that keeps its history.** Every workspace has a session list: the host stores one document per
+  session outside the workspace, and the panel can open, delete or start one. Opening a session puts its
+  transcript back on screen.
+- **The MCP servers a project declares.** `.vscode/mcp.json` is read through the same core module the CLI
+  uses, so a server works in both. A server that will not start is named in an error event instead of
+  silently dropping its tools.
+- **A plan you can see.** The checklist the agent maintains renders as a strip above the composer, and
+  `/compact` compacts the live run the way the web GUI does.
+- **Approvals and model setup in the view.** Risky tools ask through the webview (ask / smart / auto), and
+  the model panel edits the same `~/.galaxy` document the CLI reads.
+- **The agent loop is not here.** Context assembly, tools, checkpoints and the completion gate live in
+  `@galaxy-stack/ai-coder-core` — the engine the CLI runs — so the two cannot drift apart.
 
 ## Layout
 
