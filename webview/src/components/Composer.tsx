@@ -114,18 +114,23 @@ function useDismiss(open: boolean, close: () => void, rootRef: React.RefObject<H
 
 function ModelChip({ info }: { info: HostInfo | null }) {
   const [open, setOpen] = useState(false);
+  const [panel, setPanel] = useState<"main" | "models">("main");
   const rootRef = useRef<HTMLDivElement>(null);
   const { thinking } = useSyncExternalStore(subscribeUiState, getUiState);
   const activeProvider = info?.modelSettings?.providers.find(provider => provider.active);
   const models = activeProvider?.models ?? [];
   const activeModel = info?.model ?? models[0]?.id ?? "";
-  useDismiss(open, () => setOpen(false), rootRef);
+  const options = thinking?.options ?? [];
+  const choice = thinking?.choice ?? "default";
+  const index = Math.max(0, options.findIndex(option => option.value === choice));
+  const current = options[index];
+  useDismiss(open, () => { setOpen(false); setPanel("main"); }, rootRef);
   return (
     <div ref={rootRef} className="permission-root">
       <button
         type="button"
         className="composer-chip chip-model"
-        title={"Model cho lượt chạy tiếp theo: " + (activeModel.length > 0 ? activeModel : "chưa rõ")}
+        title={"Model: " + (activeModel.length > 0 ? activeModel : "chưa rõ")}
         onClick={() => setOpen(v => !v)}
       >
         <span className="chip-label">{activeModel.length > 0 ? activeModel : "Model"}</span>
@@ -133,44 +138,56 @@ function ModelChip({ info }: { info: HostInfo | null }) {
       </button>
       {open && (
         <div className="permission-menu model-menu" role="menu">
-          <div className="permission-menu-header">
-            <span>Model cho lượt chạy tiếp theo</span>
+          <div className="thinking-head">
+            <span className="thinking-mark" aria-hidden="true">⚡</span>
+            <span className={"thinking-value" + (choice === "default" ? "" : " title-gold")}>{current?.label ?? "Mặc định"}</span>
+            <button type="button" className="thinking-reset" aria-label="Về mặc định" title="Về mặc định" disabled={choice === "default"} onClick={() => setThinking("default")}>↺</button>
           </div>
-          {models.map(model => (
-            <button
-              key={model.id}
-              type="button"
-              role="menuitem"
-              className={"permission-option" + (model.id === activeModel ? " option-active" : "")}
-              onClick={() => { setModel(model.id); setOpen(false); }}
-            >
-              <span className="option-icon">{model.id === activeModel ? <CheckIcon /> : null}</span>
-              <span className="option-texts">
-                <span className={"option-title" + (model.id === activeModel ? " title-gold" : "")}>{model.name ?? model.id}</span>
-                <span className="option-desc">{model.id}</span>
-              </span>
-            </button>
-          ))}
-          {thinking !== null && thinking.options.length > 0 ? (
-            <div className="permission-menu-header">
-              <span>Mức suy luận</span>
+          <button type="button" className="thinking-model" aria-label="Đổi model" onClick={() => setPanel(panel === "models" ? "main" : "models")}>
+            <span className="chip-label">{activeModel.length > 0 ? activeModel : "Model"}</span>
+            <ChevronDownIcon />
+          </button>
+          {panel === "models" ? (
+            <div className="thinking-models">
+              {models.map(model => (
+                <button
+                  key={model.id}
+                  type="button"
+                  role="menuitem"
+                  className={"permission-option" + (model.id === activeModel ? " option-active" : "")}
+                  onClick={() => { setModel(model.id); setPanel("main"); }}
+                >
+                  <span className="option-icon">{model.id === activeModel ? <CheckIcon /> : null}</span>
+                  <span className="option-texts">
+                    <span className={"option-title" + (model.id === activeModel ? " title-gold" : "")}>{model.name ?? model.id}</span>
+                    <span className="option-desc">{model.id}</span>
+                  </span>
+                </button>
+              ))}
             </div>
-          ) : null}
-          {(thinking?.options ?? []).map(option => (
-            <button
-              key={option.value}
-              type="button"
-              role="menuitem"
-              className={"permission-option" + (option.value === thinking?.choice ? " option-active" : "")}
-              onClick={() => { setThinking(option.value); setOpen(false); }}
-            >
-              <span className="option-icon">{option.value === thinking?.choice ? <CheckIcon /> : null}</span>
-              <span className="option-texts">
-                <span className={"option-title" + (option.value === thinking?.choice ? " title-gold" : "")}>{option.label}</span>
-                <span className="option-desc">{option.value}</span>
-              </span>
-            </button>
-          ))}
+          ) : (
+            <div className="thinking-slider-wrap">
+              <input
+                type="range"
+                className="thinking-slider"
+                min={0}
+                max={Math.max(0, options.length - 1)}
+                step={1}
+                value={index}
+                aria-label="Mức suy luận"
+                onChange={event => setThinking(options[Number(event.target.value)]?.value ?? "default")}
+              />
+              <div className="thinking-stops" aria-hidden="true">
+                {options.map((option, stop) => (
+                  <span key={option.value} className={"stop" + (stop === index ? " stop-active" : "")} title={option.label} />
+                ))}
+              </div>
+              <div className="thinking-labels" aria-hidden="true">
+                <span>{options[0]?.label ?? ""}</span>
+                <span>{options[options.length - 1]?.label ?? ""}</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

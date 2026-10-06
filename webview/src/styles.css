@@ -595,3 +595,19 @@ html, body, #app {
 
 /* Header actions: new conversation, then settings — Codex's ordering. */
 .app-header-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; }
+
+/* Codex-style thinking picker: the level on top, the model under it, a slider for the stops. */
+.thinking-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px 2px; }
+.thinking-mark { font-size: 14px; opacity: 0.85; }
+.thinking-value { flex: 1; text-align: center; font-size: 14px; font-weight: 600; }
+.thinking-reset { border: none; background: transparent; color: inherit; cursor: pointer; font-size: 14px; opacity: 0.8; }
+.thinking-reset:disabled { opacity: 0.25; cursor: default; }
+.thinking-model { display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; border: none; background: transparent; color: var(--vscode-descriptionForeground, #aaa); cursor: pointer; padding: 2px 8px 8px; font-size: 12px; }
+.thinking-model:hover { color: inherit; }
+.thinking-slider-wrap { padding: 4px 12px 10px; }
+.thinking-slider { width: 100%; accent-color: #4a9eff; }
+.thinking-stops { display: flex; justify-content: space-between; padding: 0 3px; margin-top: -4px; }
+.thinking-stops .stop { width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,0.25); }
+.thinking-stops .stop-active { background: #4a9eff; }
+.thinking-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--vscode-descriptionForeground, #888); margin-top: 4px; }
+.thinking-models { display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow-y: auto; }

@@ -57,15 +57,32 @@ test("each composer chip says what it is, and the menus stay inside the sidebar"
   assert.ok(!options.some(option => option.includes("Cài đặt")), "settings live behind the gear, not in this menu");
   assert.ok(!options.some(option => option.includes("có sau khi tích hợp")), "no placeholder entry is shipped");
 
-  /* The model chip is a picker now: it lists the active provider's models and switches between them. */
+  /* The model chip is a Codex-style popover: a thinking slider on top, the model list under it. */
+  booted.window.dispatchEvent(new booted.window.MessageEvent("message", { data: { type: "thinking", choice: "default", options: [{ label: "Mặc định", value: "default" }, { label: "Vừa", value: "medium" }, { label: "Cao", value: "high" }] } }));
+  await new Promise(resolve => setTimeout(resolve, 150));
   const modelChip = chips.find(chip => chip.textContent?.includes("kimi-k2.7-code:cloud"))!;
   clickElement(booted, modelChip);
   await new Promise(resolve => setTimeout(resolve, 150));
-  const models = Array.from(booted.document.querySelectorAll(".model-menu .permission-option")).map(option => option.textContent ?? "");
-  assert.ok(models.some(entry => entry.includes("Kimi K2.7 Code")), "the picker lists the current model: " + JSON.stringify(models));
-  assert.ok(models.some(entry => entry.includes("DeepSeek Flash")), "and the provider\u2019s other models");
-  const other = Array.from(booted.document.querySelectorAll(".model-menu .permission-option")).find(option => option.textContent?.includes("DeepSeek Flash"))!;
+  const slider = booted.document.querySelector(".thinking-slider");
+  assert.ok(slider, "the popover shows a thinking slider");
+  assert.equal(slider.getAttribute("max"), "2", "one stop per level the policy allows");
+  assert.equal(booted.document.querySelector(".thinking-value")?.textContent, "Mặc định");
+
+  /* Dragging it to the last stop stores that level. */
+  /* React only sees a change through the native value setter, not a plain assignment. */
+  const nativeSetter = Object.getOwnPropertyDescriptor(booted.window.HTMLInputElement.prototype, "value")!.set!;
+  nativeSetter.call(slider, "2");
+  slider.dispatchEvent(new booted.window.Event("input", { bubbles: true }) as unknown as Event);
+  await new Promise(resolve => setTimeout(resolve, 150));
+  assert.ok(booted.posted.some(message => message.type === "model-settings/set-thinking" && (message as { choice?: string }).choice === "high"), "the slider writes the level: " + JSON.stringify(booted.posted.slice(-2)));
+
+  /* The model row opens the list of the provider's models. */
+  clickElement(booted, booted.document.querySelector(".thinking-model")!);
+  await new Promise(resolve => setTimeout(resolve, 150));
+  const modelOptions = Array.from(booted.document.querySelectorAll(".thinking-models .permission-option")).map(option => option.textContent ?? "");
+  assert.ok(modelOptions.some(entry => entry.includes("DeepSeek Flash")), "the model list is behind its own row: " + JSON.stringify(modelOptions));
+  const other = Array.from(booted.document.querySelectorAll(".thinking-models .permission-option")).find(option => option.textContent?.includes("DeepSeek Flash"))!;
   clickElement(booted, other);
   await new Promise(resolve => setTimeout(resolve, 150));
-  assert.ok(booted.posted.some(message => message.type === "model-settings/set-model" && (message as { model?: string }).model === "deepseek-v4.1-flash:cloud"), "picking a model tells the host: " + JSON.stringify(booted.posted.slice(-3)));
+  assert.ok(booted.posted.some(message => message.type === "model-settings/set-model" && (message as { model?: string }).model === "deepseek-v4.1-flash:cloud"), "picking a model tells the host");
 });

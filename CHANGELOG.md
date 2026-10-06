@@ -95,6 +95,13 @@ gói nên dừng ở đó.
   / **Mở thư viện model** — đúng như bạn góp ý.
 - **Bấm menu này thì menu kia tự đóng**: menu model nay cũng đóng khi bấm ra ngoài hoặc nhấn Escape (trước đây
   chỉ menu quyền có, nên hai menu cùng mở).
+## [2.0.9] - 2026-10-06 19:55 +0700
+
+### Changed
+
+- **Picker model/thinking theo kiểu Codex**: thay danh sách dài bằng một popover gọn — mức suy luận hiện ở
+  trên (kèm nút ↺ về mặc định), hàng model ở dưới mở ra danh sách model, và **thanh trượt** với đúng số nấc
+  mà model cho phép. Kéo tới nấc nào là ghi ngay mức đó vào `~/.galaxy/config.json`.
 ## [Unreleased]
 
 ### Changed
