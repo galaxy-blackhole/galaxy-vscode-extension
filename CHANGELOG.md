@@ -5,7 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# 2.0.0
+# 2.0.1
+
+First stable release of the 2.0 line. (`2.0.0` went out as a pre-release; the marketplace keeps
+pre-release and release versions in separate channels, so the stable release carries the next version.)
 
 The VS Code surface now runs the Galaxy Blackhole core (`@galaxy-stack/ai-coder-core`) — the same
 engine as the CLI — instead of its own loop.
