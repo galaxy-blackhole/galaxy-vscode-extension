@@ -71,7 +71,8 @@
     "check-types": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.webview.json && tsc --noEmit -p tsconfig.test.json",
     "lint": "eslint src",
     "test:webview": "node scripts/webview-smoke.mjs",
-    "test:host": "node --import ./test/helpers/ts-resolve.mjs --test test/*.test.ts"
+    "test:host": "node --import ./test/helpers/ts-resolve.mjs --test test/*.test.ts",
+    "test:vscode": "yarn compile && node test/vscode/run.mjs"
   },
   "dependencies": {
     "@galaxy-stack/ai-coder-core": "link:../galaxy-ai-coder-core"
@@ -84,6 +85,7 @@
     "@types/react-dom": "^19.1.0",
     "@types/vscode": "^1.103.1",
     "@vitejs/plugin-react": "^4.7.0",
+    "@vscode/test-electron": "^3.1.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.27.3",
     "happy-dom": "^20.14.5",

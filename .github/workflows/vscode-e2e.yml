@@ -1,0 +1,41 @@
+name: Extension Host E2E
+
+# A release gate, not a per-commit tax: this downloads VS Code and drives the real extension host.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*", "pre-v*"]
+
+jobs:
+  extension-host:
+    name: Real VS Code (ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: true
+      # No display on a runner; the test runner needs one to launch the editor.
+      DISPLAY: ":99"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: galaxy-vscode-extension
+      - uses: actions/checkout@v4
+        with:
+          repository: galaxy-blackhole/galaxy-ai-coder-core
+          path: galaxy-ai-coder-core
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: galaxy-vscode-extension/yarn.lock
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Build the linked core
+        working-directory: galaxy-ai-coder-core
+        run: npm install --no-audit --no-fund && npm run build
+      - name: Install extension dependencies
+        working-directory: galaxy-vscode-extension
+        run: yarn install --frozen-lockfile
+      - name: Extension host smoke
+        working-directory: galaxy-vscode-extension
+        run: xvfb-run -a yarn test:vscode
