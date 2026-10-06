@@ -12,6 +12,7 @@ import { setModel, setPermissionMode as sendPermissionMode, setThinking } from "
 import { getUiState, subscribeUiState } from "../ui-store";
 import { openSettings } from "../settings-store";
 import { useT } from "../i18n";
+import { steerRun } from "../galaxy-ui-runtime";
 import { getPreferences, subscribePreferences } from "../preferences";
 import { openExternal, type HostInfo } from "../host-bridge";
 
@@ -51,9 +52,7 @@ function PermissionMenu() {
   }, [open]);
 
   const active = MODE_OPTIONS.find((option) => option.mode === mode);
-  const label = mode === "auto" ? "Toàn quyền"
-    : mode === "ask" ? "Yêu cầu duyệt"
-    : "Duyệt giúp tôi";
+  const label = t(mode === "auto" ? "Toàn quyền" : mode === "ask" ? "Yêu cầu duyệt" : "Duyệt giúp tôi");
 
   return (
     <div ref={rootRef} className="permission-root">
@@ -292,40 +291,67 @@ function ModelChip({ info }: { info: HostInfo | null }) {
 
 export function Composer({ info }: { info: HostInfo | null }) {
   const t = useT();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const preferences = useSyncExternalStore(subscribePreferences, getPreferences);
+  /* Steering reads the box straight from the DOM: this assistant-ui build exposes no composer runtime. */
+  const steer = () => {
+    const box = cardRef.current?.querySelector<HTMLTextAreaElement>(".composer-card-input");
+    const text = box?.value.trim() ?? "";
+    if (text.length === 0) return;
+    steerRun(text, info?.workspacePath ?? ".");
+    if (box) {
+      const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+      setter?.call(box, "");
+      box.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  };
   return (
-    <ComposerPrimitive.Root className="composer-card">
-      <ComposerPrimitive.Input
-        submitOnEnter
-        placeholder={t("Thử bất cứ điều gì")}
-        className="composer-card-input"
-        aria-label="Message Galaxy Code"
-        autoFocus
-      />
-      <div className="composer-card-footer">
-        <div className="composer-footer-left">
-          <button
-            type="button"
-            className="composer-icon-btn"
-            title={t("Đính kèm file (chưa hỗ trợ trong prototype)")}
-          >
-            <PlusIcon />
-          </button>
-          <PermissionMenu />
+    <div ref={cardRef} className="composer-shell">
+      <ComposerPrimitive.Root className="composer-card">
+        <ComposerPrimitive.Input
+          submitOnEnter
+          placeholder={t("Thử bất cứ điều gì")}
+          className="composer-card-input"
+          aria-label="Message Galaxy Code"
+          autoFocus
+        />
+        <div className="composer-card-footer">
+          <div className="composer-footer-left">
+            <button
+              type="button"
+              className="composer-icon-btn"
+              title={t("Đính kèm file (chưa hỗ trợ trong prototype)")}
+            >
+              <PlusIcon />
+            </button>
+            <PermissionMenu />
+          </div>
+          <div className="composer-footer-right">
+            <ModelChip info={info} />
+            <AuiIf condition={(s) => s.thread.isRunning}>
+              {preferences.nextMessage === "steer" ? (
+                <button
+                  type="button"
+                  className="composer-send composer-steer"
+                  aria-label={t("Gửi và chuyển hướng lượt đang chạy")}
+                  title={t("Gửi và chuyển hướng lượt đang chạy")}
+                  onClick={steer}
+                >
+                  <ArrowUpIcon />
+                </button>
+              ) : null}
+              <ComposerPrimitive.Cancel className="composer-send composer-stop" aria-label="Dừng">
+                <StopIcon />
+              </ComposerPrimitive.Cancel>
+            </AuiIf>
+            <AuiIf condition={(s) => !s.thread.isRunning}>
+              <ComposerPrimitive.Send className="composer-send" aria-label="Gửi">
+                <ArrowUpIcon />
+              </ComposerPrimitive.Send>
+            </AuiIf>
+          </div>
         </div>
-        <div className="composer-footer-right">
-          <ModelChip info={info} />
-          <AuiIf condition={(s) => s.thread.isRunning}>
-            <ComposerPrimitive.Cancel className="composer-send composer-stop" aria-label="Dừng">
-              <StopIcon />
-            </ComposerPrimitive.Cancel>
-          </AuiIf>
-          <AuiIf condition={(s) => !s.thread.isRunning}>
-            <ComposerPrimitive.Send className="composer-send" aria-label="Gửi">
-              <ArrowUpIcon />
-            </ComposerPrimitive.Send>
-          </AuiIf>
-        </div>
-      </div>
-    </ComposerPrimitive.Root>
+      </ComposerPrimitive.Root>
+    </div>
   );
 }

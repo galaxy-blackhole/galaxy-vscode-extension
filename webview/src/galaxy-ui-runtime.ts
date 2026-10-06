@@ -4,7 +4,8 @@ import {
   type ExternalStoreAdapter,
   type ThreadMessageLike,
 } from "@assistant-ui/react";
-import { appendUserMessage, getUiState, type UiMessage } from "./ui-store";
+import { appendUserMessage, getUiState, subscribeUiState, type UiMessage } from "./ui-store";
+import { useSyncExternalStore } from "react";
 import { cancelUiRun, dispatchUiAction, startUiRun } from "./host-bridge";
 
 function toThreadMessageLike(message: UiMessage): ThreadMessageLike {
@@ -42,8 +43,18 @@ export function submitPrompt(text: string, workspacePath: string): void {
   startUiRun(text, workspacePath || ".");
 }
 
+/**
+ * Steering: a message sent while a run is live cancels that turn and then goes through the same path a normal
+ * send takes. The composer calls this when Settings says the next message should steer.
+ */
+export function steerRun(text: string, workspacePath: string): void {
+  cancelUiRun();
+  submitPrompt(text, workspacePath);
+}
+
 export function useGalaxyUiRuntime(workspacePath: string) {
-  const state = getUiState();
+  /* Subscribed, not read once: the run state drives the send/stop/steer buttons. */
+  const state = useSyncExternalStore(subscribeUiState, getUiState);
   const adapter: ExternalStoreAdapter<UiMessage> = {
     convertMessage: toThreadMessageLike,
     isRunning: state.status === "running",

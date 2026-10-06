@@ -16,6 +16,7 @@ import { startNewThread } from "./host-bridge";
 import { ReasoningPart, TextPart, ToolFallback } from "./components/parts";
 import { announceReady, currentHostInfo, subscribeHostInfo, type HostInfo } from "./host-bridge";
 import { getPreferences, subscribePreferences } from "./preferences";
+import { useT } from "./i18n";
 
 function UserMessage() {
   return (
@@ -55,6 +56,7 @@ function EmptyState() {
 }
 
 export function App() {
+  const t = useT();
   const [info, setInfo] = useState<HostInfo | null>(currentHostInfo());
   const runtime = useGalaxyUiRuntime(info?.workspacePath ?? "");
   const settings = info?.modelSettings ?? null;

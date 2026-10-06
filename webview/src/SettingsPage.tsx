@@ -9,6 +9,7 @@ import { announceReady, currentHostInfo, openExternal, setPermissionMode as send
 import { ZALO_QR_URI } from "./zalo-qr";
 import { getPermissionMode, setPermissionMode, subscribePermissionMode } from "./permission-mode";
 import { getPreferences, setPreferences, subscribePreferences, type Locale, type NextMessage, type WorkDetail } from "./preferences";
+import { useT } from "./i18n";
 
 const SECTIONS = ["Chung", "Model", "Thông tin"] as const;
 type Section = (typeof SECTIONS)[number];
@@ -30,55 +31,56 @@ export function SettingsPage() {
   const [info, setInfo] = useState<HostInfo | null>(currentHostInfo());
   const mode = useSyncExternalStore(subscribePermissionMode, getPermissionMode);
   const preferences = useSyncExternalStore(subscribePreferences, getPreferences);
+  const t = useT();
   useEffect(() => { announceReady(); return subscribeHostInfo(setInfo); }, []);
 
   const general = (
     <>
       <div className="settings-group">
         <Row
-          label="Quyền"
-          description="Chọn chế độ quyền mặc định cho phiên mới"
+          label={t("Quyền")}
+          description={t("Chọn chế độ quyền mặc định cho phiên mới")}
           control={
-            <select className="settings-select" aria-label="Quyền" value={mode} onChange={event => { const next = event.target.value as "ask" | "smart" | "auto"; setPermissionMode(next); sendPermissionMode(next); }}>
+            <select className="settings-select" aria-label={t("Quyền")} value={mode} onChange={event => { const next = event.target.value as "ask" | "smart" | "auto"; setPermissionMode(next); sendPermissionMode(next); }}>
               {MODE_OPTIONS.map(choice => <option key={choice.mode} value={choice.mode}>{choice.title}</option>)}
             </select>
           }
         />
         <Row
-          label="Ngôn ngữ"
-          description="Ngôn ngữ cho giao diện người dùng"
+          label={t("Ngôn ngữ")}
+          description={t("Ngôn ngữ cho giao diện người dùng")}
           control={
-            <select className="settings-select" aria-label="Ngôn ngữ" value={preferences.locale} onChange={event => setPreferences({ locale: event.target.value as Locale })}>
+            <select className="settings-select" aria-label={t("Ngôn ngữ")} value={preferences.locale} onChange={event => setPreferences({ locale: event.target.value as Locale })}>
               <option value="vi">Tiếng Việt</option>
               <option value="en">English</option>
             </select>
           }
         />
         <Row
-          label="Cỡ chữ"
-          description="Chỉ ảnh hưởng nội dung hội thoại"
+          label={t("Cỡ chữ")}
+          description={t("Chỉ ảnh hưởng nội dung hội thoại")}
           control={
             <span className="settings-number-wrap">
-              <input className="settings-number" aria-label="Cỡ chữ" type="number" min={10} max={20} value={preferences.fontSize} onChange={event => { const next = Number(event.target.value); if (Number.isFinite(next)) setPreferences({ fontSize: Math.min(20, Math.max(10, next)) }); }} />
+              <input className="settings-number" aria-label={t("Cỡ chữ")} type="number" min={10} max={20} value={preferences.fontSize} onChange={event => { const next = Number(event.target.value); if (Number.isFinite(next)) setPreferences({ fontSize: Math.min(20, Math.max(10, next)) }); }} />
               <span>px</span>
             </span>
           }
         />
         <Row
-          label="Cách xử lý tin nhắn tiếp theo"
-          description="Khi agent đang chạy: xếp hàng chờ, hoặc chuyển hướng lượt đang chạy"
+          label={t("Cách xử lý tin nhắn tiếp theo")}
+          description={t("Khi agent đang chạy: xếp hàng chờ, hoặc chuyển hướng lượt đang chạy")}
           control={
-            <select className="settings-select" aria-label="Cách xử lý tin nhắn tiếp theo" value={preferences.nextMessage} onChange={event => setPreferences({ nextMessage: event.target.value as NextMessage })}>
+            <select className="settings-select" aria-label={t("Cách xử lý tin nhắn tiếp theo")} value={preferences.nextMessage} onChange={event => setPreferences({ nextMessage: event.target.value as NextMessage })}>
               <option value="queue">Xếp hàng</option>
               <option value="steer">Chuyển hướng</option>
             </select>
           }
         />
         <Row
-          label="Chi tiết công việc"
-          description="Chọn mức chi tiết hiển thị cho lệnh gọi tool"
+          label={t("Chi tiết công việc")}
+          description={t("Chọn mức chi tiết hiển thị cho lệnh gọi tool")}
           control={
-            <select className="settings-select" aria-label="Chi tiết công việc" value={preferences.workDetail} onChange={event => setPreferences({ workDetail: event.target.value as WorkDetail })}>
+            <select className="settings-select" aria-label={t("Chi tiết công việc")} value={preferences.workDetail} onChange={event => setPreferences({ workDetail: event.target.value as WorkDetail })}>
               <option value="standard">Tiêu chuẩn</option>
               <option value="compact">Gọn</option>
             </select>
@@ -104,14 +106,14 @@ export function SettingsPage() {
         ) : null}
         {section === "Thông tin" ? (
           <div className="settings-group">
-            <Row label="Tác giả" description="Người làm ra Galaxy Blackhole" control={<span>Bùi Trọng Hiếu</span>} />
-            <Row label="Email" description="Liên hệ công việc" control={<span>kevinbui210191@gmail.com</span>} />
-            <Row label="Website" description="Trang chủ dự án" control={<button type="button" className="settings-link" onClick={() => openExternal("https://galaxy-blackhole.vercel.app/")}>galaxy-blackhole.vercel.app</button>} />
-            <Row label="Phiên bản" description="Extension đang cài" control={<span>{"v" + (info?.version ?? "—")}</span>} />
-            <Row label="Model" description="Model mà lượt chạy kế tiếp sẽ dùng" control={<span>{info?.model ?? "—"}</span>} />
-            <Row label="Endpoint" description="Nơi gửi yêu cầu model" control={<span>{info?.baseUrl ?? "—"}</span>} />
-            <Row label="Workspace" description="Thư mục đang mở" control={<span className="settings-mono">{info?.workspacePath ?? "—"}</span>} />
-            <Row label="Nền tảng" description="Hệ điều hành và shell" control={<span>{(info?.platform ?? "—") + " · " + (info?.shell ?? "—")}</span>} />
+            <Row label={t("Tác giả")} description={t("Người làm ra Galaxy Blackhole")} control={<span>Bùi Trọng Hiếu</span>} />
+            <Row label={t("Email")} description={t("Liên hệ công việc")} control={<span>kevinbui210191@gmail.com</span>} />
+            <Row label={t("Website")} description={t("Trang chủ dự án")} control={<button type="button" className="settings-link" onClick={() => openExternal("https://galaxy-blackhole.vercel.app/")}>galaxy-blackhole.vercel.app</button>} />
+            <Row label={t("Phiên bản")} description={t("Extension đang cài")} control={<span>{"v" + (info?.version ?? "—")}</span>} />
+            <Row label={t("Model")} description={t("Model mà lượt chạy kế tiếp sẽ dùng")} control={<span>{info?.model ?? "—"}</span>} />
+            <Row label={t("Endpoint")} description={t("Nơi gửi yêu cầu model")} control={<span>{info?.baseUrl ?? "—"}</span>} />
+            <Row label={t("Workspace")} description={t("Thư mục đang mở")} control={<span className="settings-mono">{info?.workspacePath ?? "—"}</span>} />
+            <Row label={t("Nền tảng")} description={t("Hệ điều hành và shell")} control={<span>{(info?.platform ?? "—") + " · " + (info?.shell ?? "—")}</span>} />
           </div>
         ) : null}
         {section === "Thông tin" ? (

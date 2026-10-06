@@ -72,6 +72,9 @@ const EN: Readonly<Record<string, string>> = Object.freeze({
   "Cao": "High",
   "Rất cao": "Very high",
   "Tối đa": "Maximum",
+  "Toàn quyền": "Full access",
+  "Yêu cầu duyệt": "Ask first",
+  "Duyệt giúp tôi": "Approve for me",
 });
 
 /** Translate one Vietnamese string; anything missing from the table stays as it is. */

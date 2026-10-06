@@ -139,6 +139,11 @@ gói nên dừng ở đó.
   "Cài đặt" và nút ✕ lồng bên trong — panel model giờ chỉ còn danh sách nhà cung cấp và API key.
 - **Mục Thông tin như blackhole web**: Tác giả (Bùi Trọng Hiếu), Email, Website (bấm mở được), Phiên bản
   extension đang cài, và **QR Zalo** nhúng sẵn trong webview (không cần file rời).
+- **Chuyển hướng (steer) chạy thật**: khi agent đang chạy, ô chọn *Chuyển hướng* làm hiện thêm nút gửi — bấm là
+  **huỷ lượt đang chạy rồi chạy lượt mới** với nội dung vừa gõ (seam `steerRun` trong `galaxy-ui-runtime.ts`).
+  Kèm đó là một bug thật: runtime chỉ đọc state **một lần** nên `isRunning` không cập nhật — nay đã subscribe.
+- **i18n phủ thêm**: màn hình trống, toàn bộ tab **Cài đặt** (nhãn, mô tả, các lựa chọn), nhãn ngắn của chip
+  quyền và tên các mức suy luận. Chưa bọc: pane Model, thẻ tool và dải kế hoạch.
 - Bỏ 2 test của thanh Phiên (đã gỡ theo yêu cầu) và thay bằng test chốt: khung nhập liệu không còn thanh đó,
   và message phiên vẫn không làm hỏng view.
 
