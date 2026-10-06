@@ -71,7 +71,7 @@
     "check-types": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.webview.json && tsc --noEmit -p tsconfig.test.json",
     "lint": "eslint src",
     "test:webview": "node scripts/webview-smoke.mjs",
-    "test:host": "node --test test/*.test.ts"
+    "test:host": "node --import ./test/helpers/ts-resolve.mjs --test test/*.test.ts"
   },
   "dependencies": {
     "@galaxy-stack/ai-coder-core": "link:../galaxy-ai-coder-core"

@@ -55,7 +55,7 @@ jobs:
         run: yarn check-types
 
       - name: Run Host And Webview Tests
-        run: node --test test/*.test.ts
+        run: yarn test:host
 
       - name: Webview Smoke
         run: node scripts/webview-smoke.mjs

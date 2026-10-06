@@ -157,7 +157,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
  * The only place where @galaxy-stack/ai-coder-core event shapes touch the UI wire.
  * When core internals change, this mapper is the single file to update.
  */
-function mapCoreEventToUi(event: AiCoderRuntimeEvent, sink: GalaxyUiEventSink): void {
+export function mapCoreEventToUi(event: AiCoderRuntimeEvent, sink: GalaxyUiEventSink): void {
   switch (event.type) {
     case "model": {
       const modelEvent = event.event;
