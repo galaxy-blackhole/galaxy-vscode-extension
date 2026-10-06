@@ -1,4 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
+import { MODE_OPTIONS } from "./Composer";
+import { setPermissionMode as sendPermissionMode } from "../host-bridge";
+import { getPermissionMode, setPermissionMode as storePermissionMode, subscribePermissionMode } from "../permission-mode";
 import type { ModelSettingsSummary, ProviderApi, ProviderSummary } from "../../../src/model-settings-types";
 import { removeProvider, saveApiKey, saveProvider, setActiveProvider } from "../host-bridge";
 
@@ -144,6 +147,7 @@ function CustomForm({ onDone }: { onDone: () => void }) {
 
 export function ModelSetup({ settings, onClose }: { settings: ModelSettingsSummary; onClose: () => void }) {
   const [editing, setEditing] = useState<string | null>(null);
+  const permissionMode = useSyncExternalStore(subscribePermissionMode, getPermissionMode);
   const [mode, setMode] = useState<"idle" | "catalog" | "custom">("idle");
   const missingKey = useMemo(
     () => settings.providers.some(provider => provider.active && !provider.keyConfigured),
@@ -151,14 +155,32 @@ export function ModelSetup({ settings, onClose }: { settings: ModelSettingsSumma
   );
 
   return (
-    <section className="ms-panel" aria-label="Thiết lập model">
+    <section className="ms-panel" aria-label="Cài đặt">
       <header className="ms-header">
         <div>
-          <h2 className="ms-title">Model</h2>
-          <p className="ms-sub">Nhập API key để dùng model từ các nhà cung cấp sau.</p>
+          <h2 className="ms-title">Cài đặt</h2>
+          <p className="ms-sub">Model, nhà cung cấp và chế độ phê duyệt.</p>
         </div>
         <button type="button" className="ms-btn ms-btn-ghost" onClick={onClose} aria-label="Đóng">✕</button>
       </header>
+
+      <section className="ms-section" aria-label="Quyền">
+        <h3 className="ms-section-title">Quyền</h3>
+        <p className="ms-sub">Galaxy hỏi trước khi ghi tệp hay chạy lệnh ở mức nào.</p>
+        <div className="ms-modes">
+          {MODE_OPTIONS.map(choice => (
+            <button
+              key={choice.mode}
+              type="button"
+              className={`ms-mode${choice.mode === permissionMode ? " ms-mode-active" : ""}`}
+              onClick={() => { storePermissionMode(choice.mode); sendPermissionMode(choice.mode); }}
+            >
+              <span className="ms-mode-title">{choice.title}</span>
+              <span className="ms-mode-desc">{choice.description}</span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       {missingKey ? (
         <p className="ms-warning">Chưa có API key cho nhà cung cấp đang dùng. Nhập key để bắt đầu.</p>

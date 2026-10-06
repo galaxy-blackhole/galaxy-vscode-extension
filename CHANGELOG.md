@@ -49,6 +49,20 @@ engine as the CLI — instead of its own loop.
 
 - The preview/RAG/workflow-graph/review commands and their keybindings are not part of this surface.
   They can return as the 2.0 line grows.
+## [2.0.5] - 2026-10-06 16:40 +0700
+
+### Changed
+
+- **Header có icon bánh răng mở Cài đặt** (thay nút Model): panel Cài đặt gồm mục **Quyền** (3 chế độ phê
+  duyệt, đổi tại chỗ) và phần model/nhà cung cấp như trước.
+- **Chip Auto ở box nhập liệu nay ghi rõ model đang dùng** (ví dụ `kimi-k2.7-code:cloud`), menu của nó có
+  thêm mục mở Cài đặt; menu quyền cũng vậy — mục Tùy chỉnh chết đã bỏ.
+- Tên hiển thị trong webview đổi từ Galaxy Code sang **Galaxy Blackhole**.
+
+### Fixed
+
+- **Menu không còn bị cắt ở mép sidebar**: menu mở lên trên, giới hạn bề rộng theo panel, menu của chip
+  model neo phải, thêm `max-height` và cuộn.
 ## [Unreleased]
 
 ### Changed

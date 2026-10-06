@@ -9,6 +9,7 @@ import {
   type PermissionMode,
 } from "../permission-mode";
 import { setPermissionMode as sendPermissionMode } from "../host-bridge";
+import { openSettings } from "../settings-store";
 import { openExternal, type HostInfo } from "../host-bridge";
 
 interface ModeOption {
@@ -18,7 +19,7 @@ interface ModeOption {
   readonly description: string;
 }
 
-const MODE_OPTIONS: readonly ModeOption[] = [
+export const MODE_OPTIONS: readonly ModeOption[] = [
   { mode: "ask", icon: () => <HandIcon />, title: "Yêu cầu phê duyệt", description: "Luôn hỏi khi chỉnh sửa tệp và chạy lệnh" },
   { mode: "smart", icon: () => <ClockIcon />, title: "Phê duyệt giúp tôi", description: "Chỉ hỏi khi chạy lệnh trong terminal" },
   { mode: "auto", icon: () => <ShieldIcon />, title: "Toàn quyền truy cập", description: "Truy cập không giới hạn vào mọi tệp trên máy tính của bạn" },
@@ -46,9 +47,9 @@ function PermissionMenu() {
   }, [open]);
 
   const active = MODE_OPTIONS.find((option) => option.mode === mode);
-  const label = mode === "auto" ? "Toàn quyền truy cập"
-    : mode === "ask" ? "Yêu cầu phê duyệt"
-    : "Phê duyệt giúp tôi";
+  const label = mode === "auto" ? "Toàn quyền"
+    : mode === "ask" ? "Yêu cầu duyệt"
+    : "Duyệt giúp tôi";
 
   return (
     <div ref={rootRef} className="permission-root">
@@ -61,7 +62,7 @@ function PermissionMenu() {
         onClick={() => setOpen((v) => !v)}
       >
         <ShieldIcon />
-        <span>{label}</span>
+        <span className="chip-label">{label}</span>
       </button>
       {open && (
         <div className="permission-menu" role="menu">
@@ -84,11 +85,11 @@ function PermissionMenu() {
               {option.mode === mode && <span className="option-check"><CheckIcon /></span>}
             </button>
           ))}
-          <button type="button" className="permission-option option-disabled" disabled title="Sẽ có khi tích hợp ai-coder-core với approval profile từ cấu hình">
+          <button type="button" role="menuitem" className="permission-option" onClick={() => { openSettings(); setOpen(false); }}>
             <span className="option-icon"><GearIcon /></span>
             <span className="option-texts">
-              <span className="option-title">Tùy chỉnh</span>
-              <span className="option-desc">Quyền theo cấu hình — có sau khi tích hợp core</span>
+              <span className="option-title">Cài đặt</span>
+              <span className="option-desc">Model, nhà cung cấp và chế độ phê duyệt</span>
             </span>
           </button>
         </div>
@@ -109,7 +110,7 @@ function ModelChip({ info }: { info: HostInfo | null }) {
         title={url ? `Auto = entry 'manual' trong ~/.galaxy/config.json → ${info?.model ?? ""}` : `${info?.model ?? ""} — ${info?.baseUrl ?? ""}`}
         onClick={() => setOpen((v) => !v)}
       >
-        <span>Auto</span>
+        <span className="chip-label">{info?.model ?? "Model"}</span>
         <ChevronDownIcon />
       </button>
       {open && (
@@ -117,7 +118,7 @@ function ModelChip({ info }: { info: HostInfo | null }) {
           <button type="button" role="menuitem" className="permission-option option-active" onClick={() => setOpen(false)}>
             <span className="option-icon"><CheckIcon /></span>
             <span className="option-texts">
-              <span className="option-title title-gold">Auto</span>
+              <span className="option-title title-gold">{info?.model ?? "Model"}</span>
               <span className="option-desc">
                 {info ? `Entry 'manual' trong ~/.galaxy/config.json → ${info.model} (thinking: max)` : "Đang đọc ~/.galaxy/config.json…"}
               </span>

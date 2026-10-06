@@ -556,3 +556,39 @@ html, body, #app {
 .session-meta { color: var(--vscode-descriptionForeground, #888); font-size: 11px; }
 .session-delete { border: none; background: transparent; color: var(--vscode-descriptionForeground, #888); cursor: pointer; }
 .session-empty { color: var(--vscode-descriptionForeground, #888); margin: 4px 0; }
+
+/* Menus open upward; keep them inside the sidebar whatever the chip's position. */
+.permission-menu {
+  min-width: min(380px, calc(100vw - 28px));
+  max-width: calc(100vw - 28px);
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  z-index: 40;
+}
+/* The model chip sits on the right, so its menu grows leftwards instead of off the edge. */
+.permission-menu.model-menu { left: auto; right: 0; }
+.chip-label { max-width: 132px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-icon-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.app-icon-btn:hover { background: var(--vscode-toolbar-hoverBackground, rgba(255,255,255,0.08)); }
+
+/* Settings: the panel's own sections, so /permissions lives next to the model. */
+.ms-section { margin: 10px 0 14px; padding: 10px 12px; border: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.12)); border-radius: 12px; }
+.ms-section-title { margin: 0 0 4px; font-size: 13px; font-weight: 600; }
+.ms-modes { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.ms-mode { text-align: left; border: 1px solid transparent; border-radius: 10px; background: transparent; color: inherit; padding: 8px 10px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+.ms-mode:hover { background: var(--vscode-list-hoverBackground, rgba(255,255,255,0.06)); }
+.ms-mode-active { border-color: var(--vscode-focusBorder, #c7a23f); }
+.ms-mode-title { font-weight: 600; }
+.ms-mode-desc { font-size: 11px; color: var(--vscode-descriptionForeground, #999); }
