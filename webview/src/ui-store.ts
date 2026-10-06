@@ -1,5 +1,5 @@
 import type { GalaxyUiEvent, GalaxyUiRunStatus } from "../../src/ui-protocol";
-import { subscribeNewThread, subscribeSessionMessages, subscribeThinking, subscribeUiEvents } from "./host-bridge";
+import { subscribeNewThread, subscribeSessionMessages, subscribeThinking, subscribeUiEvents } from "./host-events";
 
 export interface UiToolPart {
   readonly type: "tool-call";

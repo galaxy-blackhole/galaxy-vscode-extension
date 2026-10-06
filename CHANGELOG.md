@@ -111,6 +111,17 @@ gói nên dừng ở đó.
 - **Trang Cài đặt có 3 phần như blackhole web**: **Chung** (chế độ phê duyệt), **Model** (nhà cung cấp, API
   key, model) và **Thông tin** (model, endpoint, workspace, nền tảng).
 - **Bỏ thanh Phiên** phía trên khung nhập liệu.
+## [2.0.11] - 2026-10-06 21:20 +0700
+
+### Fixed
+
+- **Test host xanh trở lại (38/38)**: cắt vòng import `ui-store → host-bridge` bằng cách tách các registry sự
+  kiện ra module lá `webview/src/host-events.ts`. Trước đó bundle ném `Cannot access 'uiEventListeners'
+  before initialization` ở module-scope nên **10 test DOM đỏ**.
+- Bỏ 2 test của thanh Phiên (đã gỡ theo yêu cầu) và thay bằng test chốt: khung nhập liệu không còn thanh đó,
+  và message phiên vẫn không làm hỏng view.
+
+> Chưa publish marketplace — bản này chỉ nằm trên git; tag `v2.0.11` sẽ tạo khi có yêu cầu.
 ## [Unreleased]
 
 ### Changed

@@ -1,43 +1,29 @@
 import { submitPrompt } from "./galaxy-ui-runtime";
+import {
+  emitHostInfo,
+  emitNewThread,
+  emitPendingApproval,
+  emitSessionMessage,
+  emitThinking,
+  emitUiEvent,
+} from "./host-events";
 import { postToHost } from "./vscode";
-import type { GalaxyUiAction, GalaxyUiEvent } from "../../src/ui-protocol";
+import type { GalaxyUiAction } from "../../src/ui-protocol";
 import type { OllamaChatMessage, OllamaToolSchema } from "../../src/protocol";
 import type { HostToWebviewMessage, ProviderDraft } from "../../src/protocol";
-import type { ModelSettingsSummary } from "../../src/model-settings-types";
 
-export type HostInfo = Readonly<{
-  workspaceName: string;
-  workspacePath: string;
-  platform: string;
-  shell: string;
-  model: string;
-  baseUrl: string;
-  credentialSource: string;
-  modelLibraryUrl?: string;
-  modelSettings: ModelSettingsSummary;
-}>;
+export {
+  subscribeHostInfo,
+  subscribeNewThread,
+  subscribePendingApprovals,
+  subscribeSessionMessages,
+  subscribeThinking,
+  subscribeUiEvents,
+} from "./host-events";
+export type { HostInfo } from "./host-events";
+import type { HostInfo } from "./host-events";
 
-type UiEventListener = (event: GalaxyUiEvent) => void;
-type PendingApprovalListener = (pending: { requestId: string; tool: string; args: Record<string, unknown>; reason: string }) => void;
 
-const uiEventListeners = new Set<UiEventListener>();
-const pendingApprovalListeners = new Set<PendingApprovalListener>();
-type SessionMessage = Extract<HostToWebviewMessage, { type: "session-list" | "session-loaded" }>;
-const sessionListeners = new Set<(message: SessionMessage) => void>();
-
-export function subscribeSessionMessages(listener: (message: SessionMessage) => void): () => void {
-  sessionListeners.add(listener);
-  return () => sessionListeners.delete(listener);
-}
-
-type ThinkingMessage = Extract<HostToWebviewMessage, { type: "thinking" }>;
-const thinkingListeners = new Set<(message: ThinkingMessage) => void>();
-
-/** The host says which reasoning levels exist for the active model, and which is stored. */
-export function subscribeThinking(listener: (message: ThinkingMessage) => void): () => void {
-  thinkingListeners.add(listener);
-  return () => thinkingListeners.delete(listener);
-}
 
 /** Store one reasoning level for the active provider. */
 export function setThinking(choice: string): void {
@@ -76,15 +62,6 @@ function handleTestCommand(command: Readonly<{ kind: "submit"; text: string } | 
   submitPrompt(command.text, hostInfo?.workspacePath ?? ".");
 }
 
-export function subscribeUiEvents(listener: UiEventListener): () => void {
-  uiEventListeners.add(listener);
-  return () => uiEventListeners.delete(listener);
-}
-
-export function subscribePendingApprovals(listener: PendingApprovalListener): () => void {
-  pendingApprovalListeners.add(listener);
-  return () => pendingApprovalListeners.delete(listener);
-}
 
 export function dispatchUiAction(action: GalaxyUiAction): void {
   postToHost({ type: "ui-action", action });
@@ -114,8 +91,6 @@ type ChatHandlers = {
 
 const chatRuns = new Map<string, ChatHandlers>();
 const toolPending = new Map<string, { resolve: (value: { ok: boolean; result: string }) => void }>();
-const infoListeners = new Set<(info: HostInfo) => void>();
-const newThreadListeners = new Set<() => void>();
 let hostInfo: HostInfo | null = null;
 let counter = 0;
 
@@ -157,19 +132,11 @@ export async function execTool(name: string, args: Record<string, unknown>): Pro
   });
 }
 
-export function subscribeHostInfo(listener: (info: HostInfo) => void): () => void {
-  infoListeners.add(listener);
-  return () => infoListeners.delete(listener);
-}
 
 export function currentHostInfo(): HostInfo | null {
   return hostInfo;
 }
 
-export function subscribeNewThread(listener: () => void): () => void {
-  newThreadListeners.add(listener);
-  return () => newThreadListeners.delete(listener);
-}
 
 export function announceReady(): void {
   postToHost({ type: "ui-ready" });
@@ -202,10 +169,10 @@ if (typeof window !== "undefined") {
     const message = event.data;
     switch (message.type) {
       case "ui-event":
-        for (const listener of uiEventListeners) listener(message.event);
+        emitUiEvent(message.event);
         return;
       case "pending-approval":
-        for (const listener of pendingApprovalListeners) listener(message);
+        emitPendingApproval(message);
         return;
       case "chat-delta":
         chatRuns.get(message.runId)?.onDelta(message.delta);
@@ -221,21 +188,21 @@ if (typeof window !== "undefined") {
         toolPending.delete(message.requestId);
         return;
       case "new-thread":
-        for (const listener of newThreadListeners) listener();
+        emitNewThread();
         return;
       case "test/command":
         handleTestCommand(message.command);
         return;
       case "session-list":
       case "session-loaded":
-        for (const listener of sessionListeners) listener(message);
+        emitSessionMessage(message);
         return;
       case "host-info":
         hostInfo = message;
-        for (const listener of infoListeners) listener(message);
+        emitHostInfo(message);
         return;
       case "thinking":
-        for (const listener of thinkingListeners) listener(message);
+        emitThinking(message);
         return;
     }
   });
