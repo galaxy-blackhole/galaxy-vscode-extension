@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import type { HostToWebviewMessage, WebviewToHostMessage } from "../protocol";
 import { resolveThinkingPolicy, thinkingLabel } from "@galaxy-stack/ai-coder-core";
+import { webviewHtml } from "./webview-html";
 import { resolveModelLibraryUrl, resolveOllamaConnection, type OllamaConnection } from "./config";
 import { streamOllamaChat } from "./ollama-client";
 import { startCoreRun, type CoreRunSession } from "./core-run-session";
@@ -438,23 +439,13 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
 
   private renderHtml(webview: vscode.Webview, view: "chat" | "settings" = "chat"): string {
     const distUri = vscode.Uri.joinPath(this.extensionUri, "dist", "webview");
-    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, "chat.js"));
-    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, "chat.css"));
-    const nonce = String(Math.random()).slice(2);
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; font-src ${webview.cspSource}; img-src ${webview.cspSource} https: data:;" />
-  <link href="${styleUri}" rel="stylesheet" />
-  <title>Galaxy Blackhole</title>
-</head>
-<body>
-  <div id="app"></div>
-  <script nonce="${nonce}" src="${scriptUri}${view === "settings" ? "#settings" : ""}"></script>
-</body>
-</html>`;
+    return webviewHtml({
+      cspSource: webview.cspSource,
+      nonce: String(Math.random()).slice(2),
+      scriptUri: webview.asWebviewUri(vscode.Uri.joinPath(distUri, "chat.js")).toString(),
+      styleUri: webview.asWebviewUri(vscode.Uri.joinPath(distUri, "chat.css")).toString(),
+      view,
+    });
   }
 
   dispose(): void {

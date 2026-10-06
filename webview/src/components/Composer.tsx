@@ -251,9 +251,7 @@ function ModelChip({ info }: { info: HostInfo | null }) {
       {open && (
         <div className="permission-menu model-menu" role="menu">
           <div className="thinking-head">
-            <span className="thinking-mark" aria-hidden="true">⚡</span>
             <span className="thinking-value" style={{ color: tone.text }}>{current?.label ?? "Mặc định"}</span>
-            <button type="button" className="thinking-reset" aria-label="Về mặc định" title="Về mặc định" disabled={choice === "default"} onClick={() => apply("default")}>↺</button>
           </div>
           <button type="button" className="thinking-model" aria-label="Đổi model" onClick={() => setPanel(panel === "models" ? "main" : "models")}>
             <span className="chip-label">{activeModel.length > 0 ? activeModel : "Model"}</span>

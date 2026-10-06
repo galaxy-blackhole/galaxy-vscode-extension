@@ -123,6 +123,11 @@ gói nên dừng ở đó.
   chàm → tím → hồng), chấm mức nằm trong thanh, thumb trắng 20px; **bỏ hàng chữ dưới thanh** — tên mức hiện
   lớn ở trên và **đổi màu theo mức**; kéo được từ bất kỳ đâu (pointer capture), giữ giá trị tạm (draft) nên
   không giật về khi host chưa trả lời; hỗ trợ bàn phím ←/→.
+- **Slider to hơn, bỏ viền focus và bỏ 2 icon không cần**: thanh pill 20px, thumb 28px, chấm mức 8px; bỏ
+  vòng focus mặc định (chỉ còn viền mảnh khi tab vào bằng bàn phím) và bỏ icon ⚡ cùng nút ↺.
+- **Sửa lỗi tab Cài đặt mở ra chat**: cờ chọn giao diện được host bơm thẳng vào HTML
+  (`window.__GALAXY_VIEW__`) — trước đó nó nằm trên URL của script, mà `location.hash` là của *trang*, nên tab
+  Cài đặt lại render giao diện chat.
 - Bỏ 2 test của thanh Phiên (đã gỡ theo yêu cầu) và thay bằng test chốt: khung nhập liệu không còn thanh đó,
   và message phiên vẫn không làm hỏng view.
 
