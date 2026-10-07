@@ -71,8 +71,21 @@ export function createOllamaCoreModel(connection: OllamaConnection): CodingModel
       interface PendingCall { args: Record<string, unknown>; id: string; name: string; }
       const toolCalls: PendingCall[] = [];
       let usage: { inputTokens?: number; outputTokens?: number } | undefined;
+      /*
+       * Deltas reach the UI while the model is still writing. The callback runs between awaits, so a plain
+       * queue and a wake-up promise are enough: no chunk is ever buffered until the round ends.
+       */
+      const queue: CodingRoundEvent[] = [];
+      let wake: (() => void) | undefined;
+      let finished = false;
+      const push = (event: CodingRoundEvent): void => {
+        queue.push(event);
+        const waiting = wake;
+        wake = undefined;
+        waiting?.();
+      };
       try {
-        const stats = await streamOllamaChat(
+        const stream = streamOllamaChat(
           connection,
           {
             messages: request.messages.map((message): { role: "system" | "user" | "assistant" | "tool"; content?: string; name?: string; tool_calls?: { function: { name: string; arguments: Record<string, unknown> } }[] } => {
@@ -105,11 +118,12 @@ export function createOllamaCoreModel(connection: OllamaConnection): CodingModel
           (delta) => {
             if (delta.thinking) {
               thinking += delta.thinking;
-              // Deltas are delivered via the run controller's model events; the
-              // mapper below re-emits from the terminal round only. To keep
-              // live streaming, we yield below via a queue — see note.
+              push({ delta: delta.thinking, type: "thinking" });
             }
-            if (delta.content) content += delta.content;
+            if (delta.content) {
+              content += delta.content;
+              push({ delta: delta.content, type: "content" });
+            }
             if (delta.toolCalls) {
               for (const [index, call] of delta.toolCalls.entries()) {
                 toolCalls.push({ id: `call-${toolCalls.length + index + 1}`, name: call.name, args: { ...call.args } });
@@ -124,9 +138,20 @@ export function createOllamaCoreModel(connection: OllamaConnection): CodingModel
           };
           return value;
         });
+        void stream.finally(() => { finished = true; wake?.(); }).catch(() => undefined);
+        /* Drain while the model writes, then let the failure surface on the await. */
+        while (!finished || queue.length > 0) {
+          if (queue.length === 0) {
+            await new Promise<void>((resolve) => { wake = resolve; });
+            continue;
+          }
+          const event = queue.shift();
+          if (event !== undefined) yield event;
+        }
+        const stats = await stream;
         void stats;
-        if (thinking) yield { type: "thinking", delta: thinking };
-        if (content) yield { type: "content", delta: content };
+        void thinking;
+        void content;
         for (const call of toolCalls) {
           yield {
             type: "tool_call",

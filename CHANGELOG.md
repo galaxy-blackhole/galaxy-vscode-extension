@@ -196,7 +196,20 @@ gói nên dừng ở đó.
   tooltip khi rê chuột.
 - **Chip model đọc `Auto - <mức suy luận>`** (viết hoa), ví dụ `Auto - Mặc định (hệ thống)` hoặc `Auto - Cao`.
 - **Danh sách model gọn như blackhole web**: với nhà cung cấp mặc định chỉ hiện **một dòng `Auto`** thay vì
-  phơi id model (`deepseek-v4.1-flash:cloud`); chọn dòng đó không ghi lại provider.## [Unreleased]
+  phơi id model (`deepseek-v4.1-flash:cloud`); chọn dòng đó không ghi lại provider.## [2.0.16] - 2026-10-07 15:20 +0700
+
+### Fixed
+
+- **Chữ hiện ra theo từng delta, không phải đợi hết câu**: `streamRound` trước đây **gom toàn bộ** nội dung rồi
+  mới phát một lần (`content += delta.content` … `yield { delta: content }`) nên ô chat chỉ đầy khi model viết
+  xong — đúng cảm giác "phải full text mới hiện". Nay delta được đẩy qua hàng đợi **ngay khi tới**, và có test
+  chứng minh delta tới **trước khi** stream đóng (code cũ sẽ timeout ở test này).
+
+### Added
+
+- **Dòng trạng thái trên ô nhập, như CLI**: *"Đang suy nghĩ…"*, *"Đang gọi Liệt kê thư mục…"* (dùng bảng tên
+  công cụ chung), *"Đã dừng: <lý do>"*, *"Đã dừng theo yêu cầu"*. Nhờ đó nếu lượt chạy có dừng thì **thấy ngay
+  lý do** thay vì im lặng — trước đây store có ghi `run/status` nhưng không UI nào hiển thị.## [Unreleased]
 
 ### Changed
 

@@ -9,6 +9,7 @@ import {
   type PermissionMode,
 } from "../permission-mode";
 import { setModel, setPermissionMode as sendPermissionMode, setThinking } from "../host-bridge";
+import { toolLabel } from "@galaxy-stack/ai-coder-core/tools";
 import { getUiState, subscribeUiState } from "../ui-store";
 import { openSettings } from "../settings-store";
 import { useT } from "../i18n";
@@ -307,8 +308,21 @@ export function Composer({ info }: { info: HostInfo | null }) {
       box.dispatchEvent(new Event("input", { bubbles: true }));
     }
   };
+  /*
+   * The CLI shows what the run is doing above its input; the sidebar used to show nothing, so a silent stop
+   * looked like a broken app. This is the same line: the model thinking, the tool in flight, or why it ended.
+   */
+  const run = useSyncExternalStore(subscribeUiState, getUiState);
+  const lastMessage = run.messages[run.messages.length - 1];
+  const lastPart = lastMessage?.role === "assistant" ? lastMessage.content[lastMessage.content.length - 1] : undefined;
+  const liveTool = lastPart?.type === "tool-call" && lastPart.result === undefined ? lastPart : undefined;
+  const statusText = run.status === "running"
+    ? (liveTool !== undefined ? t("Đang gọi") + " " + toolLabel(liveTool.toolName, liveTool.args) + "…" : t("Đang suy nghĩ…"))
+    : run.status === "failed" ? t("Đã dừng") + ": " + (run.statusReason ?? t("không rõ nguyên nhân"))
+    : run.status === "cancelled" ? t("Đã dừng theo yêu cầu") : "";
   return (
     <div ref={cardRef} className="composer-shell">
+      {statusText.length > 0 ? <p className="composer-status" role="status" aria-live="polite">{statusText}</p> : null}
       <ComposerPrimitive.Root className="composer-card">
         <ComposerPrimitive.Input
           submitOnEnter

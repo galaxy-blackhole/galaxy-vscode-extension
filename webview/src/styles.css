@@ -649,6 +649,12 @@ html, body, #app {
 .settings-qr img { border-radius: 10px; background: #fff; padding: 6px; }
 
 /* Steering button: the same arrow, outlined while a run is live. */
+.composer-status {
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  font-size: 0.9em;
+  margin: 0 0 6px 4px;
+}
+
 .composer-shell { display: contents; }
 .composer-steer { border: 1px solid var(--vscode-focusBorder, #4a9eff) !important; }
 
