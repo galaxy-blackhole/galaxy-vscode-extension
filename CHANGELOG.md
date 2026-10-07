@@ -271,7 +271,19 @@ gói nên dừng ở đó.
 - **Tool kế hoạch không còn chiếm một dòng trong transcript** (`task_checkpoint`, `update_checkpoint`): chúng chỉ
   là ghi chú tiến độ, UI kế hoạch mới là chỗ người dùng đọc — model vẫn thấy đầy đủ trong lịch sử của nó.
 - **UI kế hoạch thành checklist thật**: đánh số `1.` `2.` `3.`; badge **xám = chờ**, **spinner xanh = đang làm**
-  (kèm nhãn *"Đang làm"*), **tick xanh = xong**, *"Bỏ qua"* mờ; tiêu đề có bộ đếm `2/5` và **thu gọn/mở rộng** được.## [Unreleased]
+  (kèm nhãn *"Đang làm"*), **tick xanh = xong**, *"Bỏ qua"* mờ; tiêu đề có bộ đếm `2/5` và **thu gọn/mở rộng** được.## [2.0.22] - 2026-10-07 18:05 +0700
+
+### Changed
+
+- **Chỉ báo chạy gọn theo đúng kiểu đã chọn**: bỏ vòng xoáy ở đầu dòng; giữ **ba chấm nhấp nháy** và thêm **đồng
+  hồ giây** — `Đang suy nghĩ... 20s` — với chữ màu link như ảnh mẫu.
+
+### Fixed
+
+- Đồng hồ dùng `setInterval` nhưng gọi **`unref()`** ở nơi có (Node — tức là trong test): một timer đang chạy
+  **không thể** giữ process mở nữa. Trong trình duyệt `unref` không tồn tại nên là no-op. Đây chính là lỗi đã
+  làm treo test runner ở lần thêm đồng hồ trước đó.
+- `prefers-reduced-motion`: giữ nguyên chữ, bỏ hoạt ảnh.## [Unreleased]
 
 ### Changed
 

@@ -313,7 +313,18 @@ export function Composer({ info }: { info: HostInfo | null }) {
    * looked like a broken app. This is the same line: the model thinking, the tool in flight, or why it ended.
    */
   const run = useSyncExternalStore(subscribeUiState, getUiState);
-  /* The indicator is pure CSS on purpose: a JavaScript clock would keep a timer alive in every host. */
+  /*
+   * A second hand makes a long wait legible: "Đang suy nghĩ… 20s" says far more than a spinner. The timer is
+   * unref'd where the host has that (Node, i.e. our tests) so a running clock can never hold a process open.
+   */
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (run.status !== "running") { setElapsed(0); return undefined; }
+    const started = Date.now();
+    const timer = setInterval(() => { setElapsed(Math.floor((Date.now() - started) / 1000)); }, 1000);
+    (timer as unknown as { unref?: () => void }).unref?.();
+    return () => { clearInterval(timer); };
+  }, [run.status]);
   const lastMessage = run.messages[run.messages.length - 1];
   const lastPart = lastMessage?.role === "assistant" ? lastMessage.content[lastMessage.content.length - 1] : undefined;
   const liveTool = lastPart?.type === "tool-call" && lastPart.result === undefined ? lastPart : undefined;
@@ -325,9 +336,9 @@ export function Composer({ info }: { info: HostInfo | null }) {
     <div ref={cardRef} className="composer-shell">
       {statusText.length > 0 ? (
         <p className={`composer-status${run.status === "running" ? "" : " composer-status-still"}`} role="status" aria-live="polite">
-          {run.status === "running" ? <span className="composer-orbit" aria-hidden="true" /> : null}
           <span className="composer-status-text">{statusText}</span>
           {run.status === "running" ? <span className="composer-dots" aria-hidden="true" /> : null}
+          {run.status === "running" && elapsed > 0 ? <span className="composer-clock">{elapsed.toString()}s</span> : null}
         </p>
       ) : null}
       <ComposerPrimitive.Root className="composer-card">

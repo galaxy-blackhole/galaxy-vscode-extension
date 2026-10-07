@@ -29,8 +29,11 @@ test("the composer says what the run is doing, and why it stopped", async () => 
 
   await send(booted, { kind: "run/status", status: "running" });
   assert.match(booted.document.querySelector(".composer-status")?.textContent ?? "", /Đang suy nghĩ/);
-  assert.ok(booted.document.querySelector(".composer-orbit"), "a live run shows the spinning ring");
-  assert.ok(booted.document.querySelector(".composer-dots"), "and the stepping dots");
+  assert.ok(booted.document.querySelector(".composer-dots"), "a live run steps the dots");
+  assert.equal(booted.document.querySelector(".composer-orbit"), null, "and carries no spinner: the clock says more");
+  /* The clock ticks on a real interval; the timer must not hold the process open. */
+  await new Promise(resolve => setTimeout(resolve, 1100));
+  assert.match(booted.document.querySelector(".composer-clock")?.textContent ?? "", /^[0-9]+s$/, "the seconds are shown: " + (booted.document.querySelector(".composer-status")?.textContent ?? ""));
 
   await send(booted, { kind: "tool/start", name: "list_files", toolCallId: "c1", args: {} });
   assert.match(booted.document.querySelector(".composer-status")?.textContent ?? "", /Đang gọi/, "a tool in flight is named: " + (booted.document.querySelector(".composer-status")?.textContent ?? ""));
