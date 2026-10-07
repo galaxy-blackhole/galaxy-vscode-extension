@@ -156,7 +156,14 @@ gói nên dừng ở đó.
 
 > Chưa publish marketplace — bản này chỉ nằm trên git; tag `v2.0.11` sẽ tạo khi có yêu cầu.
 
-## [Unreleased]
+## [2.0.12] - 2026-10-07 03:40 +0700
+
+### Fixed
+
+- **Hết `SESSION_ERROR: Workspace mutation snapshot exceeded its byte limit`** trên workspace lớn (gặp trên
+  Windows): core 0.3.14 giới hạn theo từng tệp (8 MiB) và **hạ cấp** sang băm metadata thay vì giết lượt chạy,
+  nên mở thẳng thư mục cha nặng (có `.vscode-test/`, `graphify-out/`, PDF, video…) vẫn chat được bình thường.
+  Không cần thêm tên thư mục derived nào nữa — thư mục lạ chỉ làm snapshot bị đánh dấu `degraded`.## [Unreleased]
 
 ### Changed
 
