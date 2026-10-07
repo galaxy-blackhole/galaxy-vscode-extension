@@ -78,8 +78,6 @@ export function SettingsPage() {
         />
         <Row
           label={t("Chi tiết công việc")}
-        <Row label={t("Workspace")} description={t("Thư mục đang mở")} control={<span className="settings-mono">{info?.workspacePath ?? "—"}</span>} />
-        <Row label={t("Nền tảng")} description={t("Hệ điều hành và shell")} control={<span>{(info?.platform ?? "—") + " · " + (info?.shell ?? "—")}</span>} />
           description={t("Chọn mức chi tiết hiển thị cho lệnh gọi tool")}
           control={
             <select className="settings-select" aria-label={t("Chi tiết công việc")} value={preferences.workDetail} onChange={event => setPreferences({ workDetail: event.target.value as WorkDetail })}>
@@ -88,6 +86,8 @@ export function SettingsPage() {
             </select>
           }
         />
+        <Row label={t("Workspace")} description={t("Thư mục đang mở")} control={<span className="settings-mono">{info?.workspacePath ?? "—"}</span>} />
+        <Row label={t("Nền tảng")} description={t("Hệ điều hành và shell")} control={<span>{(info?.platform ?? "—") + " · " + (info?.shell ?? "—")}</span>} />
       </div>
     </>
   );
