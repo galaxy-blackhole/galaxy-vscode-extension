@@ -232,7 +232,17 @@ gói nên dừng ở đó.
 - Nhãn công cụ không còn in cặp ngoặc rỗng (*"Liệt kê thư mục ( )"* → *"Liệt kê thư mục"*) — sửa ở core
   0.3.17, bản này đóng gói kèm.
 - Kèm bản sửa **2.0.17**: id tool-call phải duy nhất cho **cả lượt chạy**, không chỉ trong một lượt — đây là
-  nguyên nhân "dự án nào cũng dừng sau hai tool đầu" (*"toolCallId call-1 was already used in this run"*).## [Unreleased]
+  nguyên nhân "dự án nào cũng dừng sau hai tool đầu" (*"toolCallId call-1 was already used in this run"*).## [2.0.19] - 2026-10-07 16:45 +0700
+
+### Added
+
+- **Chỉ báo trạng thái sống động thay cho dòng chữ đơn điệu**: trước `"Đang suy nghĩ…"` chỉ là chữ tĩnh. Nay có
+  **vòng xoáy quay** (vòng cung gradient kiểu đĩa bồi tụ — đúng chất Galaxy Blackhole), **chữ shimmer** chạy
+  qua, và **ba chấm nhấp nháy** theo nhịp.
+  Tất cả là **CSS thuần**: không timer JavaScript nào chạy nền, và khi `prefers-reduced-motion` được bật thì
+  giữ nguyên chữ, bỏ hết chuyển động.
+- Khi lượt chạy **kết thúc hoặc lỗi**, hoạt ảnh dừng và dòng trạng thái chuyển sang màu cảnh báo — nhìn là biết
+  đang chạy hay đã dừng.## [Unreleased]
 
 ### Changed
 

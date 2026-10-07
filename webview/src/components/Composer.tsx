@@ -313,16 +313,23 @@ export function Composer({ info }: { info: HostInfo | null }) {
    * looked like a broken app. This is the same line: the model thinking, the tool in flight, or why it ended.
    */
   const run = useSyncExternalStore(subscribeUiState, getUiState);
+  /* The indicator is pure CSS on purpose: a JavaScript clock would keep a timer alive in every host. */
   const lastMessage = run.messages[run.messages.length - 1];
   const lastPart = lastMessage?.role === "assistant" ? lastMessage.content[lastMessage.content.length - 1] : undefined;
   const liveTool = lastPart?.type === "tool-call" && lastPart.result === undefined ? lastPart : undefined;
   const statusText = run.status === "running"
-    ? (liveTool !== undefined ? t("Đang gọi") + " " + toolLabel(liveTool.toolName, liveTool.args) + "…" : t("Đang suy nghĩ…"))
+    ? (liveTool !== undefined ? t("Đang gọi") + " " + toolLabel(liveTool.toolName, liveTool.args) : t("Đang suy nghĩ"))
     : run.status === "failed" ? t("Đã dừng") + ": " + (run.statusReason ?? t("không rõ nguyên nhân"))
     : run.status === "cancelled" ? t("Đã dừng theo yêu cầu") : "";
   return (
     <div ref={cardRef} className="composer-shell">
-      {statusText.length > 0 ? <p className="composer-status" role="status" aria-live="polite">{statusText}</p> : null}
+      {statusText.length > 0 ? (
+        <p className={`composer-status${run.status === "running" ? "" : " composer-status-still"}`} role="status" aria-live="polite">
+          {run.status === "running" ? <span className="composer-orbit" aria-hidden="true" /> : null}
+          <span className="composer-status-text">{statusText}</span>
+          {run.status === "running" ? <span className="composer-dots" aria-hidden="true" /> : null}
+        </p>
+      ) : null}
       <ComposerPrimitive.Root className="composer-card">
         <ComposerPrimitive.Input
           submitOnEnter

@@ -658,10 +658,57 @@ html, body, #app {
   border-top: 1px solid var(--vscode-panel-border, #2b2b2b);
 }
 
+/*
+ * The run indicator: an accretion ring that spins, text that shimmers, dots that step, and a clock. Motion is
+ * what separates "working" from "stuck"; prefers-reduced-motion keeps the words and drops the movement.
+ */
 .composer-status {
+  align-items: center;
+  display: flex;
+  gap: 6px;
   color: var(--vscode-descriptionForeground, #9d9d9d);
   font-size: 0.9em;
   margin: 0 0 6px 4px;
+}
+
+.composer-orbit {
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 200deg, var(--vscode-charts-blue, #569cd6) 300deg, #b07cff 360deg);
+  border-radius: 50%;
+  height: 11px;
+  mask: radial-gradient(farthest-side, transparent 3px, #000 3.5px);
+  -webkit-mask: radial-gradient(farthest-side, transparent 3px, #000 3.5px);
+  width: 11px;
+  animation: composer-orbit 1.1s linear infinite;
+}
+
+.composer-status-text {
+  -webkit-background-clip: text;
+  background-clip: text;
+  background-image: linear-gradient(90deg, currentColor 0%, currentColor 40%, var(--vscode-foreground, #e6e6e6) 50%, currentColor 60%, currentColor 100%);
+  background-size: 220% 100%;
+  color: transparent;
+  animation: composer-shimmer 1.8s linear infinite;
+}
+
+.composer-status-still .composer-status-text {
+  animation: none;
+  background-image: none;
+  color: var(--vscode-errorForeground, #f48771);
+}
+
+.composer-dots::after {
+  content: "";
+  animation: composer-dots 1.4s steps(1, end) infinite;
+}
+
+
+@keyframes composer-orbit { to { transform: rotate(360deg); } }
+@keyframes composer-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+@keyframes composer-dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .composer-orbit, .composer-status-text, .composer-dots::after { animation: none; }
+  .composer-status-text { background-image: none; color: inherit; }
 }
 
 .composer-shell { display: contents; }

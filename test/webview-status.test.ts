@@ -29,10 +29,15 @@ test("the composer says what the run is doing, and why it stopped", async () => 
 
   await send(booted, { kind: "run/status", status: "running" });
   assert.match(booted.document.querySelector(".composer-status")?.textContent ?? "", /Đang suy nghĩ/);
+  assert.ok(booted.document.querySelector(".composer-orbit"), "a live run shows the spinning ring");
+  assert.ok(booted.document.querySelector(".composer-dots"), "and the stepping dots");
 
   await send(booted, { kind: "tool/start", name: "list_files", toolCallId: "c1", args: {} });
   assert.match(booted.document.querySelector(".composer-status")?.textContent ?? "", /Đang gọi/, "a tool in flight is named: " + (booted.document.querySelector(".composer-status")?.textContent ?? ""));
 
   await send(booted, { kind: "run/status", reason: "stream im lặng 180s", status: "failed" });
   assert.match(booted.document.querySelector(".composer-status")?.textContent ?? "", /Đã dừng: stream im lặng 180s/, "the reason is shown, not swallowed");
+  assert.equal(booted.document.querySelector(".composer-orbit"), null, "a finished run stops moving");
+  assert.equal(booted.document.querySelector(".composer-dots"), null, "and drops the dots");
+  assert.ok(booted.document.querySelector(".composer-status-still"), "the still style marks it as finished");
 });
