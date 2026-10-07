@@ -242,7 +242,21 @@ gói nên dừng ở đó.
   Tất cả là **CSS thuần**: không timer JavaScript nào chạy nền, và khi `prefers-reduced-motion` được bật thì
   giữ nguyên chữ, bỏ hết chuyển động.
 - Khi lượt chạy **kết thúc hoặc lỗi**, hoạt ảnh dừng và dòng trạng thái chuyển sang màu cảnh báo — nhìn là biết
-  đang chạy hay đã dừng.## [Unreleased]
+  đang chạy hay đã dừng.## [2.0.20] - 2026-10-07 17:10 +0700
+
+### Fixed
+
+- **Markdown của model được render đầy đủ (GFM)**: bảng dạng `| cột | cột |` trước đây hiện **nguyên dấu sổ**
+  trong khung chat vì renderer thiếu **GFM**. Nay có `remark-gfm` (đúng cách thư viện `assistant-ui` hỗ trợ:
+  `MarkdownTextPrimitive` nhận `remarkPlugins`) → bảng thành bảng thật, kèm gạch ngang, danh sách nhiệm vụ và
+  autolink.
+- Thêm style cho bảng và nội dung markdown: nền cho hàng tiêu đề, sọc xen kẽ, viền, blockquote và danh sách —
+  dễ đọc trong cả theme sáng và tối.
+
+### Test
+
+- Dựng một bảng markdown thật qua `message/text-delta` rồi khẳng định DOM có `<table>` với đúng hai ô tiêu đề
+  và hai hàng, đồng thời **không** còn dòng `|---|` nào sót lại.## [Unreleased]
 
 ### Changed
 

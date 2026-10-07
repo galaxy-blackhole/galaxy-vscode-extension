@@ -104,7 +104,23 @@ html, body, #app {
 .md-body th, .md-body td {
   border: 1px solid var(--vscode-panel-border, #333);
   padding: 4px 8px;
+  vertical-align: top;
 }
+
+/* GFM tables arrive as real tables now: give them a header tone and readable stripes. */
+.md-body thead th {
+  background: var(--vscode-editorWidget-background, #252526);
+  font-weight: 600;
+  text-align: left;
+}
+.md-body tbody tr:nth-child(even) { background: rgba(127, 127, 127, 0.06); }
+.md-body blockquote {
+  border-left: 2px solid var(--vscode-panel-border, #333);
+  margin: 6px 0;
+  padding-left: 10px;
+  opacity: 0.9;
+}
+.md-body ul, .md-body ol { margin: 6px 0; padding-left: 20px; }
 
 .reasoning { margin: 4px 0; }
 .reasoning-toggle {

@@ -2,14 +2,21 @@ import { useState, useSyncExternalStore } from "react";
 import { getPreferences, subscribePreferenceChanges } from "../preferences";
 import type { ToolCallMessagePartComponent } from "@assistant-ui/react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
+import remarkGfm from "remark-gfm";
 import { getUiState, subscribeUiState, type UiToolPart } from "../ui-store";
 import { useT } from "../i18n";
 
 /* The label table is shared with the TUI, so a tool reads the same in both hosts. */
 import { toolLabel } from "@galaxy-stack/ai-coder-core/tools";
 
+/*
+ * One shared array: the primitive memoizes on its props, and a fresh array each render would defeat that.
+ * GFM is what turns the model's pipe tables into real tables instead of raw text with dashes.
+ */
+const REMARK_PLUGINS = [remarkGfm];
+
 export function TextPart() {
-  return <MarkdownTextPrimitive className="md-body" />;
+  return <MarkdownTextPrimitive className="md-body" remarkPlugins={REMARK_PLUGINS} />;
 }
 
 /**
