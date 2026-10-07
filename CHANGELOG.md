@@ -209,7 +209,15 @@ gói nên dừng ở đó.
 
 - **Dòng trạng thái trên ô nhập, như CLI**: *"Đang suy nghĩ…"*, *"Đang gọi Liệt kê thư mục…"* (dùng bảng tên
   công cụ chung), *"Đã dừng: <lý do>"*, *"Đã dừng theo yêu cầu"*. Nhờ đó nếu lượt chạy có dừng thì **thấy ngay
-  lý do** thay vì im lặng — trước đây store có ghi `run/status` nhưng không UI nào hiển thị.## [Unreleased]
+  lý do** thay vì im lặng — trước đây store có ghi `run/status` nhưng không UI nào hiển thị.## [2.0.17] - 2026-10-07 15:45 +0700
+
+### Fixed
+
+- **Nguyên nhân thật của "dự án nào cũng dừng sau hai tool đầu"**: id tool-call được sinh theo **chỉ số trong
+  lượt** (`call-1`, `call-2`…), nên **lượt thứ hai lại bắt đầu từ `call-1`** — mà run controller thì nhớ id
+  theo cả lượt chạy. Kết quả: model vừa xin thêm tool ở lượt hai là bị chặn với lỗi
+  *"toolCallId call-1 was already used in this run"* và lượt chạy chết — đúng khớp triệu chứng: hai tool đầu
+  chạy xong rồi đứng. Nay mỗi call có id riêng (`randomUUID`), giống core, và có test bắt đúng lỗi này.## [Unreleased]
 
 ### Changed
 

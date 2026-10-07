@@ -11,6 +11,7 @@ import {
   type PortResult,
   type RunExecutionContext,
 } from "@galaxy-stack/ai-coder-core";
+import { randomUUID } from "node:crypto";
 import { streamOllamaChat } from "./ollama-client";
 import type { OllamaConnection } from "./config";
 
@@ -126,7 +127,12 @@ export function createOllamaCoreModel(connection: OllamaConnection): CodingModel
             }
             if (delta.toolCalls) {
               for (const [index, call] of delta.toolCalls.entries()) {
-                toolCalls.push({ id: `call-${toolCalls.length + index + 1}`, name: call.name, args: { ...call.args } });
+                /*
+                 * Unique per call, never per round: the run controller refuses an id it has already seen
+                 * ("toolCallId call-1 was already used in this run"), so a counter that restarts every round
+                 * killed the run the moment the model asked for a second round of tools.
+                 */
+                toolCalls.push({ id: randomUUID(), name: call.name, args: { ...call.args } });
               }
             }
           },
