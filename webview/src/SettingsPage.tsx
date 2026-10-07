@@ -78,6 +78,8 @@ export function SettingsPage() {
         />
         <Row
           label={t("Chi tiết công việc")}
+        <Row label={t("Workspace")} description={t("Thư mục đang mở")} control={<span className="settings-mono">{info?.workspacePath ?? "—"}</span>} />
+        <Row label={t("Nền tảng")} description={t("Hệ điều hành và shell")} control={<span>{(info?.platform ?? "—") + " · " + (info?.shell ?? "—")}</span>} />
           description={t("Chọn mức chi tiết hiển thị cho lệnh gọi tool")}
           control={
             <select className="settings-select" aria-label={t("Chi tiết công việc")} value={preferences.workDetail} onChange={event => setPreferences({ workDetail: event.target.value as WorkDetail })}>
@@ -110,10 +112,6 @@ export function SettingsPage() {
             <Row label={t("Email")} description={t("Liên hệ công việc")} control={<span>kevinbui210191@gmail.com</span>} />
             <Row label={t("Website")} description={t("Trang chủ dự án")} control={<button type="button" className="settings-link" onClick={() => openExternal("https://galaxy-blackhole.vercel.app/")}>galaxy-blackhole.vercel.app</button>} />
             <Row label={t("Phiên bản")} description={t("Extension đang cài")} control={<span>{"v" + (info?.version ?? "—")}</span>} />
-            <Row label={t("Model")} description={t("Model mà lượt chạy kế tiếp sẽ dùng")} control={<span>{info?.model ?? "—"}</span>} />
-            <Row label={t("Endpoint")} description={t("Nơi gửi yêu cầu model")} control={<span>{info?.baseUrl ?? "—"}</span>} />
-            <Row label={t("Workspace")} description={t("Thư mục đang mở")} control={<span className="settings-mono">{info?.workspacePath ?? "—"}</span>} />
-            <Row label={t("Nền tảng")} description={t("Hệ điều hành và shell")} control={<span>{(info?.platform ?? "—") + " · " + (info?.shell ?? "—")}</span>} />
           </div>
         ) : null}
         {section === "Thông tin" ? (

@@ -182,7 +182,7 @@ export function ModelSetup({ settings }: { settings: ModelSettingsSummary }) {
               <button type="button" className="ms-btn ms-btn-ghost" onClick={() => removeProvider(provider.id)} aria-label={`Xoá ${provider.displayName}`}>{t("Xoá")}</button>
             ) : null}
           </div>
-          <p className="ms-meta">{provider.api === "ollama" ? "Ollama" : "OpenAI-compatible"} · {provider.baseUrl}
+          <p className="ms-meta">{provider.id === "galaxy" ? t("auto") : provider.api === "ollama" ? "Ollama" : "OpenAI-compatible"}
             {provider.models.length > 0 ? ` · ${provider.models.map(model => model.id).join(", ")}` : ""}</p>
           {editing === provider.id ? <KeyEditor provider={provider} onDone={() => setEditing(null)} /> : null}
         </article>

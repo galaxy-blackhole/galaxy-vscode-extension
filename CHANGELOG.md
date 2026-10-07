@@ -163,7 +163,13 @@ gói nên dừng ở đó.
 - **Hết `SESSION_ERROR: Workspace mutation snapshot exceeded its byte limit`** trên workspace lớn (gặp trên
   Windows): core 0.3.14 giới hạn theo từng tệp (8 MiB) và **hạ cấp** sang băm metadata thay vì giết lượt chạy,
   nên mở thẳng thư mục cha nặng (có `.vscode-test/`, `graphify-out/`, PDF, video…) vẫn chat được bình thường.
-  Không cần thêm tên thư mục derived nào nữa — thư mục lạ chỉ làm snapshot bị đánh dấu `degraded`.## [Unreleased]
+  Không cần thêm tên thư mục derived nào nữa — thư mục lạ chỉ làm snapshot bị đánh dấu `degraded`.## [2.0.13] - 2026-10-07 04:10 +0700
+
+### Fixed
+
+- **Model hiển thị `auto`** cho nhà cung cấp mặc định (thay vì `Ollama · https://ollama.com ·
+  deepseek-v4.1-flash:cloud`) — đúng quy ước: `auto` nghĩa là ngầm dùng Ollama + model mặc định.
+- **Thông tin**: bỏ hai hàng Model và Endpoint; **Workspace** và **Nền tảng** chuyển sang mục **Chung**.## [Unreleased]
 
 ### Changed
 
