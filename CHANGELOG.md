@@ -217,7 +217,22 @@ gói nên dừng ở đó.
   lượt** (`call-1`, `call-2`…), nên **lượt thứ hai lại bắt đầu từ `call-1`** — mà run controller thì nhớ id
   theo cả lượt chạy. Kết quả: model vừa xin thêm tool ở lượt hai là bị chặn với lỗi
   *"toolCallId call-1 was already used in this run"* và lượt chạy chết — đúng khớp triệu chứng: hai tool đầu
-  chạy xong rồi đứng. Nay mỗi call có id riêng (`randomUUID`), giống core, và có test bắt đúng lỗi này.## [Unreleased]
+  chạy xong rồi đứng. Nay mỗi call có id riêng (`randomUUID`), giống core, và có test bắt đúng lỗi này.## [2.0.18] - 2026-10-07 16:20 +0700
+
+### Added
+
+- **Gom các tool liên tiếp thành một thẻ** như các hệ thống khác: *"Đã gọi 5 công cụ · Liệt kê thư mục, Nhận
+  diện dự án, Đọc tệp…"* — bấm ▸ để xem chi tiết từng tool trong nhóm. Trước đây mỗi call một thẻ nên
+  transcript bị ngập, nhất là khi model đọc nhiều tệp liên tiếp.
+- **Thinking hiện ngay khi model suy luận**: khối *"Suy luận"* **tự mở** trong lúc lượt chạy đang diễn ra (trước
+  đây mặc định đóng nên trông như model không có thinking); một cú bấm để ghim mở/đóng.
+
+### Fixed
+
+- Nhãn công cụ không còn in cặp ngoặc rỗng (*"Liệt kê thư mục ( )"* → *"Liệt kê thư mục"*) — sửa ở core
+  0.3.17, bản này đóng gói kèm.
+- Kèm bản sửa **2.0.17**: id tool-call phải duy nhất cho **cả lượt chạy**, không chỉ trong một lượt — đây là
+  nguyên nhân "dự án nào cũng dừng sau hai tool đầu" (*"toolCallId call-1 was already used in this run"*).## [Unreleased]
 
 ### Changed
 

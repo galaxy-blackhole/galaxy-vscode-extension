@@ -649,6 +649,15 @@ html, body, #app {
 .settings-qr img { border-radius: 10px; background: #fff; padding: 6px; }
 
 /* Steering button: the same arrow, outlined while a run is live. */
+/* A run of consecutive tool calls reads as one row: the transcript stays a list, not a wall. */
+.tool-group .tool-name {
+  color: var(--vscode-foreground, #cccccc);
+}
+
+.tool-group .tool-detail:not(:first-of-type) {
+  border-top: 1px solid var(--vscode-panel-border, #2b2b2b);
+}
+
 .composer-status {
   color: var(--vscode-descriptionForeground, #9d9d9d);
   font-size: 0.9em;
