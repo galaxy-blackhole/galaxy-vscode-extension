@@ -256,7 +256,22 @@ gói nên dừng ở đó.
 ### Test
 
 - Dựng một bảng markdown thật qua `message/text-delta` rồi khẳng định DOM có `<table>` với đúng hai ô tiêu đề
-  và hai hàng, đồng thời **không** còn dòng `|---|` nào sót lại.## [Unreleased]
+  và hai hàng, đồng thời **không** còn dòng `|---|` nào sót lại.## [2.0.21] - 2026-10-07 17:40 +0700
+
+### Fixed
+
+- **Suy luận hiện đúng thứ tự, không còn bị dồn lên đầu**: trước đây mỗi delta thinking được gộp vào part
+  `reasoning` **đầu tiên** hoặc `unshift` lên đầu tin nhắn, nên **toàn bộ** suy luận của cả lượt chạy nằm trên
+  cùng. Nay suy luận là một **part trong dòng chảy** như text: gộp vào khối đang mở, mở khối mới khi model
+  chuyển việc — đúng tuần tự think → viết → gọi tool → think…
+
+### Changed
+
+- **Thẻ nhóm tool gọn lại**: chỉ còn *"Đã gọi 9 công cụ"*; danh sách tên nằm trong phần mở rộng và tooltip.
+- **Tool kế hoạch không còn chiếm một dòng trong transcript** (`task_checkpoint`, `update_checkpoint`): chúng chỉ
+  là ghi chú tiến độ, UI kế hoạch mới là chỗ người dùng đọc — model vẫn thấy đầy đủ trong lịch sử của nó.
+- **UI kế hoạch thành checklist thật**: đánh số `1.` `2.` `3.`; badge **xám = chờ**, **spinner xanh = đang làm**
+  (kèm nhãn *"Đang làm"*), **tick xanh = xong**, *"Bỏ qua"* mờ; tiêu đề có bộ đếm `2/5` và **thu gọn/mở rộng** được.## [Unreleased]
 
 ### Changed
 

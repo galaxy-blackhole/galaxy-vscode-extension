@@ -114,12 +114,16 @@ function handleEvent(event: GalaxyUiEvent): void {
     case "message/thinking-delta": {
       const current = lastAssistant();
       const parts = [...current.content];
-      const firstReasoning = parts.findIndex((part) => part.type === "reasoning");
-      if (firstReasoning >= 0) {
-        const part = parts[firstReasoning];
-        if (part.type === "reasoning") parts[firstReasoning] = { type: "reasoning", text: part.text + event.text };
+      /*
+       * Reasoning is a part of the stream, not a header on it: it appends to the reasoning block that is
+       * currently open and starts a new one once the model has moved on. Collecting every round into the first
+       * block (or unshifting it to the top) put a whole run's thinking in front of the answer it belongs to.
+       */
+      const previous = parts[parts.length - 1];
+      if (previous !== undefined && previous.type === "reasoning") {
+        parts[parts.length - 1] = { type: "reasoning", text: previous.text + event.text };
       } else {
-        parts.unshift({ type: "reasoning", text: event.text });
+        parts.push({ type: "reasoning", text: event.text });
       }
       updateLastAssistant(() => parts);
       commit();

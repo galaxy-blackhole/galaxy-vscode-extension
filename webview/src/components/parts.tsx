@@ -44,7 +44,7 @@ function preview(value: unknown, max = 800): string {
 }
 
 
-import { toolRunFor } from "../tool-run";
+import { PLAN_TOOLS, toolRunFor } from "../tool-run";
 function statusOf(part: UiToolPart): "running" | "error" | "done" | "pending" {
   if (part.result === undefined) return part.isError === true ? "error" : "pending";
   return part.isError === true ? "error" : "done";
@@ -73,6 +73,10 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
   const run = useSyncExternalStore(subscribeUiState, getUiState);
   const group = toolRunFor(run.messages, (props as { toolCallId?: string }).toolCallId);
   const [open, setOpen] = useState(false);
+  const part = props;
+
+  /* The plan strip shows this already; a row for it would be a row about bookkeeping. */
+  if (PLAN_TOOLS.has(part.toolName)) return null;
 
   if (group !== undefined && group.length > 1) {
     /* Only the head of the run renders it; the rest of the parts collapse into nothing. */
@@ -80,13 +84,13 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
     const failed = group.filter(part => part.isError === true).length;
     const running = group.some(part => statusOf(part) === "running" || statusOf(part) === "pending");
     const status = failed > 0 ? "error" : running ? "running" : "done";
-    const names = group.map(part => toolLabel(part.toolName, part.args)).join(", ");
+    /* The header stays a count: the names are what the expanded list is for, and the tooltip carries them too. */
     return (
       <div className={`tool-card tool-group tool-${status}`}>
         <button className="tool-header" onClick={() => { setOpen(value => !value); }}>
           <span className="tool-icon">{status === "running" ? "⏳" : status === "error" ? "✗" : "✓"}</span>
           <span className="tool-name" title={group.map(part => part.toolName).join("\n")}>
-            {t("Đã gọi")} {group.length} {t("công cụ")} · {names}
+            {t("Đã gọi")} {group.length} {t("công cụ")}
           </span>
           <span className="tool-status">{status}</span>
           <span className="tool-caret">{open ? "▾" : "▸"}</span>
@@ -96,7 +100,6 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
     );
   }
 
-  const part = props;
   const running = part.status?.type === "running";
   const failed = part.isError === true;
   const done = part.result !== undefined && !failed;

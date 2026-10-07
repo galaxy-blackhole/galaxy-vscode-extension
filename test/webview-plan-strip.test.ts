@@ -29,7 +29,9 @@ test("the plan strip renders the checklist and toggles plan mode", async () => {
   assert.match(text, /Đọc mã/);
   assert.match(text, /Viết test/);
   assert.match(text, /KẾ HOẠCH/, "plan mode is visible while it is on");
-  assert.equal(booted.document.querySelectorAll(".plan-step-active").length, 1, "exactly one step is the active one");
+  assert.equal(booted.document.querySelectorAll(".plan-item").length, 3, "one numbered row per step");
+  assert.equal(booted.document.querySelectorAll(".plan-in_progress").length, 1, "exactly one step is in flight");
+  assert.equal(booted.document.querySelectorAll(".plan-completed").length, 1, "and one is already done");
 
   const chip = booted.document.querySelector(".plan-chip");
   assert.ok(chip, "the strip offers the plan-mode control");

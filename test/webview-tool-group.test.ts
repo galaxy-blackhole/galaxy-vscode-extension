@@ -16,6 +16,11 @@ test("consecutive tool calls gather into the run the first of them belongs to", 
   assert.equal(run?.length, 3, "one run of three: " + JSON.stringify(run?.map(part => part.toolCallId)));
   assert.equal(run?.[0]?.toolCallId, "c1", "and the head is the first call, which is the one that renders");
   assert.equal(toolRunFor(messages, "nope"), undefined, "an unknown id belongs to no run");
+
+  /* A checkpoint is bookkeeping, not work: the plan strip shows it, so the transcript does not. */
+  const withPlan: UiMessage[] = [{ content: [call("p1", "read_file"), call("p2", "task_checkpoint"), call("p3", "detect_project")], id: "a3", role: "assistant" }];
+  const filtered = toolRunFor(withPlan, "p1")?.map(part => part.toolName) ?? [];
+  assert.deepEqual(filtered, ["read_file", "detect_project"], "the plan tool is dropped from the run: " + JSON.stringify(filtered));
   assert.equal(toolRunFor(messages, undefined), undefined, "and neither does a part without an id");
 });
 
