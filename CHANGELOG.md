@@ -190,6 +190,10 @@ gói nên dừng ở đó.
 
 ### Changed
 
+- **Tool call hiển thị bằng tên, không phải id hàm**: trước đây thẻ tool in thẳng `list_files`, `detect_project`
+  — id mà model gọi. Nay webview đọc **chung bảng tên với TUI** (`@galaxy-stack/ai-coder-core/tools`):
+  *"Liệt kê thư mục"*, *"Nhận diện dự án"*, kèm chi tiết gọn (*"Đọc tệp (src/app.ts)"*); id gốc vẫn nằm ở
+  tooltip khi rê chuột.
 - **Chip model đọc `Auto - <mức suy luận>`** (viết hoa), ví dụ `Auto - Mặc định (hệ thống)` hoặc `Auto - Cao`.
 - **Danh sách model gọn như blackhole web**: với nhà cung cấp mặc định chỉ hiện **một dòng `Auto`** thay vì
   phơi id model (`deepseek-v4.1-flash:cloud`); chọn dòng đó không ghi lại provider.## [Unreleased]

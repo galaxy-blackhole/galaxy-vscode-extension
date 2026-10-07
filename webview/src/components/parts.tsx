@@ -3,6 +3,9 @@ import { getPreferences, subscribePreferenceChanges } from "../preferences";
 import type { ToolCallMessagePartComponent } from "@assistant-ui/react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 
+/* The label table is shared with the TUI, so a tool reads the same in both hosts. */
+import { toolLabel } from "@galaxy-stack/ai-coder-core/tools";
+
 export function TextPart() {
   return <MarkdownTextPrimitive className="md-body" />;
 }
@@ -37,7 +40,7 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
     <div className={`tool-card tool-${status}`}>
       <button className="tool-header" onClick={() => { if (!compact) setOpen((v) => !v); }}>
         <span className="tool-icon">{status === "running" ? "⏳" : status === "error" ? "✗" : status === "done" ? "✓" : "◔"}</span>
-        <span className="tool-name">{part.toolName}</span>
+        <span className="tool-name" title={part.toolName}>{toolLabel(part.toolName, part.args)}</span>
         <span className="tool-status">{status}</span>
         {compact ? null : <span className="tool-caret">{open ? "▾" : "▸"}</span>}
       </button>
