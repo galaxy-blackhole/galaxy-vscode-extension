@@ -24,6 +24,29 @@ interface OllamaChunk {
   readonly total_duration?: number;
 }
 
+/** How long the stream may stay silent before the run fails instead of hanging forever. */
+export const OLLAMA_IDLE_MS = 180_000;
+
+/**
+ * Read one chunk, failing loudly if the server goes quiet. A stalled stream used to hang a run indefinitely:
+ * the UI sat on the last tool call and the user had no idea anything was wrong.
+ */
+async function readWithIdle(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  idleMs: number,
+): Promise<ReadableStreamReadResult<Uint8Array>> {
+  return await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      void reader.cancel().catch(() => undefined);
+      reject(new Error("Ollama stream im lặng " + Math.round(idleMs / 1000).toString() + "s — lượt chạy đã dừng."));
+    }, idleMs);
+    reader.read().then(
+      value => { clearTimeout(timer); resolve(value); },
+      error => { clearTimeout(timer); reject(error instanceof Error ? error : new Error(String(error))); },
+    );
+  });
+}
+
 /**
  * Stream one Ollama /api/chat round as NDJSON and emit normalized deltas.
  * Tool calls arrive in a single complete chunk, not token-by-token.
@@ -33,6 +56,7 @@ export async function streamOllamaChat(
   body: Readonly<{ messages: readonly OllamaChatMessage[]; tools: readonly OllamaToolSchema[]; system?: string }>,
   onDelta: (delta: OllamaStreamDelta) => void,
   signal: AbortSignal,
+  idleMs: number = OLLAMA_IDLE_MS,
 ): Promise<OllamaChatStats> {
   const messages = body.system && body.system.trim().length > 0
     ? [{ role: "system" as const, content: body.system }, ...body.messages]
@@ -69,7 +93,7 @@ export async function streamOllamaChat(
     let buffered = "";
     let stats: OllamaChatStats = {};
     for (;;) {
-      const { done, value } = await reader.read();
+      const { done, value } = await readWithIdle(reader, idleMs);
       if (done) break;
       buffered += decoder.decode(value, { stream: true });
       let newline = buffered.indexOf("\n");

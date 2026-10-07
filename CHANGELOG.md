@@ -179,7 +179,20 @@ gói nên dừng ở đó.
   **copy sang store chung** trước; nếu store chung đã có thì giữ nguyên giá trị ở đó (mirror cũ bị bỏ qua).
 
 > Đây là bước 1 của kế hoạch: các bản mới đọc store chung trước, mirror chỉ còn là fallback cho tài liệu cũ.
-> Bước 2 (bỏ fallback trong CLI/core) sẽ làm sau khi bản này tới tay người dùng.## [Unreleased]
+> Bước 2 (bỏ fallback trong CLI/core) sẽ làm sau khi bản này tới tay người dùng.## [2.0.15] - 2026-10-07 14:30 +0700
+
+### Fixed
+
+- **Lượt chạy không còn treo vô hạn khi stream model im lặng**: client Ollama trước đây đọc stream **không giới
+  hạn** nên chỉ cần đường truyền khựng một nhịp là lượt chạy đứng mãi ở tool cuối (đúng triệu chứng "dừng ở
+  `detect_project`"). Nay stream im lặng **180 giây** là huỷ và báo rõ: *"Ollama stream im lặng 180s — lượt
+  chạy đã dừng."*.
+
+### Changed
+
+- **Chip model đọc `Auto - <mức suy luận>`** (viết hoa), ví dụ `Auto - Mặc định (hệ thống)` hoặc `Auto - Cao`.
+- **Danh sách model gọn như blackhole web**: với nhà cung cấp mặc định chỉ hiện **một dòng `Auto`** thay vì
+  phơi id model (`deepseek-v4.1-flash:cloud`); chọn dòng đó không ghi lại provider.## [Unreleased]
 
 ### Changed
 

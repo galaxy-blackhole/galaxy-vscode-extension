@@ -3,7 +3,7 @@
   "displayName": "Galaxy Blackhole",
   "icon": "resources/icon.png",
   "description": "AI coding chat for VS Code with per-workspace sessions, project MCP servers, plan checklists and approvals, built on the Galaxy Blackhole core.",
-  "version": "2.0.14",
+  "version": "2.0.15",
   "private": true,
   "publisher": "kevinbui",
   "license": "MIT",

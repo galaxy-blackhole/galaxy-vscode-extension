@@ -225,7 +225,8 @@ function ModelChip({ info }: { info: HostInfo | null }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const { thinking } = useSyncExternalStore(subscribeUiState, getUiState);
   const activeProvider = info?.modelSettings?.providers.find(provider => provider.active);
-  const models = activeProvider?.models ?? [];
+  /* The built-in provider *is* "Auto": its model ids are an implementation detail, not a choice. */
+  const models = activeProvider?.id === "galaxy" ? [{ id: "auto", name: "Auto" }] : activeProvider?.models ?? [];
   const resolvedModel = info?.model ?? models[0]?.id ?? "";
   /* The built-in provider stands for "auto": the seam picks the usable provider, the way the CLI and the web GUI read it. */
   const activeModel = activeProvider?.id === "galaxy" ? "auto" : resolvedModel;
@@ -234,6 +235,7 @@ function ModelChip({ info }: { info: HostInfo | null }) {
   const choice = draft ?? stored;
   const index = Math.max(0, options.findIndex(option => option.value === choice));
   const current = options[index];
+  const thinkingText = current?.label !== undefined ? t(current.label) : "";
   const tone = thinkingTone(choice);
   /* The host confirms a level by posting it back; until then the draft keeps the thumb where the user put it. */
   useEffect(() => { setDraft(current => (current === stored ? null : current)); }, [stored]);
@@ -250,7 +252,7 @@ function ModelChip({ info }: { info: HostInfo | null }) {
         title={"Model: " + (activeModel.length > 0 ? activeModel : "chưa rõ") + (activeModel === "auto" ? " (ngầm hiểu " + resolvedModel + ")" : "")}
         onClick={() => setOpen(v => !v)}
       >
-        <span className="chip-label">{activeModel.length > 0 ? activeModel : "Model"}</span>
+        <span className="chip-label">{(activeModel === "auto" ? (thinkingText.length > 0 ? "Auto - " + thinkingText : "Auto") : activeModel) || "Model"}</span>
         <ChevronDownIcon />
       </button>
       {open && (
@@ -270,7 +272,7 @@ function ModelChip({ info }: { info: HostInfo | null }) {
                   type="button"
                   role="menuitem"
                   className={"permission-option" + (model.id === activeModel ? " option-active" : "")}
-                  onClick={() => { setModel(model.id); setPanel("main"); }}
+                  onClick={() => { if (model.id !== "auto") setModel(model.id); setPanel("main"); }}
                 >
                   <span className="option-icon">{model.id === activeModel ? <CheckIcon /> : null}</span>
                   <span className="option-texts">
