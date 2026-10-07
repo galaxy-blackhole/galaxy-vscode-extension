@@ -184,16 +184,24 @@ export function summarize(settings: ModelSettings, credentialsPath: string = gal
 }
 
 /**
- * Write the document: the provider list plus the single `agent` entry the core
- * resolver reads. The write is atomic (temp file + rename) and 0600.
+ * Write the document: the provider list and the single `agent` entry that older cores read.
+ *
+ * Credentials are not written here any more. Keys belong to the shared store (~/.galaxy/credentials.yaml),
+ * which every host reads first; a key that only exists in this document is copied across before the write, so
+ * nothing written by an older version is lost.
  */
-export function writeModelSettings(settings: ModelSettings, path: string = configPath()): void {
+export function writeModelSettings(settings: ModelSettings, path: string = configPath(), credentialsPath: string = galaxyCredentialsPath()): void {
   const provider = activeProvider(settings);
+  for (const entry of settings.providers) {
+    const value = (entry.apiKey ?? "").trim();
+    if (value.length === 0) continue;
+    if (readGalaxyCredential(galaxyRefName(entry.id), credentialsPath) !== undefined) continue;
+    writeCanonicalKey(entry.id, value, credentialsPath);
+  }
   const document = {
     agent: [
       {
         type: "manual",
-        ...(provider.apiKey === undefined ? {} : { apiKey: provider.apiKey }),
         baseUrl: provider.baseUrl.replace(/\/+$/, ""),
         model: activeModel(settings),
         ...(provider.thinking === undefined ? {} : { thinking: provider.thinking }),
@@ -207,7 +215,6 @@ export function writeModelSettings(settings: ModelSettings, path: string = confi
         displayName: entry.displayName,
         api: entry.api,
         baseUrl: entry.baseUrl.replace(/\/+$/, ""),
-        ...(entry.apiKey === undefined ? {} : { apiKey: entry.apiKey }),
         models: entry.models.map(model => (model.name === undefined ? { id: model.id } : { id: model.id, name: model.name })),
       })),
     },

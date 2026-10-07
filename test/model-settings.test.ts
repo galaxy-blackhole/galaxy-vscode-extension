@@ -68,7 +68,8 @@ test("writing mirrors the active provider into the agent entry the core reads", 
       models: Object.freeze([{ id: "qwen3:8b" }]),
     }));
     settings = setActiveProvider(settings, "ollama-local");
-    writeModelSettings(settings, path);
+    const credentialsPath = join(dirname(path), "credentials.yaml");
+    writeModelSettings(settings, path, credentialsPath);
 
     const document = JSON.parse(await readFile(path, "utf8")) as {
       agent: { type: string; apiKey?: string; baseUrl: string; model: string }[];
@@ -82,7 +83,8 @@ test("writing mirrors the active provider into the agent entry the core reads", 
     assert.equal(document.providers.active, "ollama-local");
     assert.equal(document.providers.version, 1);
     const galaxy = document.providers.items.find(item => item.id === "galaxy");
-    assert.equal(galaxy?.apiKey, "sk-live", "the key is trimmed and kept on its provider");
+    assert.equal(galaxy?.apiKey, undefined, "credentials no longer live in the mirror");
+    assert.equal(readGalaxyCredential(galaxyRefName("galaxy"), credentialsPath), "sk-live", "the trimmed key lives in the shared store");
 
     const reread = readModelSettings(path);
     assert.equal(reread.providers.length, 2);

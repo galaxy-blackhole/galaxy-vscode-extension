@@ -169,7 +169,17 @@ gói nên dừng ở đó.
 
 - **Model hiển thị `auto`** cho nhà cung cấp mặc định (thay vì `Ollama · https://ollama.com ·
   deepseek-v4.1-flash:cloud`) — đúng quy ước: `auto` nghĩa là ngầm dùng Ollama + model mặc định.
-- **Thông tin**: bỏ hai hàng Model và Endpoint; **Workspace** và **Nền tảng** chuyển sang mục **Chung**.## [Unreleased]
+- **Thông tin**: bỏ hai hàng Model và Endpoint; **Workspace** và **Nền tảng** chuyển sang mục **Chung**.## [2.0.14] - 2026-10-07 05:15 +0700
+
+### Changed
+
+- **Bỏ hẳn credential khỏi `config.json`**: key chỉ còn nằm ở store chung `~/.galaxy/credentials.yaml` (ref
+  `GBH_<PROVIDER>_API_KEY`) — mirror `agent[manual]` và `providers.items[]` không còn ghi `apiKey` nữa.
+- **Migration tự động, không ai mất key**: trước mỗi lần ghi tài liệu, key nào chỉ tồn tại trong mirror sẽ được
+  **copy sang store chung** trước; nếu store chung đã có thì giữ nguyên giá trị ở đó (mirror cũ bị bỏ qua).
+
+> Đây là bước 1 của kế hoạch: các bản mới đọc store chung trước, mirror chỉ còn là fallback cho tài liệu cũ.
+> Bước 2 (bỏ fallback trong CLI/core) sẽ làm sau khi bản này tới tay người dùng.## [Unreleased]
 
 ### Changed
 
