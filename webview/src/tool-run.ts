@@ -11,6 +11,17 @@ import type { UiMessage, UiToolPart } from "./ui-store";
  */
 export const PLAN_TOOLS: ReadonlySet<string> = new Set(["task_checkpoint", "update_checkpoint"]);
 
+/** The calls a program made, in order: they render inside the run_code card that asked for them. */
+export function nestedToolPartsFor(messages: readonly UiMessage[], parentToolCallId: string): readonly UiToolPart[] {
+  const found: UiToolPart[] = [];
+  for (const message of messages) {
+    for (const part of message.content) {
+      if (part.type === "tool-call" && part.parent === parentToolCallId) found.push(part);
+    }
+  }
+  return found;
+}
+
 export function toolRunFor(messages: readonly UiMessage[], toolCallId: string | undefined): readonly UiToolPart[] | undefined {
   if (toolCallId === undefined) return undefined;
   for (const message of messages) {
@@ -24,7 +35,7 @@ export function toolRunFor(messages: readonly UiMessage[], toolCallId: string | 
       while (end + 1 < parts.length && parts[end + 1]?.type === "tool-call") end += 1;
       return parts
         .slice(start, end + 1)
-        .filter((part): part is UiToolPart => part.type === "tool-call" && !PLAN_TOOLS.has(part.toolName));
+        .filter((part): part is UiToolPart => part.type === "tool-call" && part.parent === undefined && !PLAN_TOOLS.has(part.toolName));
     }
   }
   return undefined;

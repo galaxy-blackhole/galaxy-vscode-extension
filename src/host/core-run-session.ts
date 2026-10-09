@@ -96,11 +96,26 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
    * extension is the host that knows where its own bundle put the worker file.
    */
   /* A native round never runs a program, so it composes no sandbox: nothing to start, nothing to leak. */
+  /*
+   * A program's calls join the transcript as their own rows, under the `run_code` that asked for them: the same
+   * events a direct call produces, with the parent remembered so the UI can nest them.
+   */
+  let codeParent: string | null = null;
+  const sink: GalaxyUiEventSink = (event) => {
+    if (event.kind === "tool/start" && event.name === "run_code") codeParent = event.toolCallId;
+    options.onEvent(event);
+  };
   const codeRuntime = (options.toolPresentation ?? "native") === "native"
     ? undefined
     : new WorkerCodeRuntime({ workerUrl: codeWorkerUrl() });
   const toolExecutor = await createCoreToolExecutor({
     ...(codeRuntime === undefined ? {} : { codeRuntime }),
+    onCodeEvent: (event) => {
+      if (event.type === "code/tool-start") {
+        sink({ args: {}, kind: "tool/start", name: event.name, toolCallId: event.callId, ...(codeParent === null ? {} : { parent: codeParent }) });
+      }
+      if (event.type === "code/tool-result") sink({ kind: "tool/result", ok: event.ok, summary: event.summary, toolCallId: event.callId });
+    },
     ...(options.onCodeEvent === undefined ? {} : { onCodeEvent: options.onCodeEvent }),
     capabilities,
     context,
@@ -119,7 +134,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
     ...(codeRuntime === undefined ? {} : { codeRuntime }),
     model,
     onEvent: (event) => {
-      mapCoreEventToUi(event, options.onEvent);
+      mapCoreEventToUi(event, sink);
     },
     resumeWorkspaceVerifier,
     store,

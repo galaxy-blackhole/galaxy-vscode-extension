@@ -18,7 +18,7 @@ export type GalaxyUiEvent =
   | Readonly<{ kind: "run/status"; status: GalaxyUiRunStatus; reason?: string }>
   | Readonly<{ kind: "message/text-delta"; text: string }>
   | Readonly<{ kind: "message/thinking-delta"; text: string }>
-  | Readonly<{ kind: "tool/start"; toolCallId: string; name: string; args: Record<string, unknown> }>
+  | Readonly<{ kind: "tool/start"; toolCallId: string; name: string; args: Record<string, unknown>; parent?: string }>
   | Readonly<{ kind: "tool/result"; toolCallId: string; ok: boolean; summary: string; outputTail?: string }>
   | Readonly<{ kind: "context/pressure"; usedTokens: number; contextWindow: number | null }>
   | Readonly<{ kind: "context/compacted"; reason: string; itemsShadowed?: number; tokensAfter?: number; tokensBefore?: number }>

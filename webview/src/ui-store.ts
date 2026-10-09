@@ -9,6 +9,8 @@ export interface UiToolPart {
   readonly argsText: string;
   readonly result?: string;
   readonly isError?: boolean;
+  /** The run_code call this one belongs to, when a program made it: it renders nested inside that card. */
+  readonly parent?: string;
 }
 
 export interface UiMessage {
@@ -137,6 +139,7 @@ function handleEvent(event: GalaxyUiEvent): void {
         argsText: JSON.stringify(event.args),
         toolCallId: event.toolCallId,
         toolName: event.name,
+        ...(event.parent === undefined ? {} : { parent: event.parent }),
         type: "tool-call" as const,
       }]);
       commit();

@@ -840,6 +840,16 @@ html, body, #app {
 }
 .plan-head, .reasoning-toggle, .tool-card.tool-group > .tool-header { background: var(--gbh-surface); }
 .tool-detail, .plan-list { padding: var(--gbh-gap-3); }
+
+/* A program's calls sit inside the run_code card, always visible, one indent deeper. */
+.tool-nested-row {
+  align-items: center;
+  border-top: 1px solid var(--gbh-border);
+  display: flex;
+  gap: var(--gbh-gap-2);
+  padding: var(--gbh-gap-1) var(--gbh-gap-3) var(--gbh-gap-1) 26px;
+}
+.tool-nested-row .tool-name { font-size: var(--gbh-text-small); }
 .plan-strip { background: transparent; }
 
 /* Small print is still print: never below 11px, always tracked, always muted. */

@@ -44,7 +44,7 @@ function preview(value: unknown, max = 800): string {
 }
 
 
-import { PLAN_TOOLS, toolRunFor } from "../tool-run";
+import { nestedToolPartsFor, PLAN_TOOLS, toolRunFor } from "../tool-run";
 function statusOf(part: UiToolPart): "running" | "error" | "done" | "pending" {
   if (part.result === undefined) return part.isError === true ? "error" : "pending";
   return part.isError === true ? "error" : "done";
@@ -100,6 +100,8 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
     );
   }
 
+  /* A program's calls are its children: always visible, one indent deeper, never a group of their own. */
+  const children = nestedToolPartsFor(run.messages, part.toolCallId);
   const running = part.status?.type === "running";
   const failed = part.isError === true;
   const done = part.result !== undefined && !failed;
@@ -113,6 +115,12 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
         <span className="tool-status">{status}</span>
         {compact ? null : <span className="tool-caret">{open ? "▾" : "▸"}</span>}
       </button>
+      {children.length === 0 ? null : children.map(child => (
+        <div className="tool-nested-row" key={child.toolCallId}>
+          <span className="tool-icon">{child.isError === true ? "✗" : child.result === undefined ? "⏳" : "✓"}</span>
+          <span className="tool-name">{toolLabel(child.toolName, child.args)}</span>
+        </div>
+      ))}
       {open && !compact && <ToolDetail part={{ args: part.args, argsText: part.argsText ?? "", isError: part.isError, result: part.result, toolCallId: "single", toolName: part.toolName, type: "tool-call" }} />}
     </div>
   );

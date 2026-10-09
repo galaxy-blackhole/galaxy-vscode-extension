@@ -363,7 +363,22 @@ gói nên dừng ở đó.
 
 - **`__dirname` không tồn tại khi chạy mã nguồn dạng ESM** (test bắt được). Cách sửa cũng là cách đúng theo thiết
   kế: sandbox **chỉ** được compose khi mode không phải `native`, nên đường chạy mặc định không đụng tới worker —
-  native không cần runtime.## [Unreleased]
+  native không cần runtime.## [2.0.29] - 2026-10-10 09:20 +0700
+
+### Added (P4c của `docs/design/tool-modes.md`)
+
+- **VS Code: call con của chương trình lồng ngay trong thẻ `run_code`.** Sự kiện `tool/start` mang thêm `parent`,
+  store giữ nó trên part, và `toolRunFor` **loại** call con khỏi lượt gọi cấp cao nhất — nên dòng *"Đã gọi N công
+  cụ"* không đếm chúng là công cụ riêng.
+- Thẻ `run_code` render các call con thành **dòng thụt lề luôn hiển thị** (kể cả khi thẻ đang thu gọn), nên đọc
+  transcript là thấy chương trình đã gọi những gì mà không phải mở gì thêm.
+- Host extension theo dõi call `run_code` đang chạy rồi phát `tool/start` / `tool/result` cho từng call con kèm
+  `parent` — cùng một đường sự kiện mà call trực tiếp đi qua.
+
+### Test
+
+- `test/webview-nested-calls.test.ts`: một chương trình là **một** tool trong lượt; các call của nó thuộc về nó và
+  đúng là những gì thẻ render lồng.## [Unreleased]
 
 ### Changed
 
