@@ -70,7 +70,7 @@ bootGrace = setTimeout(() => { bootGrace = null; bootDone = true; commit(); }, 2
  * The panel is never held hostage by a host that cannot finish booting. The grace covers the index phase, which
  * is the only one that holds the screen; after it the transcript opens and a late event merely annotates it.
  */
-const BOOT_GRACE_MS = 2500;
+const BOOT_GRACE_MS = 20000;
 
 /** Open the panel now instead of waiting for the workspace's servers. */
 export function skipBoot(): void {

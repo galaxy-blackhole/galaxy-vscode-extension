@@ -1,6 +1,9 @@
 import * as vscode from "vscode";
 import type { HostToWebviewMessage, WebviewToHostMessage } from "../protocol";
 import { resolveThinkingPolicy, thinkingLabel } from "@galaxy-stack/ai-coder-core";
+import { createOllamaCoreModel } from "./core-model";
+import { createEvidenceVerifier } from "./core-host";
+import { detectGitWorkTree } from "./core-tool-executor";
 import { readPreferences, writePreferences } from "./preferences";
 import { webviewHtml } from "./webview-html";
 import { resolveModelLibraryUrl, resolveOllamaConnection, type OllamaConnection } from "./config";
@@ -283,14 +286,32 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       return;
     }
     const servers = workspaceMcpServers(workspaceRoot);
-    this.post({ type: "ui-event", event: { kind: "boot/progress", phase: "index", message: "Đang lập chỉ mục workspace…" } });
-    if (servers.length === 0) {
-      this.post({ type: "ui-event", event: { kind: "boot/ready", message: "Không có MCP server nào cho workspace này." } });
-      return;
+    /*
+     * The two steps a run would otherwise open with, done here while the owner is still reading the panel: the
+     * model probe and the workspace index. A failure is swallowed — the run repeats both and reports properly.
+     */
+    const connection = this.connection;
+    this.post({ type: "ui-event", event: { kind: "boot/progress", phase: "index", message: "Đang đọc khả năng của model…" } });
+    if (connection !== null) {
+      try {
+        await createOllamaCoreModel(connection).capabilities({
+          deadline: Date.now() + 30 * 60_000,
+          mode: "auto",
+          runId: "vscode-boot",
+          signal: new AbortController().signal,
+          taskId: "boot",
+          workspaceRoot,
+        });
+      } catch { /* the run probes again and reports what went wrong */ }
     }
-    this.post({ type: "ui-event", event: { kind: "boot/progress", phase: "mcp", message: "Đang nạp MCP: " + servers.map((server) => server.name).join(", ") } });
-    await this.mcpTools();
-    this.post({ type: "ui-event", event: { kind: "boot/ready", message: "" } });
+    this.post({ type: "ui-event", event: { kind: "boot/progress", phase: "index", message: "Đang lập chỉ mục workspace…" } });
+    try { await createEvidenceVerifier(workspaceRoot); } catch { /* the run builds its own */ }
+    try { detectGitWorkTree(workspaceRoot); } catch { /* the run detects it again */ }
+    if (servers.length > 0) {
+      this.post({ type: "ui-event", event: { kind: "boot/progress", phase: "mcp", message: "Đang nạp MCP: " + servers.map((server) => server.name).join(", ") } });
+      await this.mcpTools();
+    }
+    this.post({ type: "ui-event", event: { kind: "boot/ready", message: servers.length === 0 ? "Không có MCP server nào cho workspace này." : "" } });
   }
 
   private async mcpTools(): Promise<readonly AgentTool[]> {
