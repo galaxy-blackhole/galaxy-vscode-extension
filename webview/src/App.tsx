@@ -17,6 +17,20 @@ import { ReasoningPart, TextPart, ToolFallback } from "./components/parts";
 import { announceReady, currentHostInfo, subscribeHostInfo, type HostInfo } from "./host-bridge";
 import { getPreferences, subscribePreferenceChanges } from "./preferences";
 import { useT } from "./i18n";
+import { getUiState, subscribeUiState } from "./ui-store";
+
+/**
+ * The first seconds of a run produce no message at all — the model is deciding. An empty pane reads as a
+ * broken app, so the transcript says what is happening until the first content or tool call arrives.
+ */
+function WorkingRow() {
+  const t = useT();
+  const run = useSyncExternalStore(subscribeUiState, getUiState);
+  const last = run.messages[run.messages.length - 1];
+  const empty = last === undefined || last.role !== "assistant" || last.content.length === 0;
+  if (run.status !== "running" || !empty) return null;
+  return <div className="working-row"><span className="working-dots" aria-hidden="true" />{t("Đang xử lý")}</div>;
+}
 
 function UserMessage() {
   return (
@@ -98,6 +112,7 @@ export function App() {
               <EmptyState />
             </ThreadPrimitive.Empty>
             <ThreadPrimitive.Messages components={{ UserMessage, AssistantMessage }} />
+            <WorkingRow />
           </ThreadPrimitive.Viewport>
           <ThreadPrimitive.ScrollToBottom className="scroll-to-bottom">↓</ThreadPrimitive.ScrollToBottom>
         </ThreadPrimitive.Root>

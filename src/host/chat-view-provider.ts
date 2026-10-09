@@ -11,6 +11,7 @@ import type { AgentTool } from "@galaxy-stack/ai-coder-core/agent";
 import { tryConnectWorkspaceMcp, workspaceMcpServers, type WorkspaceMcpHandle } from "./workspace-mcp";
 import type { PermissionMode } from "./core-tool-executor";
 import type { GalaxyUiAction } from "../ui-protocol";
+import { planEventForWebview } from "./plan-event";
 import {
   activeModel,
   configPath,
@@ -373,7 +374,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
             connection: this.connection,
             goal: action.input,
             mcpTools: await this.mcpTools(),
-            onEvent: (event) => this.post({ type: "ui-event", event }),
+            onEvent: (event) => this.post({ type: "ui-event", event: planEventForWebview(event) }),
             onPendingApproval: (pending) => this.post({
               type: "pending-approval",
               requestId: pending.requestId,

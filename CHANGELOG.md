@@ -290,7 +290,22 @@ gói nên dừng ở đó.
 - **Câu báo lỗi trung tính với nhà cung cấp**: *"Ollama stream im lặng 180s — lượt chạy đã dừng."* → *"Không nhận
   được dữ liệu trong 180s — lượt chạy đã dừng."* Người dùng chỉ thấy provider **`auto`** (Galaxy Blackhole tự
   chọn `deepseek-v4.1-flash`); hệ thống bên dưới không cần lộ ra.
-- README: bỏ tên vendor khỏi bảng mô tả nguồn.## [Unreleased]
+- README: bỏ tên vendor khỏi bảng mô tả nguồn.## [2.0.24] - 2026-10-09 11:10 +0700
+
+### Fixed
+
+- **Kế hoạch cập nhật thật, không còn đứng im ở `1/4`**: core phát sự kiện `{ type: "plan", plan, planMode }`
+  nhưng webview chỉ hiểu `plan/updated`, và host chuyển tiếp nguyên xi — nên dù model có cập nhật kế hoạch bao
+  nhiêu lần, checklist vẫn không nhúc nhích. Nay host dịch sự kiện (`src/host/plan-event.ts`), ưu tiên `steps`
+  đầy đủ và quy đổi từ các nhóm cũ khi cần; có 2 test khoá hành vi này.
+- **Danh sách tin nhắn không còn trống trong những giây đầu**: khi lượt chạy đang đi mà chưa có nội dung nào, khung
+  chat hiện dòng *"Đang xử lý…"* với ba chấm động — trước đây chỉ có dòng trạng thái nhỏ dưới ô nhập nên nhìn như
+  app không phản hồi.
+
+### Changed
+
+- **Bố cục khung kế hoạch sửa lại**: `.plan-strip` là **cột** (tiêu đề trên, danh sách dưới) thay vì một hàng
+  ngang — chính vì hàng ngang mà hai chip và danh sách chen vào nhau, xô lệch như ảnh bạn gửi.## [Unreleased]
 
 ### Changed
 
