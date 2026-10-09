@@ -329,9 +329,20 @@ export function Composer({ info }: { info: HostInfo | null }) {
    * "validation…") and the tool in flight mean something to a debugger, not to the owner, and the transcript
    * already gives every tool call its own row. So the line says only what it is: thinking, and for how long.
    */
+/**
+ * The core reports its own turn budget and other internals in English. This line is read by the owner, so the one
+ * message that shows up in normal use is said in Vietnamese; anything else passes through untouched.
+ */
+function failReason(reason: string | null): string | null {
+  if (reason === null) return null;
+  const match = /reached maxTurns=(\d+)/.exec(reason);
+  if (match !== null) return "đã chạm giới hạn " + match[1] + " lượt xử lý";
+  return reason;
+}
+
   const statusText = run.status === "running"
     ? t("Đang suy nghĩ trong") + " " + elapsed.toString() + "s"
-    : run.status === "failed" ? t("Đã dừng") + ": " + (run.statusReason ?? t("không rõ nguyên nhân"))
+    : run.status === "failed" ? t("Đã dừng") + ": " + (failReason(run.statusReason) ?? t("không rõ nguyên nhân"))
     : run.status === "cancelled" ? t("Đã dừng theo yêu cầu") : "";
   return (
     <div ref={cardRef} className="composer-shell">

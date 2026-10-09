@@ -19,7 +19,12 @@ export function PlanStrip() {
   const { plan, planMode } = useSyncExternalStore(subscribeUiState, getUiState);
   const [folded, setFolded] = useState(false);
   const steps = plan?.steps ?? [];
-  if (steps.length === 0 && !planMode) return null;
+  /*
+   * A one- or two-step plan is a sentence, not a checklist, and a framed strip for it costs more room than it
+   * explains. Three steps is where a list starts to be worth the frame. Plan mode still shows, because the chip
+   * in the strip is also how the owner turns it off.
+   */
+  if (steps.length < 3 && !planMode) return null;
   const done = steps.filter((step) => step.status === "completed").length;
   const open = !folded;
   return (
