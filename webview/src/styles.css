@@ -797,6 +797,9 @@ html, body, #app {
 .composer-status {
   align-items: center;
   display: flex;
+  justify-content: flex-start;
+  max-width: 100%;
+  overflow: visible;
   gap: 6px;
   color: var(--vscode-textLink-foreground, #4daafc);
   font-size: 0.9em;

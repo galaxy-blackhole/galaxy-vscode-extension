@@ -279,6 +279,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
    * to the webview so it can show the phase and offer to skip ahead; a failure is left to the run to report.
    */
   private async warmUpBoot(): Promise<void> {
+    const started = Date.now();
+    console.log("gbh: boot warm-up bắt đầu");
     const workspaceRoot = this.workspaceRoot;
     const storageRoot = this.sessionsRoot;
     if (workspaceRoot === null || storageRoot === null) {
@@ -312,6 +314,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       await this.mcpTools();
     }
     this.post({ type: "ui-event", event: { kind: "boot/ready", message: servers.length === 0 ? "Không có MCP server nào cho workspace này." : "" } });
+    console.log("gbh: boot warm-up xong sau " + (Date.now() - started) + "ms");
   }
 
   private async mcpTools(): Promise<readonly AgentTool[]> {
@@ -472,6 +475,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         return;
       }
       case "approval/resolve":
+        console.log("gbh: approval " + (action.approved ? "granted" : "denied") + " cho " + action.requestId + " (session=" + (this.session === undefined ? "không có" : "có") + ")");
         this.session?.resolveApproval(action.requestId, action.approved);
         return;
       case "permission/mode":
