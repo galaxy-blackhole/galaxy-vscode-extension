@@ -8,7 +8,7 @@ import {
   getPermissionMode, setPermissionMode, subscribePermissionMode,
   type PermissionMode,
 } from "../permission-mode";
-import { setModel, setPermissionMode as sendPermissionMode, setThinking } from "../host-bridge";
+import { dispatchUiAction, setModel, setPermissionMode as sendPermissionMode, setThinking } from "../host-bridge";
 import { getUiState, subscribeUiState } from "../ui-store";
 import { openSettings } from "../settings-store";
 import { useT } from "../i18n";
@@ -340,6 +340,20 @@ function failReason(reason: string | null): string | null {
   return reason;
 }
 
+  /*
+   * A one-shot layout probe. The panel is the only place this line is drawn, and a screenshot needs a browser
+   * this machine no longer has: measuring it in place and posting the numbers leaves evidence in the host log.
+   */
+  useEffect(() => {
+    if (run.status !== "running") return undefined;
+    const timer = window.setTimeout(() => {
+      const el = document.querySelector(".composer-status");
+      if (el === null) return;
+      const rect = el.getBoundingClientRect();
+      dispatchUiAction({ type: "probe/status", text: (el.textContent ?? "").slice(0, 60), scrollW: el.scrollWidth, clientW: el.clientWidth, left: Math.round(rect.left), width: Math.round(rect.width) } as never);
+    }, 1500);
+    return () => { window.clearTimeout(timer); };
+  }, [run.status]);
   const statusText = run.status === "running"
     ? t("Đang suy nghĩ trong") + " " + elapsed.toString() + "s"
     : run.status === "failed" ? t("Đã dừng") + ": " + (failReason(run.statusReason) ?? t("không rõ nguyên nhân"))

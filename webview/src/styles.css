@@ -796,11 +796,6 @@ html, body, #app {
  */
 .composer-status {
   align-items: center;
-  /*
-   * The shell above uses display: contents, so this paragraph is a flex item of the app column, which is
-   * right-leaning: without stretching it, a long line is clipped from the left and only its tail shows.
-   */
-  align-self: stretch;
   display: flex;
   justify-content: flex-start;
   max-width: 100%;
@@ -854,7 +849,12 @@ html, body, #app {
   .composer-status-text { background-image: none; color: inherit; }
 }
 
-.composer-shell { display: contents; }
+/*
+ * A real block, not `display: contents`. With contents the status paragraph became a flex item of the app
+ * column, which is right-leaning, and a long line was clipped from the left until only its tail showed. A block
+ * that spans the width leaves no alignment to fight.
+ */
+.composer-shell { display: block; width: 100%; }
 .composer-steer { border: 1px solid var(--vscode-focusBorder, #4a9eff) !important; }
 
 /* Readability: the conversation and the settings follow the chosen size, with a roomier base. */

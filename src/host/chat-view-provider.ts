@@ -491,6 +491,14 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         }
         return;
       }
+      /*
+       * Anything the webview reports that this switch does not act on still reaches the trace: a probe is only
+       * useful if the numbers survive the trip.
+       */
+      default: {
+        this.trace("action " + JSON.stringify(action));
+        return;
+      }
       case "approval/resolve":
         this.trace("approval " + (action.approved ? "granted" : "denied") + " cho " + action.requestId + " (session=" + (this.session === undefined ? "không có" : "có") + ")");
         this.session?.resolveApproval(action.requestId, action.approved);
