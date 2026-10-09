@@ -26,7 +26,13 @@ export type GalaxyUiEvent =
   | Readonly<{ kind: "model/retry"; attempt: number; delayMs: number; reason: string }>
   | Readonly<{ kind: "approval/request"; requestId: string; tool: string; risk: string; args: Record<string, unknown> }>
   | Readonly<{ kind: "completion/rejected"; issues: readonly string[] }>
-  | Readonly<{ kind: "error"; code: string; message: string; retryable: boolean }>;
+  | Readonly<{ kind: "error"; code: string; message: string; retryable: boolean }>
+  /**
+   * Boot progress before the first run: the panel shows the phase and may let the owner skip ahead instead of
+   * waiting for the workspace's MCP servers. `boot/ready` always arrives, even when there was nothing to do.
+   */
+  | Readonly<{ kind: "boot/progress"; phase: "index" | "mcp"; message: string }>
+  | Readonly<{ kind: "boot/ready"; message: string }>;
 
 /** Webview → host intents. One run at a time in this prototype. */
 export type GalaxyUiAction =

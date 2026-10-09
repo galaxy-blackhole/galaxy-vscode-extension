@@ -165,6 +165,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
           modelSettings: summarize(hydrateKeys(readModelSettings(this.configPath))),
           version: this.context.extension.packageJSON.version as string,
         });
+        void this.warmUpBoot();
         return;
       }
       case "chat-start": {
@@ -268,6 +269,29 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   /** Servers that did not come up; reported once per window instead of failing every run. */
   private mcpError: string | null = null;
   private mcpNoticeSent = false;
+
+  /**
+   * The boot half of the session panel: connect the workspace's MCP servers now, not on the first message. The
+   * connect is once per window and slow enough that a run would otherwise open by waiting for it. Progress goes
+   * to the webview so it can show the phase and offer to skip ahead; a failure is left to the run to report.
+   */
+  private async warmUpBoot(): Promise<void> {
+    const workspaceRoot = this.workspaceRoot;
+    const storageRoot = this.sessionsRoot;
+    if (workspaceRoot === null || storageRoot === null) {
+      this.post({ type: "ui-event", event: { kind: "boot/ready", message: "" } });
+      return;
+    }
+    const servers = workspaceMcpServers(workspaceRoot);
+    this.post({ type: "ui-event", event: { kind: "boot/progress", phase: "index", message: "Đang lập chỉ mục workspace…" } });
+    if (servers.length === 0) {
+      this.post({ type: "ui-event", event: { kind: "boot/ready", message: "Không có MCP server nào cho workspace này." } });
+      return;
+    }
+    this.post({ type: "ui-event", event: { kind: "boot/progress", phase: "mcp", message: "Đang nạp MCP: " + servers.map((server) => server.name).join(", ") } });
+    await this.mcpTools();
+    this.post({ type: "ui-event", event: { kind: "boot/ready", message: "" } });
+  }
 
   private async mcpTools(): Promise<readonly AgentTool[]> {
     const workspaceRoot = this.workspaceRoot;
