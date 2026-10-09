@@ -23,7 +23,7 @@ interface CatalogEntry {
 
 const CATALOG: readonly CatalogEntry[] = [
   { api: "ollama", baseUrl: "https://ollama.com", displayName: "Galaxy Blackhole", id: "galaxy", model: "deepseek-v4.1-flash:cloud", needsKey: true },
-  { api: "ollama", baseUrl: "http://127.0.0.1:11434", displayName: "Ollama (máy này)", id: "ollama-local", model: "qwen3-coder:30b", needsKey: false },
+  { api: "ollama", baseUrl: "http://127.0.0.1:11434", displayName: "Máy cục bộ", id: "ollama-local", model: "qwen3-coder:30b", needsKey: false },
 ];
 
 const BUILT_IN_IDS = new Set(["galaxy", "ollama-local"]);
@@ -120,7 +120,7 @@ function CustomForm({ onDone }: { onDone: () => void }) {
       <label className="ms-label" htmlFor="ms-custom-api">Giao thức API</label>
       <select id="ms-custom-api" className="ms-input" value={draft.api}
         onChange={(event) => update({ api: event.target.value as ProviderApi })}>
-        <option value="ollama">{t("Ollama (runtime hiện tại)")}</option>
+        <option value="ollama">{t("Tương thích máy cục bộ")}</option>
         <option value="openai-completions">{t("OpenAI-compatible — chưa được runtime hỗ trợ")}</option>
       </select>
 
@@ -182,7 +182,7 @@ export function ModelSetup({ settings }: { settings: ModelSettingsSummary }) {
               <button type="button" className="ms-btn ms-btn-ghost" onClick={() => removeProvider(provider.id)} aria-label={`Xoá ${provider.displayName}`}>{t("Xoá")}</button>
             ) : null}
           </div>
-          <p className="ms-meta">{provider.id === "galaxy" ? t("auto") : provider.api === "ollama" ? "Ollama" : "OpenAI-compatible"}
+          <p className="ms-meta">{provider.id === "galaxy" ? t("auto") : provider.api === "ollama" ? t("Tương thích máy cục bộ") : "OpenAI-compatible"}
             {provider.models.length > 0 ? ` · ${provider.models.map(model => model.id).join(", ")}` : ""}</p>
           {editing === provider.id ? <KeyEditor provider={provider} onDone={() => setEditing(null)} /> : null}
         </article>

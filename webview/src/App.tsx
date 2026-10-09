@@ -59,7 +59,7 @@ function EmptyState() {
     <div className="empty-state">
       <div className="empty-logo">✦</div>
       <div className="empty-title">Galaxy Blackhole</div>
-      <div className="empty-sub">v2 prototype · assistant-ui · Ollama</div>
+      <div className="empty-sub">v2 prototype · assistant-ui</div>
       <div className="empty-hints">
         <span>“Liệt kê file trong workspace”</span>
         <span>“Đọc package.json và tóm tắt”</span>

@@ -328,7 +328,27 @@ gói nên dừng ở đó.
 ### Changed
 
 - **Kế hoạch bỏ hẳn chữ trạng thái** (*Xong / Đang làm / Chờ*): bước đã xong = **tick + gạch ngang chữ**, bước
-  đang làm = **chữ tô màu nhấn, in đậm** kèm spinner, bước còn chờ = chữ mờ. Nhìn là biết, không cần đọc.## [Unreleased]
+  đang làm = **chữ tô màu nhấn, in đậm** kèm spinner, bước còn chờ = chữ mờ. Nhìn là biết, không cần đọc.## [2.0.27] - 2026-10-09 18:20 +0700
+
+### Changed — giao diện hội thoại, đợt 1 (theo hướng blackhole web)
+
+- **Tầng token thiết kế + một ngôn ngữ card duy nhất**: tool card, nhóm tool, kế hoạch và khối suy luận nay dùng
+  chung bán kính 8px, viền 1px, cùng thang khoảng cách và cùng chiều cao header tối thiểu 28px.
+- **Nhịp đọc**: line-height 1.6 cho toàn bộ văn bản, khoảng cách rõ giữa các lượt, và `scroll-padding-bottom` để
+  composer không che mất nội dung khi cuộn tới cuối.
+- **Chữ nhỏ vẫn phải đọc được**: nhãn nâng lên tối thiểu 11px kèm tracking, chữ trong khối code 11.5-12px với
+  line-height 1.5.
+- **Focus ring hiện rõ** cho mọi phần tử tương tác (`:focus-visible`), và `prefers-reduced-motion` được tôn trọng
+  ở phạm vi toàn cục thay vì chỉ vài animation.
+- **Trạng thái không chỉ bằng màu**: mỗi trạng thái có glyph riêng (✓ · ✗ · ⏳) kèm màu, nên vẫn đọc được với người
+  khó phân biệt màu.
+
+### Fixed
+
+- **Tên nhà cung cấp bị lộ trong giao diện**: dòng phụ ở màn hình trống và ba nhãn khác còn in tên nhà cung cấp.
+  Nay dùng nhãn trung tính (*Máy cục bộ*, *Tương thích máy cục bộ*).
+- **Selector CSS trỏ vào class không tồn tại** (rule chết): sửa về đúng `tool-header`, `plan-head` và các trạng
+  thái `tool-running` / `tool-done` / `tool-error` / `tool-pending`.## [Unreleased]
 
 ### Changed
 

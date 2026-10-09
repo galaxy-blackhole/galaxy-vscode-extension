@@ -776,3 +776,97 @@ html, body, #app {
 .plan-in_progress .plan-state { background: rgba(55, 148, 255, 0.18); color: var(--vscode-charts-blue, #3794ff); }
 .plan-skipped { opacity: 0.55; }
 .plan-spinner { animation: composer-orbit 1.1s linear infinite; border: 2px solid currentColor; border-radius: 50%; border-right-color: transparent; height: 9px; width: 9px; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Conversation surface v2.
+
+   Four rules, applied everywhere below: one type scale, one card anatomy, colour
+   never carries meaning alone, and motion is optional. Every class name the tests
+   assert is preserved; this layer only changes how they look.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --gbh-gap-1: 4px;
+  --gbh-gap-2: 6px;
+  --gbh-gap-3: 10px;
+  --gbh-gap-4: 14px;
+  --gbh-radius: 8px;
+  --gbh-radius-sm: 6px;
+  --gbh-text-body: var(--vscode-font-size, 13px);
+  --gbh-text-small: max(11px, calc(var(--gbh-text-body) - 2px));
+  --gbh-text-label: max(11px, calc(var(--gbh-text-body) - 2px));
+  --gbh-leading: 1.6;
+  --gbh-border: var(--vscode-panel-border, rgba(127, 127, 127, 0.35));
+  --gbh-surface: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.08));
+  --gbh-muted: var(--vscode-descriptionForeground, #9d9d9d);
+  --gbh-accent: var(--vscode-textLink-foreground, #4daafc);
+  --gbh-ok: var(--vscode-charts-green, #89d185);
+  --gbh-warn: var(--vscode-charts-yellow, #cca700);
+  --gbh-bad: var(--vscode-errorForeground, #f48771);
+}
+
+/* Focus must always be visible, and never clipped by a sticky composer. */
+:focus-visible {
+  outline: 2px solid var(--vscode-focusBorder, var(--gbh-accent));
+  outline-offset: 1px;
+}
+
+/* The transcript reads as one column: roomy between turns, tight inside a card. */
+.thread-viewport {
+  gap: var(--gbh-gap-4);
+  padding: var(--gbh-gap-4);
+  scroll-padding-bottom: 72px;
+}
+.msg { line-height: var(--gbh-leading); }
+.md-body { line-height: var(--gbh-leading); }
+.md-body p { margin: 0 0 var(--gbh-gap-3); }
+.md-body > :last-child { margin-bottom: 0; }
+.md-body h1, .md-body h2, .md-body h3 { line-height: 1.3; margin: var(--gbh-gap-4) 0 var(--gbh-gap-2); }
+.md-body li { margin: 2px 0; }
+
+/* One card anatomy for tools, tool groups, the plan and reasoning. */
+.tool-card, .tool-group, .plan-strip, .reasoning {
+  border: 1px solid var(--gbh-border);
+  border-radius: var(--gbh-radius);
+  margin: var(--gbh-gap-2) 0;
+  overflow: hidden;
+}
+.tool-header, .plan-head, .reasoning-toggle {
+  align-items: center;
+  display: flex;
+  gap: var(--gbh-gap-2);
+  min-height: 28px;
+  padding: var(--gbh-gap-2) var(--gbh-gap-3);
+}
+.plan-head, .reasoning-toggle, .tool-card.tool-group > .tool-header { background: var(--gbh-surface); }
+.tool-detail, .plan-list { padding: var(--gbh-gap-3); }
+.plan-strip { background: transparent; }
+
+/* Small print is still print: never below 11px, always tracked, always muted. */
+.tool-section-label, .tool-status, .app-subtitle, .plan-count {
+  color: var(--gbh-muted);
+  font-size: var(--gbh-text-label);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.tool-name { font-size: var(--gbh-text-body); }
+.tool-pre, .md-body pre { font-size: var(--gbh-text-small); line-height: 1.5; }
+
+/* Status carries a glyph as well as a colour, so it survives a colour-blind reader. */
+.tool-card.tool-done .tool-icon, .tool-status-ok { color: var(--gbh-ok); }
+.tool-card.tool-error .tool-icon, .tool-status-failed { color: var(--gbh-bad); }
+.tool-card.tool-running .tool-name, .tool-card.tool-running .tool-status { color: var(--gbh-accent); }
+.tool-card.tool-pending .tool-name { color: var(--gbh-muted); }
+
+/* Buttons keep a comfortable target and a visible disabled state. */
+.btn { border-radius: var(--gbh-radius-sm); font-size: var(--gbh-text-small); min-height: 26px; padding: 0 var(--gbh-gap-3); }
+.btn:disabled { cursor: default; opacity: 0.55; }
+
+/* Motion is a hint, never a requirement. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
