@@ -339,8 +339,8 @@ export function Composer({ info }: { info: HostInfo | null }) {
       {statusText.length > 0 ? (
         <p className={`composer-status${run.status === "running" ? "" : " composer-status-still"}`} role="status" aria-live="polite">
           <span className="composer-status-text">{statusText}</span>
-          {run.status === "running" ? <span className="composer-dots" aria-hidden="true" /> : null}
           {run.status === "running" ? <span className="composer-clock">{elapsed.toString()}s</span> : null}
+          {run.status === "running" ? <span className="composer-dots" aria-hidden="true" /> : null}
         </p>
       ) : null}
       <ComposerPrimitive.Root className="composer-card">
