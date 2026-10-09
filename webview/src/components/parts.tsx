@@ -16,8 +16,41 @@ import { toolLabel } from "@galaxy-stack/ai-coder-core/tools";
  */
 const REMARK_PLUGINS = [remarkGfm];
 
+/**
+ * One fenced block the way a chat transcript should read: the language on the left, a copy button on the right,
+ * and the code underneath. Inline code stays inline — react-markdown routes both through `code`, and a snippet
+ * with no language and no newline is a word in a sentence, not a block.
+ */
+function CodeBlock(props: { className?: string; children?: React.ReactNode }) {
+  const t = useT();
+  const match = /language-([\w+#.-]+)/.exec(props.className ?? "");
+  const text = String(props.children ?? "").replace(/\n$/, "");
+  if (match === null && text.indexOf(String.fromCharCode(10)) === -1) return <code>{text}</code>;
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard?.writeText(text).then(
+      () => { setCopied(true); window.setTimeout(() => { setCopied(false); }, 1400); },
+      () => {},
+    );
+  };
+  return (
+    <div className="code-block">
+      <div className="code-head">
+        <span className="code-lang">{match?.[1] ?? "text"}</span>
+        <button type="button" className="code-copy" onClick={copy}>{copied ? t("Đã copy") : t("Copy")}</button>
+      </div>
+      <pre className="code-body"><code>{text}</code></pre>
+    </div>
+  );
+}
+
+/* react-markdown hands every `code` node here; only fenced blocks get the chrome. */
+const MARKDOWN_COMPONENTS = { code: CodeBlock };
+
 export function TextPart() {
-  return <MarkdownTextPrimitive className="md-body" remarkPlugins={REMARK_PLUGINS} />;
+  return (
+    <MarkdownTextPrimitive className="md-body" remarkPlugins={REMARK_PLUGINS} components={MARKDOWN_COMPONENTS} />
+  );
 }
 
 /**
