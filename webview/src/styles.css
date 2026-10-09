@@ -231,8 +231,14 @@ html, body, #app {
   flex: 1 1 auto;
 }
 
-.reasoning-chevron { opacity: 0.7; }
+/* The label and its mark never wrap; only the preview is allowed to shrink and clip. */
+.reasoning-label { flex: 0 0 auto; white-space: nowrap; }
+.reasoning-chevron { flex: 0 0 auto; opacity: 0.7; }
 .reasoning-toggle {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
   color: var(--vscode-descriptionForeground, #9d9d9d);
   font-size: 11px;
   background: none;

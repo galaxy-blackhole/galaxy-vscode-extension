@@ -67,7 +67,7 @@ export function ReasoningPart(props: { text?: string }) {
       <button className="reasoning-toggle" aria-expanded={open} onClick={() => { setOpen(!open); }}>
         <span className="reasoning-chevron" aria-hidden="true">{open ? "▾" : "▸"}</span>
         <ReasoningIcon />
-        {t("Suy luận")}
+        <span className="reasoning-label">{t("Suy luận")}</span>
         {open || last.length === 0 ? null : <span className="reasoning-peek">{last}</span>}
       </button>
       {open ? <pre className="reasoning-body">{props.text ?? ""}</pre> : null}
