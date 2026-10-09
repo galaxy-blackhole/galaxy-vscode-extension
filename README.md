@@ -32,7 +32,7 @@ displayName "Galaxy Blackhole".
 | `src/host/core-run-session.ts` | Composes one core run: model adapter, tools, durable store, trace, spill; maps core events to the UI wire. |
 | `src/host/core-host.ts` | Durable host adapters shared with the CLI: `FileRunStore`, NDJSON trace port (redacted), tool-output spill, resume evidence verifier. |
 | `src/host/core-tool-executor.ts` | Composes `NodeToolExecutor` + snapshot reviewer + artifact reader, and bridges approvals to the webview. |
-| `src/host/core-model.ts` | `CodingModelAdapter` over the Ollama chat API. |
+| `src/host/core-model.ts` | `CodingModelAdapter` over the provider's streaming chat API. |
 | `src/host/web-launcher-core.ts` / `web-launcher.ts` | `blackhole web` launcher: argv builder + URL scrape (pure), process handling and `openExternal` (VS Code). |
 | `src/ui-protocol.ts` | The only contract the webview sees; core event shapes never cross it. |
 | `webview/src/` | React 19 + assistant-ui app rendered inside the sidebar. |

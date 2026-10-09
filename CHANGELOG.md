@@ -283,7 +283,14 @@ gói nên dừng ở đó.
 - Đồng hồ dùng `setInterval` nhưng gọi **`unref()`** ở nơi có (Node — tức là trong test): một timer đang chạy
   **không thể** giữ process mở nữa. Trong trình duyệt `unref` không tồn tại nên là no-op. Đây chính là lỗi đã
   làm treo test runner ở lần thêm đồng hồ trước đó.
-- `prefers-reduced-motion`: giữ nguyên chữ, bỏ hoạt ảnh.## [Unreleased]
+- `prefers-reduced-motion`: giữ nguyên chữ, bỏ hoạt ảnh.## [2.0.23] - 2026-10-07 19:15 +0700
+
+### Changed
+
+- **Câu báo lỗi trung tính với nhà cung cấp**: *"Ollama stream im lặng 180s — lượt chạy đã dừng."* → *"Không nhận
+  được dữ liệu trong 180s — lượt chạy đã dừng."* Người dùng chỉ thấy provider **`auto`** (Galaxy Blackhole tự
+  chọn `deepseek-v4.1-flash`); hệ thống bên dưới không cần lộ ra.
+- README: bỏ tên vendor khỏi bảng mô tả nguồn.## [Unreleased]
 
 ### Changed
 
