@@ -1,4 +1,6 @@
 import * as vscode from "vscode";
+import { appendFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
 import type { HostToWebviewMessage, WebviewToHostMessage } from "../protocol";
 import { resolveThinkingPolicy, thinkingLabel } from "@galaxy-stack/ai-coder-core";
 import { createOllamaCoreModel } from "./core-model";
@@ -278,9 +280,24 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
    * connect is once per window and slow enough that a run would otherwise open by waiting for it. Progress goes
    * to the webview so it can show the phase and offer to skip ahead; a failure is left to the run to report.
    */
+  /**
+   * A durable trace. `console.log` from an extension host reaches the Output panel but not the log file VS Code
+   * keeps, so a session that misbehaves leaves nothing to read afterwards. These lines are appended to the
+   * extension's own storage instead, where they survive the window.
+   */
+  private trace(line: string): void {
+    const storageRoot = this.sessionsRoot;
+    if (storageRoot === null) return;
+    try {
+      const dir = join(storageRoot, "logs");
+      mkdirSync(dir, { recursive: true });
+      appendFileSync(join(dir, "gbh.log"), new Date().toISOString() + " " + line + "\n", "utf8");
+    } catch { /* a trace must never break a run */ }
+  }
+
   private async warmUpBoot(): Promise<void> {
     const started = Date.now();
-    console.log("gbh: boot warm-up bắt đầu");
+    this.trace("boot warm-up bắt đầu");
     const workspaceRoot = this.workspaceRoot;
     const storageRoot = this.sessionsRoot;
     if (workspaceRoot === null || storageRoot === null) {
@@ -314,7 +331,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       await this.mcpTools();
     }
     this.post({ type: "ui-event", event: { kind: "boot/ready", message: servers.length === 0 ? "Không có MCP server nào cho workspace này." : "" } });
-    console.log("gbh: boot warm-up xong sau " + (Date.now() - started) + "ms");
+    this.trace("boot warm-up xong sau " + (Date.now() - started) + "ms");
   }
 
   private async mcpTools(): Promise<readonly AgentTool[]> {
@@ -475,7 +492,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         return;
       }
       case "approval/resolve":
-        console.log("gbh: approval " + (action.approved ? "granted" : "denied") + " cho " + action.requestId + " (session=" + (this.session === undefined ? "không có" : "có") + ")");
+        this.trace("approval " + (action.approved ? "granted" : "denied") + " cho " + action.requestId + " (session=" + (this.session === undefined ? "không có" : "có") + ")");
         this.session?.resolveApproval(action.requestId, action.approved);
         return;
       case "permission/mode":

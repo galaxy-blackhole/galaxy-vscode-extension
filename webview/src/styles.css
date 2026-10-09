@@ -796,10 +796,17 @@ html, body, #app {
  */
 .composer-status {
   align-items: center;
+  /*
+   * The shell above uses display: contents, so this paragraph is a flex item of the app column, which is
+   * right-leaning: without stretching it, a long line is clipped from the left and only its tail shows.
+   */
+  align-self: stretch;
   display: flex;
   justify-content: flex-start;
   max-width: 100%;
   overflow: visible;
+  text-align: left;
+  width: 100%;
   gap: 6px;
   color: var(--vscode-textLink-foreground, #4daafc);
   font-size: 0.9em;
