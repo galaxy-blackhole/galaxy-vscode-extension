@@ -37,7 +37,7 @@ function asDom<T>(value: unknown): T {
 }
 
 /** Boot one webview instance and return it with everything the host was told. */
-export async function bootWebview(): Promise<BootedWebview> {
+export async function bootWebview(options: Readonly<{ holdBoot?: boolean }> = {}): Promise<BootedWebview> {
   const window = new Window({ url: "https://localhost/" });
   const posted: PostedMessage[] = [];
   const global = globalThis as unknown as Record<string, unknown>;
@@ -58,6 +58,13 @@ export async function bootWebview(): Promise<BootedWebview> {
   /* The runner always starts at the package root, which is also where `yarn compile` writes. */
   new Function(readFileSync(join(process.cwd(), "dist", "webview", "chat.js"), "utf8"))();
   await new Promise(resolve => setTimeout(resolve, 400));
+  /*
+   * The panel holds for the workspace index until the host reports boot. Every test that is not about that gate
+   * gets the ready event here, so it renders the transcript it actually came for. `holdBoot` opts out.
+   */
+  if (options.holdBoot !== true) {
+    window.dispatchEvent(new window.MessageEvent("message", { data: { type: "ui-event", event: { kind: "boot/ready", message: "" } } }));
+  }
   return { document, posted, window };
 }
 

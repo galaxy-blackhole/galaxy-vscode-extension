@@ -6,7 +6,7 @@ import test from "node:test";
 import { bootWebview } from "./helpers/webview-harness.ts";
 
 async function boot() {
-  const booted = await bootWebview();
+  const booted = await bootWebview({ holdBoot: true });
   booted.window.dispatchEvent(new booted.window.MessageEvent("message", { data: { type: "host-info", workspaceName: "ws", workspacePath: "/tmp/ws", platform: "darwin", shell: "/bin/sh" } }));
   await new Promise(resolve => setTimeout(resolve, 150));
   return booted;
