@@ -86,6 +86,17 @@ export function SettingsPage() {
             </select>
           }
         />
+        <Row
+          label={t("Chế độ công cụ")}
+          description={t("Cách model gọi công cụ: từng công cụ (mặc định), qua một chương trình, hoặc cả hai.")}
+          control={
+            <select className="settings-select" aria-label={t("Chế độ công cụ")} value={preferences.toolsMode} onChange={event => setPreferences({ toolsMode: event.target.value as "native" | "ptc" | "both" })}>
+              <option value="native">Từng công cụ</option>
+              <option value="ptc">Qua chương trình (ptc)</option>
+              <option value="both">Cả hai</option>
+            </select>
+          }
+        />
         <Row label={t("Workspace")} description={t("Thư mục đang mở")} control={<span className="settings-mono">{info?.workspacePath ?? "—"}</span>} />
         <Row label={t("Nền tảng")} description={t("Hệ điều hành và shell")} control={<span>{(info?.platform ?? "—") + " · " + (info?.shell ?? "—")}</span>} />
       </div>

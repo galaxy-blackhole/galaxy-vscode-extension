@@ -41,6 +41,8 @@ const EN: Readonly<Record<string, string>> = Object.freeze({
   "Xếp hàng": "Queue",
   "Chuyển hướng": "Steer",
   "Chi tiết công việc": "Work detail",
+  "Chế độ công cụ": "Tool mode",
+  "Cách model gọi công cụ: từng công cụ (mặc định), qua một chương trình, hoặc cả hai.": "How the model calls tools: one by one (default), through a program, or both.",
   "Chọn mức chi tiết hiển thị cho lệnh gọi tool": "How much detail each tool call shows",
   "Tiêu chuẩn": "Standard",
   "Gọn": "Compact",

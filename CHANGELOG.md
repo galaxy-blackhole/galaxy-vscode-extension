@@ -378,7 +378,13 @@ gói nên dừng ở đó.
 ### Test
 
 - `test/webview-nested-calls.test.ts`: một chương trình là **một** tool trong lượt; các call của nó thuộc về nó và
-  đúng là những gì thẻ render lồng.## [Unreleased]
+  đúng là những gì thẻ render lồng.## [2.0.30] - 2026-10-10 11:30 +0700
+
+### Added
+
+- **Chọn chế độ công cụ ngay trong trang Cài đặt**: `Từng công cụ` (mặc định), `Qua chương trình (ptc)`, `Cả hai` —
+  không phải sửa tay `preferences.json` nữa. Mục này ghi xuống host qua đúng đường `preferences/set` mà mọi tuỳ
+  chọn khác đang dùng, và có nhãn aria + mô tả như các mục còn lại.## [Unreleased]
 
 ### Changed
 
