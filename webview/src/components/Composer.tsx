@@ -329,7 +329,9 @@ export function Composer({ info }: { info: HostInfo | null }) {
   const lastPart = lastMessage?.role === "assistant" ? lastMessage.content[lastMessage.content.length - 1] : undefined;
   const liveTool = lastPart?.type === "tool-call" && lastPart.result === undefined ? lastPart : undefined;
   const statusText = run.status === "running"
-    ? (liveTool !== undefined ? t("Đang gọi") + " " + toolLabel(liveTool.toolName, liveTool.args) : t("Đang suy nghĩ"))
+    ? (liveTool !== undefined
+        ? t("Đang gọi") + " " + toolLabel(liveTool.toolName, liveTool.args)
+        : run.statusReason !== null && run.statusReason.trim().length > 0 ? run.statusReason : t("Đang suy nghĩ"))
     : run.status === "failed" ? t("Đã dừng") + ": " + (run.statusReason ?? t("không rõ nguyên nhân"))
     : run.status === "cancelled" ? t("Đã dừng theo yêu cầu") : "";
   return (

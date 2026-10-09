@@ -37,6 +37,8 @@ export interface StartCoreRunOptions {
   goal: string;
   onEvent: GalaxyUiEventSink;
   onPendingApproval: (pending: PendingApproval) => void;
+  /** A phase before the first model delta: connecting tools, probing the model, indexing the workspace. */
+  onProgress?: (reason: string) => void;
   mcpTools?: readonly AgentTool[];
   permissionMode: PermissionMode;
   /** Extension global storage: checkpoints, traces, and spilled output live here, never in the workspace. */
@@ -67,6 +69,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
     workspaceRoot: options.workspaceRoot,
   });
 
+  options.onProgress?.("Đang đọc khả năng của model…");
   const model = createOllamaCoreModel(options.connection);
   const capabilitiesResult = await model.capabilities(context);
   if (!capabilitiesResult.ok) throw new Error(`Model probe failed: ${capabilitiesResult.error.message}`);
@@ -81,6 +84,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
     detectGitWorkTree(options.workspaceRoot),
   ]);
 
+  options.onProgress?.("Đang lập chỉ mục workspace…");
   const toolExecutor = await createCoreToolExecutor({
     capabilities,
     context,

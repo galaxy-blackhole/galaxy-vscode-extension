@@ -99,6 +99,7 @@ function updateLastAssistant(update: (content: UiMessage["content"]) => UiMessag
 function handleEvent(event: GalaxyUiEvent): void {
   switch (event.kind) {
     case "message/text-delta": {
+      statusReason = null;
       const current = lastAssistant();
       const parts = [...current.content];
       const lastText = parts[parts.length - 1];
@@ -112,6 +113,7 @@ function handleEvent(event: GalaxyUiEvent): void {
       return;
     }
     case "message/thinking-delta": {
+      statusReason = null;
       const current = lastAssistant();
       const parts = [...current.content];
       /*
@@ -153,6 +155,10 @@ function handleEvent(event: GalaxyUiEvent): void {
       status = event.status;
       statusReason = event.reason ?? null;
       if (event.status === "completed" || event.status === "failed" || event.status === "cancelled") {
+        /* A run that ended without confirming a step must not leave it reading as work still in flight. */
+        if (plan !== null && plan.steps.some(step => step.status === "in_progress")) {
+          plan = Object.freeze({ steps: Object.freeze(plan.steps.map(step => (step.status === "in_progress" ? { ...step, status: "pending" as const } : step))) });
+        }
         void pendingAssistant;
         pendingAssistant = null;
       }

@@ -22,9 +22,9 @@ test("the plan reads as a numbered checklist with a badge per step", async () =>
   assert.ok(items[0]?.classList.contains("plan-completed"), "the finished step is marked done");
   assert.match(items[0]?.textContent ?? "", /✓/, "with a tick");
   assert.ok(items[1]?.querySelector(".plan-spinner"), "the step in flight spins");
-  assert.match(items[1]?.textContent ?? "", /Đang làm/, "and says so");
+  assert.equal(/Đang làm|Chờ|Xong/.test(items[1]?.textContent ?? ""), false, "no status words: the styling carries the state");
   assert.ok(items[2]?.classList.contains("plan-pending"), "a todo carries the grey badge state");
-  assert.match(items[2]?.textContent ?? "", /Chờ/, "labelled as waiting: " + (items[2]?.textContent ?? ""));
+  assert.equal(/Đang làm|Chờ|Xong/.test(items[2]?.textContent ?? ""), false, "and a waiting step says nothing either");
   assert.equal(booted.document.querySelector(".plan-count")?.textContent, "1/3", "the header counts progress");
 
   clickElement(booted, booted.document.querySelector(".plan-toggle")!);

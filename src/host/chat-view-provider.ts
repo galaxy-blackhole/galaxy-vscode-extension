@@ -369,12 +369,18 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
             await appendSessionTurn(sessionsRoot, session.id, "user", action.input);
             this.testLog.push("session-created:" + session.id);
           }
+          this.post({ type: "ui-event", event: { kind: "run/status", reason: "Đang kết nối công cụ và đọc workspace…", status: "running" } });
           this.session = await startCoreRun({
             compactOnStart,
             connection: this.connection,
             goal: action.input,
+            /*
+             * Connecting MCP servers and indexing the workspace both happen before the first model delta;
+             * the UI said "thinking" throughout, which is why a slow start looked like a dead app.
+             */
             mcpTools: await this.mcpTools(),
             onEvent: (event) => this.post({ type: "ui-event", event: planEventForWebview(event) }),
+            onProgress: (reason) => this.post({ type: "ui-event", event: { kind: "run/status", reason, status: "running" } }),
             onPendingApproval: (pending) => this.post({
               type: "pending-approval",
               requestId: pending.requestId,

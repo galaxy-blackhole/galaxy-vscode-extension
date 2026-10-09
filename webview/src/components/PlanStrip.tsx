@@ -5,12 +5,10 @@ import { useT } from "../i18n";
 
 type StepStatus = "completed" | "in_progress" | "pending" | "skipped";
 
-const STATE_LABELS: Readonly<Record<StepStatus, string>> = Object.freeze({
-  completed: "Xong",
-  in_progress: "Đang làm",
-  pending: "Chờ",
-  skipped: "Bỏ qua",
-});
+/**
+ * No status words: a finished step is struck through behind its tick, the step in flight is coloured and
+ * carries the spinner, and everything else waits quietly.
+ */
 
 /**
  * The run's plan, as a list rather than a single status word: numbered steps, a grey dot while a step is still
@@ -50,7 +48,6 @@ export function PlanStrip() {
                 {step.status === "completed" ? "✓" : step.status === "skipped" ? "⊘" : step.status === "pending" ? "•" : null}
               </span>
               <span className="plan-title">{step.title}</span>
-              <span className={"plan-state plan-state-" + step.status}>{t(STATE_LABELS[step.status])}</span>
             </li>
           ))}
         </ol>

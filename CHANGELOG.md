@@ -312,7 +312,23 @@ gói nên dừng ở đó.
 - **Khoá tính chất streaming của thinking**: `mapCoreEventToUi` là nơi duy nhất chạm giữa hình dạng sự kiện của
   core và dây UI, và nó phát **một sự kiện cho mỗi delta** — `thinking` → `message/thinking-delta`, `content` →
   `message/text-delta`, không gom, không đợi hết pha suy luận. Test mới khẳng định đúng thứ tự và nội dung của
-  ba delta liên tiếp (hai thinking rồi một content).## [Unreleased]
+  ba delta liên tiếp (hai thinking rồi một content).## [2.0.26] - 2026-10-09 12:20 +0700
+
+### Fixed
+
+- **~30 giây đầu đứng yên: đã tìm ra và nói rõ đang làm gì.** `run/status: running` được phát **ngay khi bấm
+  gửi**, nhưng trước delta đầu tiên còn ba việc nặng: `await this.mcpTools()` (**kết nối MCP server**),
+  `model.capabilities()` (**một vòng gọi provider** để dò khả năng) và `createCoreToolExecutor` (**lập chỉ mục
+  workspace**). Trong suốt thời gian đó UI vẫn nói *"Đang suy nghĩ"* — nhìn như app chết. Nay từng bước phát
+  tiến trình riêng: *"Đang kết nối công cụ và đọc workspace…"* → *"Đang đọc khả năng của model…"* → *"Đang lập
+  chỉ mục workspace…"*, và khi delta đầu tiên tới thì dòng trạng thái tự trở về *"Đang suy nghĩ"*.
+- **Kế hoạch không còn kẹt ở "đang làm" sau khi lượt chạy kết thúc**: nếu lượt chạy kết thúc mà model chưa xác
+  nhận bước nào, bước đó trở về **chờ** thay vì đứng mãi ở trạng thái đang làm.
+
+### Changed
+
+- **Kế hoạch bỏ hẳn chữ trạng thái** (*Xong / Đang làm / Chờ*): bước đã xong = **tick + gạch ngang chữ**, bước
+  đang làm = **chữ tô màu nhấn, in đậm** kèm spinner, bước còn chờ = chữ mờ. Nhìn là biết, không cần đọc.## [Unreleased]
 
 ### Changed
 
