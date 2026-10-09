@@ -9,7 +9,6 @@ import {
   type PermissionMode,
 } from "../permission-mode";
 import { setModel, setPermissionMode as sendPermissionMode, setThinking } from "../host-bridge";
-import { toolLabel } from "@galaxy-stack/ai-coder-core/tools";
 import { getUiState, subscribeUiState } from "../ui-store";
 import { openSettings } from "../settings-store";
 import { useT } from "../i18n";
@@ -325,14 +324,13 @@ export function Composer({ info }: { info: HostInfo | null }) {
     (timer as unknown as { unref?: () => void }).unref?.();
     return () => { clearInterval(timer); };
   }, [run.status]);
-  const lastMessage = run.messages[run.messages.length - 1];
-  const lastPart = lastMessage?.role === "assistant" ? lastMessage.content[lastMessage.content.length - 1] : undefined;
-  const liveTool = lastPart?.type === "tool-call" && lastPart.result === undefined ? lastPart : undefined;
+  /*
+   * One line while a run is going, and always the same one. The model's own status strings ("resume…",
+   * "validation…") and the tool in flight mean something to a debugger, not to the owner, and the transcript
+   * already gives every tool call its own row. So the line says only what it is: thinking, and for how long.
+   */
   const statusText = run.status === "running"
-    ? (liveTool !== undefined
-        ? t("Đang gọi") + " " + toolLabel(liveTool.toolName, liveTool.args)
-        : run.statusReason !== null && run.statusReason.trim().length > 0 ? run.statusReason : t("Đang suy nghĩ trong"))
-      + " " + elapsed.toString() + "s"
+    ? t("Đang suy nghĩ trong") + " " + elapsed.toString() + "s"
     : run.status === "failed" ? t("Đã dừng") + ": " + (run.statusReason ?? t("không rõ nguyên nhân"))
     : run.status === "cancelled" ? t("Đã dừng theo yêu cầu") : "";
   return (
