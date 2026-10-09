@@ -305,7 +305,14 @@ gói nên dừng ở đó.
 ### Changed
 
 - **Bố cục khung kế hoạch sửa lại**: `.plan-strip` là **cột** (tiêu đề trên, danh sách dưới) thay vì một hàng
-  ngang — chính vì hàng ngang mà hai chip và danh sách chen vào nhau, xô lệch như ảnh bạn gửi.## [Unreleased]
+  ngang — chính vì hàng ngang mà hai chip và danh sách chen vào nhau, xô lệch như ảnh bạn gửi.## [2.0.25] - 2026-10-09 11:40 +0700
+
+### Test
+
+- **Khoá tính chất streaming của thinking**: `mapCoreEventToUi` là nơi duy nhất chạm giữa hình dạng sự kiện của
+  core và dây UI, và nó phát **một sự kiện cho mỗi delta** — `thinking` → `message/thinking-delta`, `content` →
+  `message/text-delta`, không gom, không đợi hết pha suy luận. Test mới khẳng định đúng thứ tự và nội dung của
+  ba delta liên tiếp (hai thinking rồi một content).## [Unreleased]
 
 ### Changed
 
