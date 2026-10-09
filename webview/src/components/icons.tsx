@@ -1,3 +1,12 @@
+/** The reasoning mark: a small four-point spark, the same idea as the CLI's thinking glyph. */
+export function ReasoningIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+      <path d="M6 1.2 7.1 4.9 10.8 6 7.1 7.1 6 10.8 4.9 7.1 1.2 6 4.9 4.9Z" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function PlusIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">

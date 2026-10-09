@@ -331,7 +331,7 @@ export function Composer({ info }: { info: HostInfo | null }) {
   const statusText = run.status === "running"
     ? (liveTool !== undefined
         ? t("Đang gọi") + " " + toolLabel(liveTool.toolName, liveTool.args)
-        : run.statusReason !== null && run.statusReason.trim().length > 0 ? run.statusReason : t("Đang suy nghĩ"))
+        : run.statusReason !== null && run.statusReason.trim().length > 0 ? run.statusReason : t("Đang suy nghĩ trong") + " ")
     : run.status === "failed" ? t("Đã dừng") + ": " + (run.statusReason ?? t("không rõ nguyên nhân"))
     : run.status === "cancelled" ? t("Đã dừng theo yêu cầu") : "";
   return (
@@ -340,7 +340,7 @@ export function Composer({ info }: { info: HostInfo | null }) {
         <p className={`composer-status${run.status === "running" ? "" : " composer-status-still"}`} role="status" aria-live="polite">
           <span className="composer-status-text">{statusText}</span>
           {run.status === "running" ? <span className="composer-dots" aria-hidden="true" /> : null}
-          {run.status === "running" && elapsed > 0 ? <span className="composer-clock">{elapsed.toString()}s</span> : null}
+          {run.status === "running" ? <span className="composer-clock">{elapsed.toString()}s</span> : null}
         </p>
       ) : null}
       <ComposerPrimitive.Root className="composer-card">

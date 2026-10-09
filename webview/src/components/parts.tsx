@@ -5,6 +5,7 @@ import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import remarkGfm from "remark-gfm";
 import { getUiState, subscribeUiState, type UiToolPart } from "../ui-store";
 import { useT } from "../i18n";
+import { ReasoningIcon } from "./icons";
 
 /* The label table is shared with the TUI, so a tool reads the same in both hosts. */
 import { toolLabel } from "@galaxy-stack/ai-coder-core/tools";
@@ -20,18 +21,21 @@ export function TextPart() {
 }
 
 /**
- * The model's reasoning. It opens by itself while the run is going, so the thinking is visible as it arrives
- * instead of hiding behind a collapsed row; one click pins it open or shut.
+ * The model's reasoning, folded the way DSH folds it: the mark and the last line that arrived, so the row says
+ * what the model is doing without spending the transcript on it. One click opens the whole reasoning.
  */
 export function ReasoningPart(props: { text?: string }) {
   const t = useT();
-  const [pinned, setPinned] = useState<boolean | undefined>(undefined);
-  const streaming = useSyncExternalStore(subscribeUiState, getUiState).status === "running";
-  const open = pinned ?? streaming;
+  const [open, setOpen] = useState(false);
+  const lines = (props.text ?? "").split(String.fromCharCode(10)).map((line) => line.trim()).filter((line) => line.length > 0);
+  const last = lines.length > 0 ? lines[lines.length - 1] : "";
   return (
     <div className="reasoning">
-      <button className="reasoning-toggle" onClick={() => { setPinned(!open); }}>
-        {open ? "▾" : "▸"} {t("Suy luận")}
+      <button className="reasoning-toggle" aria-expanded={open} onClick={() => { setOpen(!open); }}>
+        <span className="reasoning-chevron" aria-hidden="true">{open ? "▾" : "▸"}</span>
+        <ReasoningIcon />
+        {t("Suy luận")}
+        {open || last.length === 0 ? null : <span className="reasoning-peek">{last}</span>}
       </button>
       {open ? <pre className="reasoning-body">{props.text ?? ""}</pre> : null}
     </div>

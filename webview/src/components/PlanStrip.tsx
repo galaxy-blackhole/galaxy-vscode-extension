@@ -29,14 +29,16 @@ export function PlanStrip() {
           {open ? "▾" : "▸"} {t("Kế hoạch")}
           {steps.length > 0 ? <span className="plan-count">{done}/{steps.length}</span> : null}
         </button>
-        <button
-          type="button"
-          className={"plan-chip" + (planMode ? " plan-chip-on" : "")}
-          title={t("Duyệt kế hoạch và cho phép sửa workspace")}
-          onClick={() => dispatchUiAction({ type: "plan/mode", on: !planMode })}
-        >
-          {planMode ? t("KẾ HOẠCH · duyệt") : t("Lập kế hoạch")}
-        </button>
+        {planMode ? (
+          <button
+            type="button"
+            className="plan-chip plan-chip-on"
+            title={t("Duyệt kế hoạch và cho phép sửa workspace")}
+            onClick={() => dispatchUiAction({ type: "plan/mode", on: false })}
+          >
+            {t("KẾ HOẠCH · duyệt")}
+          </button>
+        ) : null}
       </div>
       {open && steps.length > 0 ? (
         <ol className="plan-list">

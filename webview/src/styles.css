@@ -118,7 +118,7 @@ html, body, #app {
 }
 .working-dots::after {
   content: "";
-  animation: composer-dots 1.4s steps(1, end) infinite;
+  animation: composer-dots 2.4s steps(1, end) infinite;
 }
 
 /* GFM tables arrive as real tables now: give them a header tone and readable stripes. */
@@ -137,6 +137,16 @@ html, body, #app {
 .md-body ul, .md-body ol { margin: 6px 0; padding-left: 20px; }
 
 .reasoning { margin: 4px 0; }
+.reasoning-peek {
+  color: var(--vscode-descriptionForeground, #9a9a9a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.reasoning-chevron { opacity: 0.7; }
 .reasoning-toggle {
   color: var(--vscode-descriptionForeground, #9d9d9d);
   font-size: 11px;
@@ -706,10 +716,10 @@ html, body, #app {
 .composer-status-text {
   -webkit-background-clip: text;
   background-clip: text;
-  background-image: linear-gradient(90deg, currentColor 0%, currentColor 40%, var(--vscode-foreground, #e6e6e6) 50%, currentColor 60%, currentColor 100%);
+  background-image: linear-gradient(90deg, currentColor 0%, currentColor 40%, var(--vscode-charts-blue, #9fd0ff) 50%, currentColor 60%, currentColor 100%);
   background-size: 220% 100%;
   color: transparent;
-  animation: composer-shimmer 1.8s linear infinite;
+  animation: composer-shimmer 3.6s linear infinite;
 }
 
 .composer-status-still .composer-status-text {
@@ -720,7 +730,7 @@ html, body, #app {
 
 .composer-dots::after {
   content: "";
-  animation: composer-dots 1.4s steps(1, end) infinite;
+  animation: composer-dots 2.4s steps(1, end) infinite;
 }
 
 
@@ -753,7 +763,7 @@ html, body, #app {
 
 /* The plan reads as a checklist: numbered steps, a badge each, and a fold in the header. */
 .plan-head { align-items: center; display: flex; gap: 8px; justify-content: space-between; }
-.plan-toggle { background: none; border: none; color: var(--vscode-foreground, #ccc); cursor: pointer; font: inherit; padding: 0; }
+.plan-toggle { background: none; flex: 1 1 auto; text-align: left; border: none; color: var(--vscode-foreground, #ccc); cursor: pointer; font: inherit; padding: 0; }
 .plan-count { color: var(--vscode-descriptionForeground, #9d9d9d); margin-left: 6px; }
 .plan-list { display: flex; flex-direction: column; gap: 2px; list-style: none; margin: 6px 0 0; padding: 0; }
 .plan-item { align-items: baseline; display: flex; gap: 6px; }

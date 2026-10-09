@@ -77,6 +77,7 @@ const EN: Readonly<Record<string, string>> = Object.freeze({
   "Yêu cầu duyệt": "Ask first",
   "Duyệt giúp tôi": "Approve for me",
   "Kế hoạch của lượt chạy": "Plan for this run",
+  "Đang suy nghĩ trong": "Thinking for",
   "Duyệt kế hoạch và cho phép sửa workspace": "Approve the plan and allow workspace edits",
   "Bật chế độ kế hoạch chỉ-đọc": "Turn on the read-only plan mode",
   "Lập kế hoạch": "Plan mode",
