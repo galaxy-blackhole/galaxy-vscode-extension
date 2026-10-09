@@ -521,11 +521,17 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
 
   private renderHtml(webview: vscode.Webview, view: "chat" | "settings" = "chat"): string {
     const distUri = vscode.Uri.joinPath(this.extensionUri, "dist", "webview");
+    /*
+     * The asset URIs carry a stamp. A webview caches a resource by its URI, and both files are rewritten under
+     * the same name by every build, so without the stamp the panel keeps rendering the previous bundle after a
+     * rebuild and a reload — which reads exactly as "the fix did not work". The stamp retires that whole class.
+     */
+    const stamp = "?v=" + Date.now().toString(36);
     return webviewHtml({
       cspSource: webview.cspSource,
       nonce: String(Math.random()).slice(2),
-      scriptUri: webview.asWebviewUri(vscode.Uri.joinPath(distUri, "chat.js")).toString(),
-      styleUri: webview.asWebviewUri(vscode.Uri.joinPath(distUri, "chat.css")).toString(),
+      scriptUri: webview.asWebviewUri(vscode.Uri.joinPath(distUri, "chat.js")).toString() + stamp,
+      styleUri: webview.asWebviewUri(vscode.Uri.joinPath(distUri, "chat.css")).toString() + stamp,
       view,
     });
   }
