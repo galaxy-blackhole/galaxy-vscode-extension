@@ -1,3 +1,4 @@
+import type { CodeRunEvent, CodeRuntimePort } from "@galaxy-stack/ai-coder-core";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import {
@@ -37,6 +38,10 @@ export interface CoreToolExecutorOptions {
   readonly mcpTools?: readonly AgentTool[];
   readonly onPendingApproval: ApprovalEmitter;
   readonly permissionMode: () => PermissionMode;
+  /** Composed by the host so a session may run in tools mode ptc; absent means run_code is unavailable. */
+  readonly codeRuntime?: CodeRuntimePort;
+  /** Where a program's inner calls are reported, so they reach the transcript as their own rows. */
+  readonly onCodeEvent?: (event: CodeRunEvent) => void;
   readonly spill: FileToolOutputSpill;
   readonly workspaceRoot: string;
 }
@@ -80,6 +85,8 @@ export async function createCoreToolExecutor(options: CoreToolExecutorOptions): 
   };
 
   const hostTools = new NodeToolExecutor({
+    ...(options.codeRuntime === undefined ? {} : { codeRuntime: options.codeRuntime }),
+    ...(options.onCodeEvent === undefined ? {} : { onCodeEvent: options.onCodeEvent }),
     approval,
     approvalProfile: "strict",
     approvalTimeoutMs: 5 * 60_000,

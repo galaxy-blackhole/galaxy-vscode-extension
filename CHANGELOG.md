@@ -348,7 +348,22 @@ gói nên dừng ở đó.
 - **Tên nhà cung cấp bị lộ trong giao diện**: dòng phụ ở màn hình trống và ba nhãn khác còn in tên nhà cung cấp.
   Nay dùng nhãn trung tính (*Máy cục bộ*, *Tương thích máy cục bộ*).
 - **Selector CSS trỏ vào class không tồn tại** (rule chết): sửa về đúng `tool-header`, `plan-head` và các trạng
-  thái `tool-running` / `tool-done` / `tool-error` / `tool-pending`.## [Unreleased]
+  thái `tool-running` / `tool-done` / `tool-error` / `tool-pending`.## [2.0.28] - 2026-10-09 21:10 +0700
+
+### Added (P4b của `docs/design/tool-modes.md`)
+
+- **Extension chạy được `ptc`**: khi chế độ công cụ không phải `native`, host compose `WorkerCodeRuntime` (mỗi
+  chương trình một worker thread, heap cap, deadline, huỷ) và đưa cho **cả** executor lẫn run controller — nên
+  chốt chặn `CODE_RUNTIME_MISSING` của core tự mở.
+- **Worker được build riêng**: esbuild sinh thêm `dist/code-worker-entry.mjs`, vì worker sống trên thread riêng
+  với module graph riêng nên không thể nằm trong bundle extension; runtime tìm nó ngay cạnh bundle.
+- Tuỳ chọn `toolsMode` trong preferences của host: `native (mặc định) | ptc | both`, đọc lúc bắt đầu phiên.
+
+### Fixed
+
+- **`__dirname` không tồn tại khi chạy mã nguồn dạng ESM** (test bắt được). Cách sửa cũng là cách đúng theo thiết
+  kế: sandbox **chỉ** được compose khi mode không phải `native`, nên đường chạy mặc định không đụng tới worker —
+  native không cần runtime.## [Unreleased]
 
 ### Changed
 

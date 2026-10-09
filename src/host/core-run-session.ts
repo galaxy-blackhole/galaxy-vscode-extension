@@ -1,3 +1,5 @@
+import { codeWorkerUrl } from "./code-runtime";
+import { WorkerCodeRuntime, type CodeRunEvent, type ToolPresentationMode } from "@galaxy-stack/ai-coder-core";
 import * as crypto from "node:crypto";
 import {
   AiCoderRunController,
@@ -39,6 +41,10 @@ export interface StartCoreRunOptions {
   onPendingApproval: (pending: PendingApproval) => void;
   /** A phase before the first model delta: connecting tools, probing the model, indexing the workspace. */
   onProgress?: (reason: string) => void;
+  /** A program's inner calls, reported as they happen. */
+  onCodeEvent?: (event: CodeRunEvent) => void;
+  /** How the round presents its tools. Fixed for the session: native (default), ptc, or both. */
+  toolPresentation?: ToolPresentationMode;
   mcpTools?: readonly AgentTool[];
   permissionMode: PermissionMode;
   /** Extension global storage: checkpoints, traces, and spilled output live here, never in the workspace. */
@@ -85,7 +91,17 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
   ]);
 
   options.onProgress?.("Đang lập chỉ mục workspace…");
+  /*
+   * The sandbox is composed here rather than inside the core: a worker thread is a host-plane service, and the
+   * extension is the host that knows where its own bundle put the worker file.
+   */
+  /* A native round never runs a program, so it composes no sandbox: nothing to start, nothing to leak. */
+  const codeRuntime = (options.toolPresentation ?? "native") === "native"
+    ? undefined
+    : new WorkerCodeRuntime({ workerUrl: codeWorkerUrl() });
   const toolExecutor = await createCoreToolExecutor({
+    ...(codeRuntime === undefined ? {} : { codeRuntime }),
+    ...(options.onCodeEvent === undefined ? {} : { onCodeEvent: options.onCodeEvent }),
     capabilities,
     context,
     hasGit,
@@ -100,6 +116,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
   });
 
   const controller = new AiCoderRunController({
+    ...(codeRuntime === undefined ? {} : { codeRuntime }),
     model,
     onEvent: (event) => {
       mapCoreEventToUi(event, options.onEvent);
@@ -114,6 +131,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
   const handle = controller.start(Object.freeze({
     budget: { deadlineMs: 30 * 60_000 },
     compactOnStart: options.compactOnStart === true,
+    toolPresentation: options.toolPresentation ?? "native",
     goal: options.goal,
     mode: "auto",
     prompt: {

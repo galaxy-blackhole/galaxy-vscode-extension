@@ -7,7 +7,11 @@ export type Locale = "vi" | "en";
 export type NextMessage = "queue" | "steer";
 export type WorkDetail = "standard" | "compact";
 
+import type { ToolPresentationMode } from "@galaxy-stack/ai-coder-core";
+
 export interface UiPreferences {
+  /** native (default), ptc (run_code plus a generated SDK), or both. Fixed for the life of a session. */
+  readonly toolsMode: ToolPresentationMode;
   readonly fontSize: number;
   readonly locale: Locale;
   readonly nextMessage: NextMessage;
@@ -18,6 +22,7 @@ export interface UiPreferences {
 export const DEFAULT_PREFERENCES: UiPreferences = Object.freeze({
   fontSize: 15,
   locale: "vi",
+  toolsMode: "native",
   nextMessage: "queue",
   workDetail: "standard",
 });
@@ -28,5 +33,6 @@ export function normalizePreferences(raw: Partial<UiPreferences> | undefined): U
   const locale = raw?.locale === "en" ? "en" as const : DEFAULT_PREFERENCES.locale;
   const nextMessage = raw?.nextMessage === "steer" ? "steer" as const : DEFAULT_PREFERENCES.nextMessage;
   const workDetail = raw?.workDetail === "compact" ? "compact" as const : DEFAULT_PREFERENCES.workDetail;
-  return Object.freeze({ fontSize, locale, nextMessage, workDetail });
+  const toolsMode = raw?.toolsMode === "ptc" || raw?.toolsMode === "both" ? raw.toolsMode : DEFAULT_PREFERENCES.toolsMode;
+  return Object.freeze({ fontSize, locale, nextMessage, toolsMode, workDetail });
 }

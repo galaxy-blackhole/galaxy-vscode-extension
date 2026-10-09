@@ -381,6 +381,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
             mcpTools: await this.mcpTools(),
             onEvent: (event) => this.post({ type: "ui-event", event: planEventForWebview(event) }),
             onProgress: (reason) => this.post({ type: "ui-event", event: { kind: "run/status", reason, status: "running" } }),
+            toolPresentation: readPreferences(this.storageRoot).toolsMode,
             onPendingApproval: (pending) => this.post({
               type: "pending-approval",
               requestId: pending.requestId,
