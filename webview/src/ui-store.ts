@@ -43,6 +43,8 @@ export interface UiState {
   readonly activeSessionId: string | null;
   readonly planMode: boolean;
   readonly statusReason: string | null;
+  /** Boot progress before the first run: `index` holds the panel, `mcp` only annotates it. */
+  readonly boot: Readonly<{ phase: "index" | "mcp" | null; message: string; done: boolean }>;
 }
 
 type Listener = () => void;
@@ -55,6 +57,27 @@ let sessions: UiSessionSummary[] = [];
 let thinking: UiState["thinking"] = null;
 let activeSessionId: string | null = null;
 let planMode = false;
+let bootPhase: "index" | "mcp" | null = "index";
+let bootMessage = "";
+let bootDone = false;
+let bootGrace: ReturnType<typeof setTimeout> | null = null;
+/*
+ * The index phase holds the panel from the very first paint, and the same grace runs from boot: a host that
+ * never reports in must not leave the owner staring at a spinner.
+ */
+bootGrace = setTimeout(() => { bootGrace = null; bootDone = true; commit(); }, 2500);
+/**
+ * The panel is never held hostage by a host that cannot finish booting. The grace covers the index phase, which
+ * is the only one that holds the screen; after it the transcript opens and a late event merely annotates it.
+ */
+const BOOT_GRACE_MS = 2500;
+
+/** Open the panel now instead of waiting for the workspace's servers. */
+export function skipBoot(): void {
+  if (bootGrace !== null) { clearTimeout(bootGrace); bootGrace = null; }
+  bootDone = true;
+  commit();
+}
 const listeners = new Set<Listener>();
 let pendingAssistant: { content: UiMessage["content"] } | null = null;
 
@@ -63,7 +86,7 @@ function notify(): void {
 }
 
 function snapshot(): UiState {
-  return { activeSessionId, messages, plan, planMode, sessions, status, statusReason, thinking };
+  return { activeSessionId, boot: { phase: bootPhase, message: bootMessage, done: bootDone }, messages, plan, planMode, sessions, status, statusReason, thinking };
 }
 
 let cachedSnapshot: UiState = snapshot();
@@ -100,6 +123,24 @@ function updateLastAssistant(update: (content: UiMessage["content"]) => UiMessag
 
 function handleEvent(event: GalaxyUiEvent): void {
   switch (event.kind) {
+    case "boot/progress": {
+      bootPhase = event.phase;
+      bootMessage = event.message;
+      bootDone = false;
+      if (bootGrace === null) {
+        bootGrace = setTimeout(() => { bootGrace = null; bootDone = true; commit(); }, BOOT_GRACE_MS);
+      }
+      commit();
+      return;
+    }
+    case "boot/ready": {
+      if (bootGrace !== null) { clearTimeout(bootGrace); bootGrace = null; }
+      bootPhase = null;
+      bootMessage = event.message;
+      bootDone = true;
+      commit();
+      return;
+    }
     case "message/text-delta": {
       statusReason = null;
       const current = lastAssistant();

@@ -176,6 +176,52 @@ html, body, #app {
   padding: 10px 12px;
 }
 
+/* Boot: a centred loader while the index is built, and a slim row while the MCP servers warm up. */
+.boot-screen {
+  align-items: center;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  justify-content: center;
+}
+
+.boot-notice {
+  align-items: center;
+  background: var(--gbh-surface);
+  border-bottom: 1px solid var(--vscode-panel-border, #3c3c3c);
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  display: flex;
+  font-size: 11px;
+  gap: 8px;
+  padding: 5px 10px;
+}
+
+.boot-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.boot-spinner {
+  animation: composer-orbit 1.1s linear infinite;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  border-top-color: transparent;
+  display: inline-block;
+  height: 12px;
+  width: 12px;
+}
+
+.boot-skip {
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--vscode-textLink-foreground, #4daafc);
+  cursor: pointer;
+  font: inherit;
+  padding: 2px 6px;
+}
+
+.boot-skip:hover { background: rgba(127, 127, 127, 0.14); }
+
 .reasoning-peek {
   color: var(--vscode-descriptionForeground, #9a9a9a);
   overflow: hidden;

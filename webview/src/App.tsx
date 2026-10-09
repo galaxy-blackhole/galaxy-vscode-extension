@@ -17,7 +17,7 @@ import { ReasoningPart, TextPart, ToolFallback } from "./components/parts";
 import { announceReady, currentHostInfo, subscribeHostInfo, type HostInfo } from "./host-bridge";
 import { getPreferences, subscribePreferenceChanges } from "./preferences";
 import { useT } from "./i18n";
-import { getUiState, subscribeUiState } from "./ui-store";
+import { getUiState, subscribeUiState , skipBoot } from "./ui-store";
 
 /**
  * The first seconds of a run produce no message at all — the model is deciding. An empty pane reads as a
@@ -54,6 +54,30 @@ function AssistantMessage() {
   );
 }
 
+/**
+ * The two boot states. The index phase holds the panel, because nothing can be read before the workspace is
+ * indexed. The MCP phase does not: the transcript opens and the row only says what is still warming up.
+ */
+function BootScreen({ message }: { message: string }) {
+  return (
+    <div className="boot-screen" role="status" aria-live="polite">
+      <span className="boot-spinner" aria-hidden="true" />
+      <span className="boot-text">{message.length > 0 ? message : "Đang chuẩn bị workspace…"}</span>
+    </div>
+  );
+}
+
+function BootNotice({ message }: { message: string }) {
+  const t = useT();
+  return (
+    <div className="boot-notice">
+      <span className="boot-spinner" aria-hidden="true" />
+      <span className="boot-text">{message.length > 0 ? message : t("Đang chuẩn bị workspace…")}</span>
+      <button type="button" className="boot-skip" onClick={() => { skipBoot(); }}>{t("Bỏ qua")}</button>
+    </div>
+  );
+}
+
 function EmptyState() {
   return (
     <div className="empty-state">
@@ -76,6 +100,7 @@ export function App() {
   const settings = info?.modelSettings ?? null;
   /* Đổi cỡ chữ trong Cài đặt là đổi luôn nội dung hội thoại. */
   const fontSize = useSyncExternalStore(subscribePreferenceChanges, getPreferences).fontSize;
+  const boot = useSyncExternalStore(subscribeUiState, getUiState).boot;
   useEffect(() => { document.documentElement.style.setProperty("--ui-font-size", fontSize + "px"); }, [fontSize]);
   /* No key on the active provider means the first run cannot start: open the panel. */
   const needsKey = settings !== null && info?.credentialSource !== "environment"
@@ -89,6 +114,8 @@ export function App() {
   useEffect(() => {
     if (needsKey) openSettingsTab();
   }, [needsKey]);
+
+  if (!boot.done && boot.phase === "index") return <BootScreen message={boot.message} />;
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
@@ -106,6 +133,7 @@ export function App() {
             ) : null}
           </span>
         </header>
+        {!boot.done && boot.phase === "mcp" ? <BootNotice message={boot.message} /> : null}
         <ThreadPrimitive.Root className="thread-root">
           <ThreadPrimitive.Viewport className="thread-viewport">
             <ThreadPrimitive.Empty>
