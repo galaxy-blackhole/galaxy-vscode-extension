@@ -113,6 +113,7 @@ export interface StartCoreRunOptions {
  * real host decision rather than an auto-grant.
  */
 export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRunSession> {
+  const bootMark = Date.now();
   let permissionMode: PermissionMode = options.permissionMode;
   const taskId = options.taskId;
   const runId = `vscode-${taskId}`;
@@ -202,6 +203,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
     trace,
   });
 
+  options.onTrace?.("startCoreRun đã chuẩn bị xong sau " + (Date.now() - bootMark) + "ms");
   const handle = controller.start(Object.freeze({
     /*
      * The core's own default stops a run after 48 model turns, which a task like "read this codebase" reaches long

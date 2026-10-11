@@ -481,6 +481,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
           this.trace("chế độ tool của lượt này: " + runToolsMode);
           this.runStartedAt = Date.now();
           this.trace("run bắt đầu");
+          this.trace("mcp xong sau " + (Date.now() - this.runStartedAt) + "ms");
           this.session = await startCoreRun({
             compactOnStart,
             connection: this.connection,
