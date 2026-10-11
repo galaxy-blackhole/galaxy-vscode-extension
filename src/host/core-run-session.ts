@@ -194,7 +194,12 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
   });
 
   const handle = controller.start(Object.freeze({
-    budget: { deadlineMs: 30 * 60_000 },
+    /*
+     * The core's own default stops a run after 48 model turns, which a task like "read this codebase" reaches long
+     * before it is done — it ended mid-answer. The deadline is the real backstop, so the turn ceiling is lifted
+     * well clear of it; the core still grants one final turn to report what it has when either limit is reached.
+     */
+    budget: { deadlineMs: 30 * 60_000, maxTurns: 240 },
     compactOnStart: options.compactOnStart === true,
     toolPresentation: options.toolPresentation ?? "native",
     goal: options.goal,
