@@ -16,7 +16,7 @@ type StepStatus = "completed" | "in_progress" | "pending" | "skipped";
  */
 export function PlanStrip() {
   const t = useT();
-  const { plan, planMode } = useSyncExternalStore(subscribeUiState, getUiState);
+  const { plan, planMode, status } = useSyncExternalStore(subscribeUiState, getUiState);
   const [folded, setFolded] = useState(false);
   const steps = plan?.steps ?? [];
   /*
@@ -25,6 +25,11 @@ export function PlanStrip() {
    * in the strip is also how the owner turns it off.
    */
   if (steps.length < 3 && !planMode) return null;
+  /*
+   * A finished run's plan is history, and the transcript already tells that story. The strip is for watching work
+   * while it happens, so it goes when the running stops. Plan mode still shows, since its chip is the control.
+   */
+  if (!planMode && status !== "running") return null;
   const done = steps.filter((step) => step.status === "completed").length;
   const open = !folded;
   return (

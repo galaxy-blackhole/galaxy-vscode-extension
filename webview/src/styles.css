@@ -246,6 +246,9 @@ html, body, #app {
   cursor: pointer;
   padding: 2px 0;
 }
+
+/* A quiet row, not a card: the mark matches the label's size, as in the reference. */
+.reasoning-toggle svg { width: 12px; height: 12px; }
 .reasoning-body {
   white-space: pre-wrap;
   font-size: 12px;
@@ -970,14 +973,14 @@ html, body, #app {
   margin: var(--gbh-gap-2) 0;
   overflow: hidden;
 }
-.tool-header, .plan-head, .reasoning-toggle {
+.tool-header, .plan-head {
   align-items: center;
   display: flex;
   gap: var(--gbh-gap-2);
   min-height: 28px;
   padding: var(--gbh-gap-2) var(--gbh-gap-3);
 }
-.plan-head, .reasoning-toggle, .tool-card.tool-group > .tool-header { background: var(--gbh-surface); }
+.plan-head, .tool-card.tool-group > .tool-header { background: var(--gbh-surface); }
 .tool-detail, .plan-list { padding: var(--gbh-gap-3); }
 
 /* A program's calls sit inside the run_code card, always visible, one indent deeper. */

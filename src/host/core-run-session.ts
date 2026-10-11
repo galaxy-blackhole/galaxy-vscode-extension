@@ -164,6 +164,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
     : new WorkerCodeRuntime({ workerUrl: codeWorkerUrl() });
   const toolExecutor = await createCoreToolExecutor({
     ...(codeRuntime === undefined ? {} : { codeRuntime }),
+    toolPresentation: requestedPresentation,
     onCodeEvent: (event) => {
       if (event.type === "code/tool-start") {
         sink({ args: {}, kind: "tool/start", name: event.name, toolCallId: event.callId, ...(codeParent === null ? {} : { parent: codeParent }) });

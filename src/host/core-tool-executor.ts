@@ -40,6 +40,8 @@ export interface CoreToolExecutorOptions {
   readonly permissionMode: () => PermissionMode;
   /** Composed by the host so a session may run in tools mode ptc; absent means run_code is unavailable. */
   readonly codeRuntime?: CodeRuntimePort;
+  /** The round's tool mode, so the executor can hold the entry tool open for a ptc round. */
+  readonly toolPresentation?: "native" | "ptc" | "both";
   /** Where a program's inner calls are reported, so they reach the transcript as their own rows. */
   readonly onCodeEvent?: (event: CodeRunEvent) => void;
   readonly spill: FileToolOutputSpill;
@@ -86,6 +88,7 @@ export async function createCoreToolExecutor(options: CoreToolExecutorOptions): 
 
   const hostTools = new NodeToolExecutor({
     ...(options.codeRuntime === undefined ? {} : { codeRuntime: options.codeRuntime }),
+    ...(options.toolPresentation === undefined ? {} : { toolPresentation: options.toolPresentation }),
     ...(options.onCodeEvent === undefined ? {} : { onCodeEvent: options.onCodeEvent }),
     approval,
     approvalProfile: "strict",
