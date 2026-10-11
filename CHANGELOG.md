@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# 2.1.0
+
+## Added
+
+- **Nút Chạy trên khối lệnh shell**: khối ```bash/sh/zsh/fish/console/powershell/ps1/cmd``` có nút **Chạy**
+  cạnh **Copy**. Nút đi qua **hộp thoại xác nhận** của host rồi chạy trong terminal đang mở (hoặc terminal mới),
+  không bao giờ tự chạy.
+- **Khối code có nhãn ngôn ngữ và nút Copy** trong message của agent — trước đây code chỉ là text trơn.
+- **Boot có giai đoạn thật**: mở panel là host đọc khả năng của model rồi lập chỉ mục workspace, hiện tiến độ cho
+  panel ("Đang đọc khả năng của model…" → "Đang lập chỉ mục workspace…" → MCP nếu có). Kết quả được **truyền cho
+  lượt chạy**, nên tin nhắn đầu tiên không phải chờ lại hai bước đó.
+- **Dòng trạng thái** khi đang chạy chỉ nói một câu: *"Đang suy nghĩ trong xx s"* — chữ xanh nhạt, vệt sáng dịu
+  chạy qua **cả câu**, không dấu chấm.
+- **Mục Suy luận** theo kiểu DSH: mặc định thu gọn, kèm icon sparkle, nhãn "Suy luận" và **dòng suy luận cuối**;
+  bấm mới mở hết. Luôn gọn **một dòng**.
+
+## Changed
+
+- **Kế hoạch dưới 3 bước không hiện khung**; bấm **cả hàng header** để mở/đóng.
+- Bỏ hàng "Đang xử lý" thừa và bỏ chip "Lập kế hoạch".
+- Câu *"Đã dừng: đã chạm giới hạn 48 lượt xử lý"* nay đọc bằng tiếng Việt; hai chuỗi ở Cài đặt → Chung đã dịch
+  và đổi tên sản phẩm **DeepSeek → Galaxy**.
+
+## Fixed
+
+- **Trần lượt nâng 48 → 240**: việc dài như "đọc hiểu dự án" trước đây **dừng giữa câu trả lời**. Chốt chặn thật
+  vẫn là hạn 30 phút.
+- **Hộp phê duyệt biến mất ngay khi bấm** — trước đây core hỏi lệnh kế tiếp trong cùng một giây nên trông như nút
+  không phản ứng.
+- **Dòng trạng thái không còn bị cắt**: `.composer-shell` từ `display: contents` thành khối thật rộng 100%.
+- **Tài nguyên webview có stamp** (`?v=`): VS Code cache theo URI, nên bản build mới trước đây **không** được
+  render — đây là lý do các bản sửa giao diện "không có tác dụng".
+- **Log bền cho host**: `gbh.log` trong global storage ghi các bước boot, mỗi lần xin phê duyệt, mỗi quyết định,
+  và số đo layout của dòng trạng thái.
 # 2.0.4
 
 The same content as 2.0.3, which never reached the marketplace: its tag pointed at a commit whose type check
