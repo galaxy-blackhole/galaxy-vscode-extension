@@ -130,6 +130,7 @@ export interface StartCoreRunOptions {
  */
 export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRunSession> {
   const bootMark = Date.now();
+  options.onTrace?.("warm-up: " + (options.warm === undefined ? "KHÔNG có — lượt chạy làm lại từ đầu" : "dùng lại (review=" + (options.warm.review === null ? "null" : "có") + ")"));
   let permissionMode: PermissionMode = options.permissionMode;
   const taskId = options.taskId;
   const runId = `vscode-${taskId}`;
