@@ -448,6 +448,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
             this.testLog.push("session-created:" + session.id);
           }
           this.post({ type: "ui-event", event: { kind: "run/status", reason: "Đang kết nối công cụ và đọc workspace…", status: "running" } });
+          const runToolsMode = readPreferences(this.storageRoot).toolsMode;
+          this.trace("chế độ tool của lượt này: " + runToolsMode);
           this.runStartedAt = Date.now();
           this.trace("run bắt đầu");
           this.session = await startCoreRun({
@@ -468,7 +470,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
               return this.post({ type: "ui-event", event: planEventForWebview(event) });
             },
             onProgress: (reason) => this.post({ type: "ui-event", event: { kind: "run/status", reason, status: "running" } }),
-            toolPresentation: readPreferences(this.storageRoot).toolsMode,
+            toolPresentation: runToolsMode,
             onPendingApproval: (pending) => {
               this.trace("approval xin cho " + pending.tool + " (" + pending.requestId + ")");
               this.post({

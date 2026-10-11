@@ -811,16 +811,16 @@ html, body, #app {
 
 .composer-status-text {
   -webkit-background-clip: text;
+  background-clip: text;
+  background-image: linear-gradient(90deg, currentColor 0%, currentColor 45%, #d6e8ff 50%, currentColor 55%, currentColor 100%);
+  background-size: 200% 100%;
+  background-repeat: repeat-x;
+  color: transparent;
+  animation: composer-shimmer 3.6s linear infinite;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  background-clip: text;
-  background-image: linear-gradient(90deg, currentColor 0%, currentColor 44%, #d6e8ff 50%, currentColor 56%, currentColor 100%);
-  /* keep the line readable at every frame: the sweep only lightens the text, never hides it */
-  background-size: 220% 100%;
-  color: transparent;
-  animation: composer-shimmer 3.6s linear infinite;
 }
 
 .composer-status-still .composer-status-text {
@@ -836,7 +836,12 @@ html, body, #app {
 
 
 @keyframes composer-orbit { to { transform: rotate(360deg); } }
-@keyframes composer-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+/*
+ * The sweep slides by exactly one tile, and the tile begins and ends on currentColor, so the text is painted at
+ * every frame. The old range ran the gradient off the glyphs and the text — painted only by that gradient — went
+ * transparent with it. The owner saw the words disappear mid-animation.
+ */
+@keyframes composer-shimmer { from { background-position: 200% 0; } to { background-position: 0 0; } }
 
 .composer-clock {
   color: var(--vscode-descriptionForeground, #9d9d9d);
