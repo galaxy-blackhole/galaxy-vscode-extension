@@ -239,6 +239,14 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
     prompt: {
       approvalProfile: "balanced" as const,
       complexity: "standard" as const,
+      /*
+       * Without this line the model never learns the map exists: it opened every task by guessing file names, and the
+       * log filled with read_file NOT_FOUND for files the workspace does not have.
+       */
+      trustedWorkspaceInstructions: Object.freeze([Object.freeze({
+        source: "workspace_map_hint",
+        content: "Bản đồ workspace đã có trong khối dữ liệu ngữ cảnh (contextData). Hãy bắt đầu từ đó — đọc những tệp bản đồ nêu tên — thay vì đoán tên tệp hoặc liệt kê lại từ đầu.",
+      })]),
       hostEnvironment: Object.freeze({
         architecture: process.arch,
         command: Object.freeze({
