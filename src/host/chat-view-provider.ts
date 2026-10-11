@@ -10,7 +10,7 @@ import { readPreferences, writePreferences } from "./preferences";
 import { webviewHtml } from "./webview-html";
 import { resolveModelLibraryUrl, resolveOllamaConnection, type OllamaConnection } from "./config";
 import { streamOllamaChat } from "./ollama-client";
-import { startCoreRun, type CoreRunSession } from "./core-run-session";
+import { startCoreRun, warmUpCore, type CoreRunSession, type CoreWarmUp } from "./core-run-session";
 import { appendSessionTurn, createSession, deleteSession, listSessions, readSession } from "./session-store";
 import type { AgentTool } from "@galaxy-stack/ai-coder-core/agent";
 import { tryConnectWorkspaceMcp, workspaceMcpServers, type WorkspaceMcpHandle } from "./workspace-mcp";
@@ -295,6 +295,9 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
     } catch { /* a trace must never break a run */ }
   }
 
+  /** The boot warm-up, kept so the first message reuses the probe and the index instead of repeating them. */
+  private warm: CoreWarmUp | undefined;
+
   private async warmUpBoot(): Promise<void> {
     const started = Date.now();
     this.trace("boot warm-up bắt đầu");
@@ -306,26 +309,19 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
     }
     const servers = workspaceMcpServers(workspaceRoot);
     /*
-     * The two steps a run would otherwise open with, done here while the owner is still reading the panel: the
-     * model probe and the workspace index. A failure is swallowed — the run repeats both and reports properly.
+     * The two steps a run would otherwise open with, done here while the owner is still reading the panel, and then
+     * handed to the run so the first message does not repeat them. A failure is swallowed: the run does its own.
      */
     const connection = this.connection;
-    this.post({ type: "ui-event", event: { kind: "boot/progress", phase: "index", message: "Đang đọc khả năng của model…" } });
     if (connection !== null) {
       try {
-        await createOllamaCoreModel(connection).capabilities({
-          deadline: Date.now() + 30 * 60_000,
-          mode: "auto",
-          runId: "vscode-boot",
-          signal: new AbortController().signal,
-          taskId: "boot",
+        this.warm = await warmUpCore({
+          connection,
           workspaceRoot,
+          onProgress: (reason) => this.post({ type: "ui-event", event: { kind: "boot/progress", phase: "index", message: reason } }),
         });
       } catch { /* the run probes again and reports what went wrong */ }
     }
-    this.post({ type: "ui-event", event: { kind: "boot/progress", phase: "index", message: "Đang lập chỉ mục workspace…" } });
-    try { await createEvidenceVerifier(workspaceRoot); } catch { /* the run builds its own */ }
-    try { detectGitWorkTree(workspaceRoot); } catch { /* the run detects it again */ }
     if (servers.length > 0) {
       this.post({ type: "ui-event", event: { kind: "boot/progress", phase: "mcp", message: "Đang nạp MCP: " + servers.map((server) => server.name).join(", ") } });
       await this.mcpTools();
@@ -439,6 +435,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
             compactOnStart,
             connection: this.connection,
             goal: action.input,
+            ...(this.warm === undefined ? {} : { warm: this.warm }),
             /*
              * Connecting MCP servers and indexing the workspace both happen before the first model delta;
              * the UI said "thinking" throughout, which is why a slow start looked like a dead app.
@@ -447,13 +444,16 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
             onEvent: (event) => this.post({ type: "ui-event", event: planEventForWebview(event) }),
             onProgress: (reason) => this.post({ type: "ui-event", event: { kind: "run/status", reason, status: "running" } }),
             toolPresentation: readPreferences(this.storageRoot).toolsMode,
-            onPendingApproval: (pending) => this.post({
-              type: "pending-approval",
-              requestId: pending.requestId,
-              tool: pending.tool,
-              args: pending.args,
-              reason: pending.reason,
-            }),
+            onPendingApproval: (pending) => {
+              this.trace("approval xin cho " + pending.tool + " (" + pending.requestId + ")");
+              this.post({
+                type: "pending-approval",
+                requestId: pending.requestId,
+                tool: pending.tool,
+                args: pending.args,
+                reason: pending.reason,
+              });
+            },
             permissionMode: this.permissionMode,
             storageRoot: this.storageRoot,
             taskId: action.taskId,

@@ -32,6 +32,48 @@ export interface CoreRunSession {
   setPermissionMode(mode: PermissionMode): void;
 }
 
+/**
+ * The half of opening a run that does not depend on the run itself: the model probe and the workspace index. Done
+ * once when the panel opens, the first message does not pay for it, and every round reuses the same result.
+ */
+type CoreModel = ReturnType<typeof createOllamaCoreModel>;
+type ProbeAttempt = Awaited<ReturnType<CoreModel["capabilities"]>>;
+type ModelCapabilities = Extract<ProbeAttempt, { ok: true }>["data"];
+
+/** What warmUpCore hands to the run, so the run can skip the work it already paid for. */
+export interface CoreWarmUp {
+  readonly capabilities: ModelCapabilities;
+  readonly model: CoreModel;
+  readonly verifier: Awaited<ReturnType<typeof createEvidenceVerifier>>;
+  readonly hasGit: boolean;
+}
+
+export async function warmUpCore(input: Readonly<{
+  connection: OllamaConnection;
+  workspaceRoot: string;
+  onProgress?: (reason: string) => void;
+}>): Promise<CoreWarmUp> {
+  const context: RunExecutionContext = Object.freeze({
+    deadline: Date.now() + 30 * 60_000,
+    mode: "auto",
+    runId: "vscode-boot",
+    signal: new AbortController().signal,
+    taskId: "boot",
+    workspaceRoot: input.workspaceRoot,
+  });
+  input.onProgress?.("Đang đọc khả năng của model…");
+  const model = createOllamaCoreModel(input.connection);
+  const capabilitiesResult = await model.capabilities(context);
+  if (!capabilitiesResult.ok) throw new Error(`Model probe failed: ${capabilitiesResult.error.message}`);
+  input.onProgress?.("Đang lập chỉ mục workspace…");
+  const [verifier, hasGit] = await Promise.all([
+    createEvidenceVerifier(input.workspaceRoot),
+    detectGitWorkTree(input.workspaceRoot),
+  ]);
+  return { capabilities: capabilitiesResult.data, model, verifier, hasGit };
+}
+
+
 export interface StartCoreRunOptions {
   /** The composer asked for a compaction while nothing was running; do it first. */
   compactOnStart?: boolean;
@@ -45,6 +87,8 @@ export interface StartCoreRunOptions {
   onCodeEvent?: (event: CodeRunEvent) => void;
   /** How the round presents its tools. Fixed for the session: native (default), ptc, or both. */
   toolPresentation?: ToolPresentationMode;
+  /** The boot warm-up, when the panel managed one: the probe and the index are reused instead of repeated. */
+  warm?: CoreWarmUp;
   mcpTools?: readonly AgentTool[];
   permissionMode: PermissionMode;
   /** Extension global storage: checkpoints, traces, and spilled output live here, never in the workspace. */
@@ -75,20 +119,26 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
     workspaceRoot: options.workspaceRoot,
   });
 
-  options.onProgress?.("Đang đọc khả năng của model…");
-  const model = createOllamaCoreModel(options.connection);
-  const capabilitiesResult = await model.capabilities(context);
-  if (!capabilitiesResult.ok) throw new Error(`Model probe failed: ${capabilitiesResult.error.message}`);
-  const capabilities = capabilitiesResult.data;
+  /*
+   * The probe and the workspace index are the slow part of opening a run, and the panel already did both when it
+   * booted. Without a warm-up the run does them itself, exactly as before.
+   */
+  const warm = options.warm ?? await warmUpCore({
+    connection: options.connection,
+    workspaceRoot: options.workspaceRoot,
+    ...(options.onProgress === undefined ? {} : { onProgress: options.onProgress }),
+  });
+  const capabilities = warm.capabilities;
+  const model = warm.model;
 
   const pendingApprovals = new Map<string, (approved: boolean) => void>();
   const spill = new FileToolOutputSpill(options.storageRoot);
-  const [store, trace, resumeWorkspaceVerifier, hasGit] = await Promise.all([
+  const [store, trace] = await Promise.all([
     createDurableRunStore(options.storageRoot),
     NdjsonTracePort.create(options.storageRoot),
-    createEvidenceVerifier(options.workspaceRoot),
-    detectGitWorkTree(options.workspaceRoot),
   ]);
+  const resumeWorkspaceVerifier = warm.verifier;
+  const hasGit = warm.hasGit;
 
   options.onProgress?.("Đang lập chỉ mục workspace…");
   /*
