@@ -1,4 +1,5 @@
 import { codeWorkerUrl } from "./code-runtime";
+import type { ContextItem } from "./workspace-map";
 import { WorkerCodeRuntime, type CodeRunEvent, type ToolPresentationMode } from "@galaxy-stack/ai-coder-core";
 import * as crypto from "node:crypto";
 import {
@@ -86,6 +87,8 @@ export interface StartCoreRunOptions {
   onProgress?: (reason: string) => void;
   /** A program's inner calls, reported as they happen. */
   onCodeEvent?: (event: CodeRunEvent) => void;
+  /** Host-supplied context for the first round: the workspace map, so the agent starts at the right files. */
+  contextData?: readonly ContextItem[];
   /** A durable line for the host's own log. The run's shape is only visible from in here. */
   onTrace?: (line: string) => void;
   /** How the round presents its tools. Fixed for the session: native (default), ptc, or both. */
@@ -208,6 +211,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
     budget: { deadlineMs: 30 * 60_000, maxTurns: 240 },
     compactOnStart: options.compactOnStart === true,
     toolPresentation: options.toolPresentation ?? "native",
+    ...(options.contextData === undefined ? {} : { contextData: options.contextData }),
     goal: options.goal,
     mode: "auto",
     prompt: {

@@ -8,6 +8,7 @@ import { createEvidenceVerifier } from "./core-host";
 import { detectGitWorkTree } from "./core-tool-executor";
 import { readPreferences, writePreferences } from "./preferences";
 import { webviewHtml } from "./webview-html";
+import { buildWorkspaceMap, type ContextItem } from "./workspace-map";
 import { resolveModelLibraryUrl, resolveOllamaConnection, type OllamaConnection } from "./config";
 import { streamOllamaChat } from "./ollama-client";
 import { startCoreRun, warmUpCore, type CoreRunSession, type CoreWarmUp } from "./core-run-session";
@@ -314,6 +315,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   private warm: CoreWarmUp | undefined;
   /** When the current run started, so the log can say how long the first model delta took. */
   private runStartedAt = 0;
+  /** The workspace map, built once at boot so the first round does not pay for it. */
+  private workspaceMap: ContextItem | null = null;
 
   private async warmUpBoot(): Promise<void> {
     const started = Date.now();
@@ -324,6 +327,11 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       this.post({ type: "ui-event", event: { kind: "boot/ready", message: "" } });
       return;
     }
+    /*
+     * The map is cheap but it is still work: build it here, beside the probe, so the first message never waits for it.
+     */
+    this.workspaceMap = buildWorkspaceMap(workspaceRoot);
+    this.trace(this.workspaceMap === null ? "bản đồ workspace: không dựng được" : "bản đồ workspace: " + this.workspaceMap.content.length + " ký tự");
     const servers = workspaceMcpServers(workspaceRoot);
     /*
      * The two steps a run would otherwise open with, done here while the owner is still reading the panel, and then
@@ -478,6 +486,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
             connection: this.connection,
             goal: action.input,
             ...(this.warm === undefined ? {} : { warm: this.warm }),
+            ...(this.workspaceMap === null ? {} : { contextData: [this.workspaceMap] }),
             /*
              * Connecting MCP servers and indexing the workspace both happen before the first model delta;
              * the UI said "thinking" throughout, which is why a slow start looked like a dead app.
