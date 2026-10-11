@@ -355,6 +355,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         this.warm = await warmUpCore({
           connection,
           workspaceRoot,
+          onTrace: (line) => this.trace(line),
           onProgress: (reason) => this.post({ type: "ui-event", event: { kind: "boot/progress", phase: "index", message: reason } }),
         });
       } catch { /* the run probes again and reports what went wrong */ }

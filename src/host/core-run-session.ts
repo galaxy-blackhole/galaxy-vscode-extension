@@ -52,6 +52,7 @@ export async function warmUpCore(input: Readonly<{
   connection: OllamaConnection;
   workspaceRoot: string;
   onProgress?: (reason: string) => void;
+  onTrace?: (line: string) => void;
 }>): Promise<CoreWarmUp> {
   const context: RunExecutionContext = Object.freeze({
     deadline: Date.now() + 30 * 60_000,
@@ -62,7 +63,7 @@ export async function warmUpCore(input: Readonly<{
     workspaceRoot: input.workspaceRoot,
   });
   input.onProgress?.("Đang đọc khả năng của model…");
-  const model = createOllamaCoreModel(input.connection);
+  const model = createOllamaCoreModel(input.connection, input.onTrace);
   const capabilitiesResult = await model.capabilities(context);
   if (!capabilitiesResult.ok) throw new Error(`Model probe failed: ${capabilitiesResult.error.message}`);
   input.onProgress?.("Đang lập chỉ mục workspace…");

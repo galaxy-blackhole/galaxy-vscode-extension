@@ -22,7 +22,7 @@ const GLM_CONTEXT_WINDOW = 131_072;
  * prototype's counterpart of galaxy-code's OllamaCodingModel: same wire,
  * simplified capability probe (no /api/show roundtrip) for the lab.
  */
-export function createOllamaCoreModel(connection: OllamaConnection): CodingModelAdapter {
+export function createOllamaCoreModel(connection: OllamaConnection, onTrace?: (line: string) => void): CodingModelAdapter {
   const identity: ModelIdentity = Object.freeze({
     baseUrl: connection.baseUrl,
     model: connection.model,
@@ -86,6 +86,11 @@ export function createOllamaCoreModel(connection: OllamaConnection): CodingModel
         waiting?.();
       };
       try {
+        /*
+         * The line that splits the wait in two: everything before it is ours (assembling the round), everything after
+         * it belongs to the provider. Without it a slow first token is unattributable.
+         */
+        onTrace?.("model: gửi request (" + request.messages.length + " message)");
         const stream = streamOllamaChat(
           connection,
           {
