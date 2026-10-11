@@ -22,7 +22,11 @@ export interface UiPreferences {
 export const DEFAULT_PREFERENCES: UiPreferences = Object.freeze({
   fontSize: 15,
   locale: "vi",
-  toolsMode: "native",
+  /*
+   * PTC by default, as the CLI does: the model writes one program and the inner calls happen inside it, which is
+   * the shape DSH uses. "native" stays available for anyone who prefers a tool call per round.
+   */
+  toolsMode: "ptc",
   nextMessage: "queue",
   workDetail: "standard",
 });

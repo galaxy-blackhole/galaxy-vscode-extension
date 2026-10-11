@@ -312,6 +312,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
 
   /** The boot warm-up, kept so the first message reuses the probe and the index instead of repeating them. */
   private warm: CoreWarmUp | undefined;
+  /** When the current run started, so the log can say how long the first model delta took. */
+  private runStartedAt = 0;
 
   private async warmUpBoot(): Promise<void> {
     const started = Date.now();
@@ -446,6 +448,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
             this.testLog.push("session-created:" + session.id);
           }
           this.post({ type: "ui-event", event: { kind: "run/status", reason: "Đang kết nối công cụ và đọc workspace…", status: "running" } });
+          this.runStartedAt = Date.now();
+          this.trace("run bắt đầu");
           this.session = await startCoreRun({
             compactOnStart,
             connection: this.connection,
@@ -456,7 +460,13 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
              * the UI said "thinking" throughout, which is why a slow start looked like a dead app.
              */
             mcpTools: await this.mcpTools(),
-            onEvent: (event) => this.post({ type: "ui-event", event: planEventForWebview(event) }),
+            onEvent: (event) => {
+              if (this.runStartedAt > 0 && (event.kind === "message/thinking-delta" || event.kind === "message/text-delta")) {
+                this.trace("delta đầu tiên sau " + (Date.now() - this.runStartedAt) + "ms");
+                this.runStartedAt = 0;
+              }
+              return this.post({ type: "ui-event", event: planEventForWebview(event) });
+            },
             onProgress: (reason) => this.post({ type: "ui-event", event: { kind: "run/status", reason, status: "running" } }),
             toolPresentation: readPreferences(this.storageRoot).toolsMode,
             onPendingApproval: (pending) => {
