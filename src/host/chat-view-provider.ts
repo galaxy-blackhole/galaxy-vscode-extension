@@ -339,7 +339,10 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       try {
         const warm = await fetch(new URL("/v1/chat/completions", connection.baseUrl), {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            ...(connection.apiKey === undefined ? {} : { authorization: "Bearer " + connection.apiKey }),
+          },
           body: JSON.stringify({ model: connection.model, messages: [{ role: "user", content: "ok" }], max_tokens: 1, stream: false }),
         });
         this.trace("provider hâm nóng: HTTP " + warm.status);
@@ -486,6 +489,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
               }
               return this.post({ type: "ui-event", event: planEventForWebview(event) });
             },
+            onTrace: (line) => this.trace(line),
             onProgress: (reason) => this.post({ type: "ui-event", event: { kind: "run/status", reason, status: "running" } }),
             toolPresentation: runToolsMode,
             onPendingApproval: (pending) => {

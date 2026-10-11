@@ -85,6 +85,8 @@ export interface StartCoreRunOptions {
   onProgress?: (reason: string) => void;
   /** A program's inner calls, reported as they happen. */
   onCodeEvent?: (event: CodeRunEvent) => void;
+  /** A durable line for the host's own log. The run's shape is only visible from in here. */
+  onTrace?: (line: string) => void;
   /** How the round presents its tools. Fixed for the session: native (default), ptc, or both. */
   toolPresentation?: ToolPresentationMode;
   /** The boot warm-up, when the panel managed one: the probe and the index are reused instead of repeated. */
@@ -156,6 +158,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
     options.onEvent(event);
   };
   const requestedPresentation = options.toolPresentation ?? "native";
+  options.onTrace?.("presentation=" + requestedPresentation + " codeRuntime=" + (requestedPresentation === "native" ? "theo thiết kế không có" : "tạo mới"));
   const codeRuntime = requestedPresentation === "native"
     ? undefined
     : new WorkerCodeRuntime({ workerUrl: codeWorkerUrl() });
