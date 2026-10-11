@@ -487,6 +487,13 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
                 this.trace("delta đầu tiên sau " + (Date.now() - this.runStartedAt) + "ms");
                 this.runStartedAt = 0;
               }
+              /*
+               * A stop is the one thing the owner sees in red, and the only place its cause is legible. Tracing just
+               * that line keeps the log short and makes "did this run fail, and why" answerable after the fact.
+               */
+              if (event.kind === "run/status" && event.status !== "running") {
+                this.trace("run dừng: " + event.status + " — " + (event.reason ?? ""));
+              }
               return this.post({ type: "ui-event", event: planEventForWebview(event) });
             },
             onTrace: (line) => this.trace(line),
