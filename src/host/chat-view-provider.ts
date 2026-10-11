@@ -330,6 +330,23 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
      * handed to the run so the first message does not repeat them. A failure is swallowed: the run does its own.
      */
     const connection = this.connection;
+    /*
+     * Warm the provider itself. The traces put 50-58 seconds between the run starting and the first delta with
+     * nothing of ours in between: that is the provider's own first-request cost, best paid while the owner is
+     * still reading the panel rather than after they press send.
+     */
+    if (connection !== null) {
+      try {
+        const warm = await fetch(new URL("/v1/chat/completions", connection.baseUrl), {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ model: connection.model, messages: [{ role: "user", content: "ok" }], max_tokens: 1, stream: false }),
+        });
+        this.trace("provider hâm nóng: HTTP " + warm.status);
+      } catch (error) {
+        this.trace("provider hâm nóng lỗi: " + String(error).slice(0, 80));
+      }
+    }
     if (connection !== null) {
       try {
         this.warm = await warmUpCore({

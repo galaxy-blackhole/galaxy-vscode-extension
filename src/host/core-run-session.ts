@@ -155,7 +155,8 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
     if (event.kind === "tool/start" && event.name === "run_code") codeParent = event.toolCallId;
     options.onEvent(event);
   };
-  const codeRuntime = (options.toolPresentation ?? "native") === "native"
+  const requestedPresentation = options.toolPresentation ?? "native";
+  const codeRuntime = requestedPresentation === "native"
     ? undefined
     : new WorkerCodeRuntime({ workerUrl: codeWorkerUrl() });
   const toolExecutor = await createCoreToolExecutor({

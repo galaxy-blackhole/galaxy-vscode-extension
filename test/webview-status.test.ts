@@ -35,7 +35,8 @@ test("the composer says what the run is doing, and why it stopped", async () => 
   assert.match(booted.document.querySelector(".composer-status")?.textContent ?? "", /Đang suy nghĩ trong [0-9]+s$/, "the whole phrase carries the seconds, so the sweep runs over all of it");
 
   await send(booted, { kind: "tool/start", name: "list_files", toolCallId: "c1", args: {} });
-  assert.match(booted.document.querySelector(".composer-status")?.textContent ?? "", /^Đang suy nghĩ trong [0-9]+s$/, "a tool in flight does not change the line: the transcript shows the call");
+  assert.match(booted.document.querySelector(".composer-status-text")?.textContent ?? "", /Đang suy nghĩ trong [0-9]+s/, "a tool in flight does not change the line: the transcript shows the call");
+  assert.equal(booted.document.querySelector(".composer-status-sweep")?.getAttribute("aria-hidden"), "true", "the sweep is a second, hidden copy of the same words");
 
   await send(booted, { kind: "run/status", reason: "stream im lặng 180s", status: "failed" });
   assert.match(booted.document.querySelector(".composer-status")?.textContent ?? "", /Đã dừng: stream im lặng 180s/, "the reason is shown, not swallowed");

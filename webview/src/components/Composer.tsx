@@ -362,7 +362,10 @@ function failReason(reason: string | null): string | null {
     <div ref={cardRef} className="composer-shell">
       {statusText.length > 0 ? (
         <p className={`composer-status${run.status === "running" ? "" : " composer-status-still"}`} role="status" aria-live="polite">
-          <span className="composer-status-text">{statusText}</span>
+          <span className="composer-status-text">
+            {statusText}
+            <span className="composer-status-sweep" aria-hidden="true">{statusText}</span>
+          </span>
 
         </p>
       ) : null}
