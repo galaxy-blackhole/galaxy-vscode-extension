@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { getUiState, subscribeUiState, type UiToolPart } from "../ui-store";
 import { useT } from "../i18n";
 import { ReasoningIcon } from "./icons";
+import { runCommand } from "../host-bridge";
 
 /* The label table is shared with the TUI, so a tool reads the same in both hosts. */
 import { toolLabel } from "@galaxy-stack/ai-coder-core/tools";
@@ -37,7 +38,12 @@ function CodeBlock(props: { className?: string; children?: React.ReactNode }) {
     <div className="code-block">
       <div className="code-head">
         <span className="code-lang">{match?.[1] ?? "text"}</span>
-        <button type="button" className="code-copy" onClick={copy}>{copied ? t("Đã copy") : t("Copy")}</button>
+        <span className="code-actions">
+          {match !== null && SHELL_LANGUAGES.has(match[1].toLowerCase()) ? (
+            <button type="button" className="code-copy" onClick={() => { runCommand(text); }}>{t("Chạy")}</button>
+          ) : null}
+          <button type="button" className="code-copy" onClick={copy}>{copied ? t("Đã copy") : t("Copy")}</button>
+        </span>
       </div>
       <pre className="code-body"><code>{text}</code></pre>
     </div>
@@ -45,6 +51,9 @@ function CodeBlock(props: { className?: string; children?: React.ReactNode }) {
 }
 
 /* react-markdown hands every `code` node here; only fenced blocks get the chrome. */
+/** Languages whose blocks are commands, so the block offers to run them and not only to copy them. */
+const SHELL_LANGUAGES = new Set(["bash", "sh", "shell", "zsh", "fish", "console", "powershell", "ps1", "cmd"]);
+
 const MARKDOWN_COMPONENTS = { code: CodeBlock };
 
 export function TextPart() {

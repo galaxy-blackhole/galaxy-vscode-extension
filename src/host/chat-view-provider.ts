@@ -148,6 +148,21 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         this.openSettingsPanel();
         return;
       }
+      case "run-command": {
+        /*
+         * The Run button on a shell block. A modal confirmation stands between the click and the shell, and the
+         * command runs where the owner can watch it: their active terminal, or a fresh one.
+         */
+        this.trace("run-command xin chạy: " + message.command.slice(0, 120));
+        void vscode.window.showWarningMessage("Chạy lệnh này trong terminal?", { modal: true }, "Chạy").then((choice) => {
+          if (choice !== "Chạy") { this.trace("run-command bị từ chối"); return; }
+          const terminal = vscode.window.activeTerminal ?? vscode.window.createTerminal("Galaxy Blackhole");
+          terminal.show();
+          terminal.sendText(message.command, true);
+          this.trace("run-command đã gửi vào terminal");
+        });
+        return;
+      }
       case "ui-ready": {
         this.testLog.push("ui-ready");
         this.postThinking();

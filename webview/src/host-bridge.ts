@@ -65,6 +65,11 @@ function handleTestCommand(command: Readonly<{ kind: "submit"; text: string } | 
 }
 
 
+/** Ask the host to run one command in a terminal, behind its own confirmation. */
+export function runCommand(command: string): void {
+  postToHost({ type: "run-command", command });
+}
+
 export function dispatchUiAction(action: GalaxyUiAction): void {
   postToHost({ type: "ui-action", action });
 }

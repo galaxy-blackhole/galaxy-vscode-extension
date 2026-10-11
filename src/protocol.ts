@@ -36,6 +36,7 @@ export type WebviewToHostMessage =
   | Readonly<{ type: "chat-start"; runId: string; request: Readonly<{ messages: readonly OllamaChatMessage[]; tools: readonly OllamaToolSchema[]; system?: string }> }>
   | Readonly<{ type: "chat-cancel"; runId: string }>
   | Readonly<{ type: "tool-exec"; requestId: string; name: string; args: Readonly<Record<string, unknown>> }>
+  | Readonly<{ type: "run-command"; command: string }>
   | Readonly<{ type: "ui-ready" }>
   | Readonly<{ type: "settings/open" }>
   | Readonly<{ type: "preferences/set"; patch: Partial<UiPreferences> }>
