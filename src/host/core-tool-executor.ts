@@ -42,6 +42,8 @@ export interface CoreToolExecutorOptions {
   readonly codeRuntime?: CodeRuntimePort;
   /** The round's tool mode, so the executor can hold the entry tool open for a ptc round. */
   readonly toolPresentation?: "native" | "ptc" | "both";
+  /** A reviewer already built during boot; the run must not pay its index again. */
+  readonly review?: import("@galaxy-stack/ai-coder-core/adapters/node/tools/workspace-review").NodeWorkspaceReviewExecutor | null;
   /** Where a program's inner calls are reported, so they reach the transcript as their own rows. */
   readonly onCodeEvent?: (event: CodeRunEvent) => void;
   readonly spill: FileToolOutputSpill;
@@ -101,7 +103,12 @@ export async function createCoreToolExecutor(options: CoreToolExecutorOptions): 
 
   const executors: AiCoderRuntimeToolExecutor[] = [hostTools];
   /* Outside a Git repository the snapshot reviewer is what attests inspect/diff evidence. */
-  if (!options.hasGit) executors.push(await NodeWorkspaceReviewExecutor.create(workspace, options.context));
+  /*
+   * Built at boot when the host managed it: creating it here indexed the whole workspace on every run's critical
+   * path, which is where the owner's 37-second wait lived.
+   */
+  const review = options.review ?? (options.hasGit ? null : await NodeWorkspaceReviewExecutor.create(workspace, options.context));
+  if (review !== null) executors.push(review);
   executors.push(new AgentToolExecutor([...toolOutputReader(options.spill), ...(options.mcpTools ?? [])], async () => true));
 
   return new CompositeToolExecutor(executors);

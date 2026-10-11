@@ -47,6 +47,8 @@ export interface CoreWarmUp {
   readonly model: CoreModel;
   readonly verifier: Awaited<ReturnType<typeof createEvidenceVerifier>>;
   readonly hasGit: boolean;
+  /** The workspace reviewer, built at boot when the workspace is not a Git tree; null otherwise. */
+  readonly review: import("@galaxy-stack/ai-coder-core/adapters/node/tools/workspace-review").NodeWorkspaceReviewExecutor | null;
 }
 
 export async function warmUpCore(input: Readonly<{
@@ -72,7 +74,21 @@ export async function warmUpCore(input: Readonly<{
     createEvidenceVerifier(input.workspaceRoot),
     detectGitWorkTree(input.workspaceRoot),
   ]);
-  return { capabilities: capabilitiesResult.data, model, verifier, hasGit };
+  /*
+   * Outside a Git work tree the review executor is what attests inspect/diff evidence, and building it indexes the
+   * whole workspace: measured 37 seconds on the owner's folder. It belongs here, at boot, behind the progress line,
+   * and not on the path between pressing send and the first token.
+   */
+  let review: CoreWarmUp["review"] = null;
+  if (!hasGit) {
+    try {
+      const { NodeWorkspacePort } = await import("@galaxy-stack/ai-coder-core/adapters/node/host/node-workspace-port");
+      const { NodeWorkspaceReviewExecutor } = await import("@galaxy-stack/ai-coder-core/adapters/node/tools/workspace-review");
+      input.onProgress?.("Đang lập chỉ mục workspace…");
+      review = await NodeWorkspaceReviewExecutor.create(await NodeWorkspacePort.create(input.workspaceRoot), context);
+    } catch { review = null; }
+  }
+  return { capabilities: capabilitiesResult.data, model, verifier, hasGit, review };
 }
 
 
@@ -172,6 +188,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
   const toolExecutor = await createCoreToolExecutor({
     ...(codeRuntime === undefined ? {} : { codeRuntime }),
     toolPresentation: requestedPresentation,
+    review: warm.review,
     onCodeEvent: (event) => {
       if (event.type === "code/tool-start") {
         sink({ args: {}, kind: "tool/start", name: event.name, toolCallId: event.callId, ...(codeParent === null ? {} : { parent: codeParent }) });
