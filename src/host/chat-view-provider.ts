@@ -505,6 +505,13 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
               if (event.kind === "run/status" && event.status !== "running") {
                 this.trace("run dừng: " + event.status + " — " + (event.reason ?? ""));
               }
+              /*
+               * A tool that failed is the reason a program dies, and its own summary is the only place the cause is
+               * written down. One line per failure keeps the log readable.
+               */
+              if (event.kind === "tool/result" && event.ok === false) {
+                this.trace("tool lỗi: " + event.toolCallId + " — " + String(event.summary ?? "").slice(0, 160));
+              }
               return this.post({ type: "ui-event", event: planEventForWebview(event) });
             },
             onTrace: (line) => this.trace(line),
