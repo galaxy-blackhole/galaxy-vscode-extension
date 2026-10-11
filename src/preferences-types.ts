@@ -23,10 +23,11 @@ export const DEFAULT_PREFERENCES: UiPreferences = Object.freeze({
   fontSize: 15,
   locale: "vi",
   /*
-   * PTC by default, as the CLI does: the model writes one program and the inner calls happen inside it, which is
-   * the shape DSH uses. "native" stays available for anyone who prefers a tool call per round.
+   * Native by default. PTC reads better on paper — one program, the inner calls inside it — but the extension's
+   * run reported "Tool run_code was not active in the registry snapshot shown to the model", so the mode needs a
+   * piece that is not verified yet. "ptc" and "both" remain selectable for anyone who wants to try.
    */
-  toolsMode: "ptc",
+  toolsMode: "native",
   nextMessage: "queue",
   workDetail: "standard",
 });

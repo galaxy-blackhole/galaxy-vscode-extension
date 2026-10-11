@@ -809,14 +809,13 @@ html, body, #app {
 }
 
 
+/*
+ * Solid colour, no gradient sweep. The sweep painted the text with a gradient that slid out of the glyphs, and
+ * whenever it did the words went transparent — the owner watched "Đang suy nghĩ" vanish mid-animation. A line
+ * that must always be readable does not get to be a moving target.
+ */
 .composer-status-text {
-  -webkit-background-clip: text;
-  background-clip: text;
-  background-image: linear-gradient(90deg, currentColor 0%, currentColor 45%, #d6e8ff 50%, currentColor 55%, currentColor 100%);
-  background-size: 200% 100%;
-  background-repeat: repeat-x;
-  color: transparent;
-  animation: composer-shimmer 3.6s linear infinite;
+  color: var(--vscode-textLink-foreground, #6cb6ff);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
