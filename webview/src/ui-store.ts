@@ -96,6 +96,27 @@ function commit(): void {
   notify();
 }
 
+/**
+ * Tool-call ids are only unique inside the program that produced them: a second round names its inner calls
+ * `read_file#0` again, and the transcript keys tool parts by that id — a repeat is a duplicate React key, and the
+ * whole view goes blank. A repeat is renamed here, and the result still finds it through the alias.
+ */
+const seenToolCallIds = new Set<string>();
+const toolCallIdAlias = new Map<string, string>();
+function uniqueToolCallId(id: string): string {
+  if (!seenToolCallIds.has(id)) {
+    seenToolCallIds.add(id);
+    toolCallIdAlias.set(id, id);
+    return id;
+  }
+  let suffix = 2;
+  while (seenToolCallIds.has(id + "#" + suffix)) suffix += 1;
+  const next = id + "#" + suffix;
+  seenToolCallIds.add(next);
+  toolCallIdAlias.set(id, next);
+  return next;
+}
+
 export function subscribeUiState(listener: Listener): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
@@ -178,7 +199,7 @@ function handleEvent(event: GalaxyUiEvent): void {
       updateLastAssistant((content) => [...content, {
         args: event.args,
         argsText: JSON.stringify(event.args),
-        toolCallId: event.toolCallId,
+        toolCallId: uniqueToolCallId(event.toolCallId),
         toolName: event.name,
         ...(event.parent === undefined ? {} : { parent: event.parent }),
         type: "tool-call" as const,
@@ -188,7 +209,7 @@ function handleEvent(event: GalaxyUiEvent): void {
     }
     case "tool/result": {
       updateLastAssistant((content) => content.map((part) => (
-        part.type === "tool-call" && part.toolCallId === event.toolCallId
+        part.type === "tool-call" && part.toolCallId === (toolCallIdAlias.get(event.toolCallId) ?? event.toolCallId)
           ? { ...part, isError: !event.ok, result: `${event.summary}\n${event.outputTail ?? ""}`.trim() }
           : part
       )));

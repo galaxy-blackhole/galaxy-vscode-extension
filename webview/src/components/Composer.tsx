@@ -313,6 +313,11 @@ export function Composer({ info }: { info: HostInfo | null }) {
    */
   const run = useSyncExternalStore(subscribeUiState, getUiState);
   /*
+   * Sending while the boot is still indexing makes the run redo that work inside the round: the log showed a 41
+   * second wait after the owner pressed send, with the boot finishing 17 seconds later. The send waits too.
+   */
+  const booting = run.boot !== undefined && run.boot.done !== true;
+  /*
    * A second hand makes a long wait legible: "Đang suy nghĩ… 20s" says far more than a spinner. The timer is
    * unref'd where the host has that (Node, i.e. our tests) so a running clock can never hold a process open.
    */
@@ -407,7 +412,12 @@ function failReason(reason: string | null): string | null {
               </ComposerPrimitive.Cancel>
             </AuiIf>
             <AuiIf condition={(s) => !s.thread.isRunning}>
-              <ComposerPrimitive.Send className="composer-send" aria-label="Gửi">
+              <ComposerPrimitive.Send
+                className="composer-send"
+                aria-label={booting ? t("Đang lập chỉ mục workspace…") : t("Gửi")}
+                disabled={booting}
+                title={booting ? t("Đang lập chỉ mục workspace…") : t("Gửi")}
+              >
                 <ArrowUpIcon />
               </ComposerPrimitive.Send>
             </AuiIf>
