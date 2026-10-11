@@ -140,6 +140,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
 
   const pendingApprovals = new Map<string, (approved: boolean) => void>();
   const spill = new FileToolOutputSpill(options.storageRoot);
+  options.onTrace?.("store+trace: bắt đầu");
   const [store, trace] = await Promise.all([
     createDurableRunStore(options.storageRoot),
     NdjsonTracePort.create(options.storageRoot),
@@ -167,6 +168,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
   const codeRuntime = requestedPresentation === "native"
     ? undefined
     : new WorkerCodeRuntime({ workerUrl: codeWorkerUrl() });
+  options.onTrace?.("store+trace xong sau " + (Date.now() - bootMark) + "ms");
   const toolExecutor = await createCoreToolExecutor({
     ...(codeRuntime === undefined ? {} : { codeRuntime }),
     toolPresentation: requestedPresentation,
