@@ -7,6 +7,15 @@ export function ApprovalBar() {
   const [pending, setPending] = useState<Pending | null>(null);
   useEffect(() => subscribePendingApprovals(setPending), []);
   if (!pending) return null;
+  /*
+   * Answer, then clear. The host asks again for the next high-risk command, and a bar that looks identical either way
+   * reads as a dead button: clearing it makes the decision visible, and the next prompt visibly a new one.
+   */
+  const answer = (approved: boolean) => {
+    const requestId = pending.requestId;
+    setPending(null);
+    resolveApproval(requestId, approved);
+  };
   const preview = pending.tool === "workspace.write" || pending.tool === "write_file"
     ? String(pending.args.content ?? "").slice(0, 600)
     : JSON.stringify(pending.args).slice(0, 600);
@@ -18,8 +27,8 @@ export function ApprovalBar() {
       </div>
       <pre className="approval-preview">{preview}</pre>
       <div className="approval-actions">
-        <button className="btn btn-approve" onClick={() => resolveApproval(pending.requestId, true)}>Allow</button>
-        <button className="btn btn-deny" onClick={() => resolveApproval(pending.requestId, false)}>Deny</button>
+        <button className="btn btn-approve" onClick={() => { answer(true); }}>Allow</button>
+        <button className="btn btn-deny" onClick={() => { answer(false); }}>Deny</button>
       </div>
     </div>
   );
