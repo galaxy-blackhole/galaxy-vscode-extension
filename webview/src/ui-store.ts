@@ -197,11 +197,21 @@ function handleEvent(event: GalaxyUiEvent): void {
     }
     case "tool/start": {
       /*
-       * The core reports a program's inner call, and the host sink reports it again for nesting. Within one message
-       * that is the same call twice, and the transcript showed every child row duplicated.
+       * The core reports a program's inner call and the host sink reports it again for nesting: the same call twice.
+       * The copies disagree on exactly one field — only the sink knows the parent — so a later copy fills that in
+       * instead of adding a row. Dropping it outright left the call fatherless, and a fatherless child is drawn
+       * outside the program that asked for it, which is why a program with a single inner call showed none.
        */
       const parts = getUiState().messages.at(-1)?.content ?? [];
-      if (parts.some((part) => part.type === "tool-call" && part.toolCallId === event.toolCallId)) {
+      const existing = parts.find((part) => part.type === "tool-call" && part.toolCallId === event.toolCallId);
+      const existingParent = existing !== undefined && existing.type === "tool-call" ? existing.parent : undefined;
+      if (existing !== undefined) {
+        if (event.parent === undefined || existingParent !== undefined) return;
+        const parent = event.parent;
+        updateLastAssistant((content) => content.map((part) => (
+          part.type === "tool-call" && part.toolCallId === event.toolCallId ? { ...part, parent } : part
+        )));
+        commit();
         return;
       }
       updateLastAssistant((content) => [...content, {
