@@ -89,6 +89,7 @@
   },
   "dependencies": {
     "@galaxy-stack/ai-coder-core": "link:../galaxy-ai-coder-core",
+    "clsx": "^2.1.1",
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {

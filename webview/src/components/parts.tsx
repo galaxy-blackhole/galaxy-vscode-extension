@@ -24,10 +24,15 @@ const REMARK_PLUGINS = [remarkGfm];
  */
 function CodeBlock(props: { className?: string; children?: React.ReactNode }) {
   const t = useT();
+  /*
+   * Every hook sits above the inline return below. react-markdown routes inline code through this component too,
+   * and a hook after that return means an inline snippet renders one hook fewer than a fenced block: React throws
+   * "rendered more hooks than during the previous render" and the whole panel goes blank.
+   */
+  const [copied, setCopied] = useState(false);
   const match = /language-([\w+#.-]+)/.exec(props.className ?? "");
   const text = String(props.children ?? "").replace(/\n$/, "");
   if (match === null && text.indexOf(String.fromCharCode(10)) === -1) return <code>{text}</code>;
-  const [copied, setCopied] = useState(false);
   const copy = () => {
     navigator.clipboard?.writeText(text).then(
       () => { setCopied(true); window.setTimeout(() => { setCopied(false); }, 1400); },
