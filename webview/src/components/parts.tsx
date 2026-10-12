@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { getUiState, subscribeUiState, type UiToolPart } from "../ui-store";
 import { useT } from "../i18n";
 import { ReasoningIcon } from "./icons";
+import { DshDisclosureRow } from "./DshDisclosureRow";
 import { runCommand } from "../host-bridge";
 
 /* The label table is shared with the TUI, so a tool reads the same in both hosts. */
@@ -76,16 +77,22 @@ export function ReasoningPart(props: { text?: string }) {
   const [open, setOpen] = useState(false);
   const lines = (props.text ?? "").split(String.fromCharCode(10)).map((line) => line.trim()).filter((line) => line.length > 0);
   const last = lines.length > 0 ? lines[lines.length - 1] : "";
+  /*
+   * DSH's own disclosure row: a 24px process line whose mark becomes a chevron on hover, the last line while
+   * collapsed, and the full reasoning once opened.
+   */
   return (
-    <div className="reasoning">
-      <button className="reasoning-toggle" aria-expanded={open} onClick={() => { setOpen(!open); }}>
-        <span className="reasoning-chevron" aria-hidden="true">{open ? "▾" : "▸"}</span>
-        <ReasoningIcon />
-        <span className="reasoning-label">{t("Suy luận")}</span>
-        {open || last.length === 0 ? null : <span className="reasoning-peek">{last}</span>}
-      </button>
-      {open ? <pre className="reasoning-body">{props.text ?? ""}</pre> : null}
-    </div>
+    <DshDisclosureRow
+      expandable
+      icon={<ReasoningIcon />}
+      open={open}
+      previewChevron
+      title={t("Suy luận")}
+      onToggle={() => { setOpen(!open); }}
+      {...(last.length === 0 ? {} : { collapsedContent: <span className="reasoning-peek">{last}</span> })}
+    >
+      <pre className="reasoning-body">{props.text ?? ""}</pre>
+    </DshDisclosureRow>
   );
 }
 
