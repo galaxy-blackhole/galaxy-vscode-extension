@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { resolveApproval, subscribePendingApprovals } from "../host-bridge";
 import { DshButton } from "./DshButton";
 import { useT } from "../i18n";
+import { toolLabel } from "@galaxy-stack/ai-coder-core/tools";
 
 type Pending = { requestId: string; tool: string; args: Record<string, unknown>; reason: string };
 
@@ -25,8 +26,12 @@ export function ApprovalBar() {
   return (
     <div className="approval-bar">
       <div className="approval-title">
-        <span className="approval-badge">{pending.tool}</span>
-        {pending.reason}
+        <span className="approval-badge">{toolLabel(pending.tool, pending.args)}</span>
+        {/*
+         * The core writes its reason in English and names the tool by its canonical id. The owner reads this card,
+         * so the line is said in Vietnamese and the original is kept as the tooltip rather than thrown away.
+         */}
+        <span className="approval-reason" title={pending.reason}>{t("Cần bạn cho phép") + " · " + toolLabel(pending.tool, pending.args)}</span>
       </div>
       <pre className="approval-preview">{preview}</pre>
       <div className="approval-actions">

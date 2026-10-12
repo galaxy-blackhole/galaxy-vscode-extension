@@ -1,2 +1,9 @@
 /* The actions row inside an expanded tool detail. */
 .tool-detail-actions { display: flex; justify-content: flex-end; padding: 0 0 6px; }
+
+/* The approval card's reason: one quiet line beside the tool's name. */
+.approval-reason {
+  color: var(--dsw-alias-label-secondary, var(--vscode-descriptionForeground, #9d9d9d));
+  font-weight: 400;
+}
+

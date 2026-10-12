@@ -568,7 +568,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
                * written down. One line per failure keeps the log readable.
                */
               if (event.kind === "tool/result" && event.ok === false) {
-                this.trace("tool lỗi: " + event.toolCallId + " — " + String(event.summary ?? "").slice(0, 160));
+                const args = (event as { args?: unknown }).args;
+                this.trace("tool lỗi: " + JSON.stringify((event as { name?: string }).name ?? "") + " args=" + JSON.stringify(args ?? {}).slice(0, 220) + " → " + String(event.summary ?? "").slice(0, 120) + " | " + String(event.outputTail ?? "").replace(/\s+/g, " ").slice(0, 260));
               }
               return this.post({ type: "ui-event", event: planEventForWebview(event) });
             },
