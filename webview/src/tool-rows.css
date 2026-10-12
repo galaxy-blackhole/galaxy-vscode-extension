@@ -80,3 +80,15 @@
 }
 
 .tool-card.tool-error .tool-icon, .tool-card.tool-error .tool-name { color: var(--vscode-errorForeground, #f14c4c); }
+
+/* The detail reads as a link, as the reference draws it: underlined, quiet, clipped from the left. */
+.tool-detail-name {
+  text-decoration: underline;
+  text-decoration-color: var(--dsw-alias-border-l3, currentColor);
+  text-underline-offset: 2px;
+}
+
+/* State lives in colour: a finished row is calm, a running one is dim, a failed one is red. */
+.tool-card.tool-done .tool-icon { color: var(--dsw-alias-label-tertiary, #9d9d9d); }
+.tool-card.tool-running .tool-icon, .tool-card.tool-pending .tool-icon { opacity: 0.6; }
+.tool-card.tool-error .tool-icon, .tool-card.tool-error .tool-name { color: var(--vscode-errorForeground, #f14c4c); }

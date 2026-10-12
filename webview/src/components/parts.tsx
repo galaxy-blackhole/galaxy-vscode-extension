@@ -104,6 +104,20 @@ function preview(value: unknown, max = 800): string {
 
 
 import { nestedToolPartsFor, PLAN_TOOLS, toolRunFor } from "../tool-run";
+/**
+ * The mark in front of a row names the kind of work; the row's colour says how it went, the way the reference
+ * separates the two. Monochrome glyphs, so the colour is the only thing that changes with state.
+ */
+function glyphOf(name: string): string {
+  const key = name.replace(/^mcp_/, "");
+  if (key === "run_code" || key === "code.run") return "#";
+  if (/grep|glob|search|list|find/.test(key)) return "⌕";
+  if (/read/.test(key)) return "▤";
+  if (/write|edit|patch/.test(key)) return "✎";
+  if (/command|bash|git|shell/.test(key)) return "›";
+  return "•";
+}
+
 function statusOf(part: UiToolPart): "running" | "error" | "done" | "pending" {
   if (part.result === undefined) return part.isError === true ? "error" : "pending";
   return part.isError === true ? "error" : "done";
@@ -184,7 +198,7 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
     return (
       <div className={`tool-card tool-group tool-${status}`}>
         <button className="tool-header" onClick={() => { setOpen(value => !value); }}>
-          <span className="tool-icon">{status === "running" ? "⏳" : status === "error" ? "✗" : "✓"}</span>
+          <span className="tool-icon">{glyphOf(group[0]?.toolName ?? "")}</span>
           <span className="tool-name" title={group.map(part => part.toolName).join("\n")}>
             {t("Đã gọi")} {group.length} {t("công cụ")}
           </span>
@@ -212,7 +226,7 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
   return (
     <div className={`tool-card tool-${status}`}>
       <button className="tool-header" onClick={() => { if (!compact) setOpen((value) => !value); }}>
-        <span className="tool-icon">{status === "running" ? "⏳" : status === "error" ? "✗" : status === "done" ? "✓" : "•"}</span>
+        <span className="tool-icon">{glyphOf(part.toolName)}</span>
         <span className="tool-name" title={part.toolName}>
           {label}
           {detailOf(part).length === 0 ? null : <span className="tool-detail-name">{detailOf(part)}</span>}
@@ -223,7 +237,7 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
       {children.length === 0 ? null : children.map(child => (
         <div className="tool-nested" key={child.toolCallId}>
           <button type="button" className="tool-nested-row" onClick={() => { setOpenChild(openChild === child.toolCallId ? null : child.toolCallId); }}>
-            <span className="tool-icon">{child.isError === true ? "✗" : child.result === undefined ? "⏳" : "✓"}</span>
+            <span className="tool-icon">{glyphOf(child.toolName)}</span>
             <span className="tool-name" title={child.toolName}>
               {toolLabel(child.toolName, child.args)}
               {detailOf(child).length === 0 ? null : <span className="tool-detail-name">{detailOf(child)}</span>}
