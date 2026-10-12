@@ -116,11 +116,16 @@ function statusOf(part: UiToolPart): "running" | "error" | "done" | "pending" {
 function detailOf(part: UiToolPart): string {
   const args = part.args as Record<string, unknown> | undefined;
   if (args === undefined || args === null) return "";
+  /* toolLabel already writes some arguments in brackets; repeating them on the row reads as a stutter. */
+  const label = toolLabel(part.toolName, part.args);
+  const alreadySaid = (value: string): boolean => value.length === 0 || label.includes(value);
   for (const key of ["path", "file", "filePath", "query", "pattern", "command", "url", "glob"]) {
     const value = args[key];
-    if (typeof value === "string" && value.length > 0) return value.length > 64 ? "…" + value.slice(-64) : value;
+    if (typeof value === "string" && value.length > 0 && !alreadySaid(value)) {
+      return value.length > 64 ? "…" + value.slice(-64) : value;
+    }
   }
-  const first = Object.values(args).find((value) => typeof value === "string" && value.length > 0);
+  const first = Object.values(args).find((value) => typeof value === "string" && value.length > 0 && !alreadySaid(value));
   return typeof first !== "string" ? "" : first.length > 64 ? first.slice(0, 64) + "…" : first;
 }
 
