@@ -196,6 +196,14 @@ function handleEvent(event: GalaxyUiEvent): void {
       return;
     }
     case "tool/start": {
+      /*
+       * The core reports a program's inner call, and the host sink reports it again for nesting. Within one message
+       * that is the same call twice, and the transcript showed every child row duplicated.
+       */
+      const parts = getUiState().messages.at(-1)?.content ?? [];
+      if (parts.some((part) => part.type === "tool-call" && part.toolCallId === event.toolCallId)) {
+        return;
+      }
       updateLastAssistant((content) => [...content, {
         args: event.args,
         argsText: JSON.stringify(event.args),

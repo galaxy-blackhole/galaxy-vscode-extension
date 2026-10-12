@@ -313,6 +313,11 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
 
   /** The boot warm-up, kept so the first message reuses the probe and the index instead of repeating them. */
   private warm: CoreWarmUp | undefined;
+  /**
+   * The boot warm-up as a promise, so a message sent while it is still running waits for the same work instead of
+   * repeating it. The log showed a 71-second round when send and boot overlapped.
+   */
+  private warmPromise: Promise<CoreWarmUp | undefined> = Promise.resolve(undefined);
   /** When the current run started, so the log can say how long the first model delta took. */
   private runStartedAt = 0;
   /** The workspace map, built once at boot so the first round does not pay for it. */
@@ -360,12 +365,12 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
     }
     if (connection !== null) {
       try {
-        this.warm = await warmUpCore({
+        this.warm = await (this.warmPromise = warmUpCore({
           connection,
           workspaceRoot,
           onTrace: (line) => this.trace(line),
           onProgress: (reason) => this.post({ type: "ui-event", event: { kind: "boot/progress", phase: "index", message: reason } }),
-        });
+        }).then((value) => { this.warm = value; return value; }, () => undefined));
       } catch { /* the run probes again and reports what went wrong */ }
     }
     if (servers.length > 0) {
@@ -486,7 +491,10 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
             compactOnStart,
             connection: this.connection,
             goal: action.input,
-            ...(this.warm === undefined ? {} : { warm: this.warm }),
+            /*
+             * A message can arrive before the boot finished; waiting on the same promise keeps the work single.
+             */
+            ...(this.warm === undefined ? { warm: await this.warmPromise } : { warm: this.warm }),
             ...(this.workspaceMap === null ? {} : { contextData: [this.workspaceMap] }),
             /*
              * Connecting MCP servers and indexing the workspace both happen before the first model delta;
