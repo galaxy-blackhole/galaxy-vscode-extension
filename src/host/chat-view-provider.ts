@@ -1,5 +1,7 @@
 import * as vscode from "vscode";
 import { appendFileSync, mkdirSync } from "node:fs";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { join } from "node:path";
 import type { HostToWebviewMessage, WebviewToHostMessage } from "../protocol";
 import { resolveThinkingPolicy, thinkingLabel } from "@galaxy-stack/ai-coder-core";
@@ -149,6 +151,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         this.openSettingsPanel();
         return;
       }
+
       case "run-command": {
         /*
          * The Run button on a shell block. A modal confirmation stands between the click and the shell, and the
@@ -301,11 +304,17 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
    * keeps, so a session that misbehaves leaves nothing to read afterwards. These lines are appended to the
    * extension's own storage instead, where they survive the window.
    */
+  /**
+   * The same line the trace file keeps, mirrored into an output channel: VS Code's own place to watch a run.
+   */
+  private readonly runLog = vscode.window.createOutputChannel("Galaxy: Luồng chạy");
+
   private trace(line: string): void {
     const storageRoot = this.sessionsRoot;
     if (storageRoot === null) return;
     try {
       const dir = join(storageRoot, "logs");
+      this.runLog.appendLine(new Date().toISOString().slice(11, 19) + "  " + line);
       mkdirSync(dir, { recursive: true });
       appendFileSync(join(dir, "gbh.log"), new Date().toISOString() + " " + line + "\n", "utf8");
     } catch { /* a trace must never break a run */ }
@@ -322,6 +331,28 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   private runStartedAt = 0;
   /** The workspace map, built once at boot so the first round does not pay for it. */
   private workspaceMap: ContextItem | null = null;
+
+  /**
+   * What the run changed, straight from Git: the transcript shows a card the owner can scan, and every path in it
+   * opens the editor's own diff. A workspace that is not a work tree simply reports nothing.
+   */
+  private async reportChanges(): Promise<void> {
+    const root = this.workspaceRoot;
+    if (root === null) return;
+    try {
+      const { stdout } = await promisify(execFile)("git", ["-C", root, "diff", "--numstat", "HEAD"], { maxBuffer: 4 * 1024 * 1024 });
+      const files = stdout.split(String.fromCharCode(10)).map((line: string) => line.split("\t")).flatMap((parts: readonly string[]) => {
+        const [added, removed, path] = parts;
+        if (path === undefined || added === undefined || removed === undefined) return [];
+        const a = Number.parseInt(added, 10);
+        const r = Number.parseInt(removed, 10);
+        if (Number.isNaN(a) || Number.isNaN(r)) return [];
+        return [{ added: a, path, removed: r }];
+      });
+      this.trace("thay đổi: " + files.length + " tệp");
+      this.post({ type: "ui-event", event: { kind: "changes/summary", files } });
+    } catch { /* not a work tree, or git is unavailable: nothing to report */ }
+  }
 
   private async warmUpBoot(): Promise<void> {
     const started = Date.now();
@@ -511,6 +542,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
                * that line keeps the log short and makes "did this run fail, and why" answerable after the fact.
                */
               if (event.kind === "run/status" && event.status !== "running") {
+                void this.reportChanges();
                 this.trace("run dừng: " + event.status + " — " + (event.reason ?? ""));
               }
               /*
@@ -578,6 +610,19 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
        */
       default: {
         this.trace("action " + JSON.stringify(action));
+        return;
+      }
+      case "changes/openDiff": {
+        /* The editor's own diff, when Git can supply the far side; otherwise just show the file. */
+        const root = this.workspaceRoot;
+        if (root !== null) {
+          const file = vscode.Uri.joinPath(vscode.Uri.file(root), action.path);
+          try {
+            await vscode.commands.executeCommand("vscode.diff", vscode.Uri.parse("git:" + file.fsPath + "?ref=HEAD"), file, action.path);
+          } catch {
+            await vscode.window.showTextDocument(file);
+          }
+        }
         return;
       }
       case "approval/resolve":

@@ -45,6 +45,8 @@ export interface UiState {
   readonly statusReason: string | null;
   /** Boot progress before the first run: `index` holds the panel, `mcp` only annotates it. */
   readonly boot: Readonly<{ phase: "index" | "mcp" | null; message: string; done: boolean }>;
+  /** What the run changed, as Git reports it: the card the owner scans before reading the answer. */
+  readonly changes: readonly Readonly<{ path: string; added: number; removed: number }>[];
 }
 
 type Listener = () => void;
@@ -57,6 +59,7 @@ let sessions: UiSessionSummary[] = [];
 let thinking: UiState["thinking"] = null;
 let activeSessionId: string | null = null;
 let planMode = false;
+let changes: UiState["changes"] = [];
 let bootPhase: "index" | "mcp" | null = "index";
 let bootMessage = "";
 let bootDone = false;
@@ -86,7 +89,7 @@ function notify(): void {
 }
 
 function snapshot(): UiState {
-  return { activeSessionId, boot: { phase: bootPhase, message: bootMessage, done: bootDone }, messages, plan, planMode, sessions, status, statusReason, thinking };
+  return { activeSessionId, boot: { phase: bootPhase, message: bootMessage, done: bootDone }, changes, messages, plan, planMode, sessions, status, statusReason, thinking };
 }
 
 let cachedSnapshot: UiState = snapshot();
@@ -192,6 +195,11 @@ function handleEvent(event: GalaxyUiEvent): void {
         parts.push({ type: "reasoning", text: event.text });
       }
       updateLastAssistant(() => parts);
+      commit();
+      return;
+    }
+    case "changes/summary": {
+      changes = [...event.files];
       commit();
       return;
     }

@@ -1,0 +1,41 @@
+/*
+ * The changes card: the reference's edit summary, in the editor's own surfaces.
+ */
+.changes-card {
+  background: var(--dsw-alias-bg-elevated, var(--vscode-editorWidget-background, #252526));
+  border: 0.5px solid var(--dsw-alias-border-l3, var(--vscode-panel-border, #3c3c3c));
+  border-radius: var(--dsw-radius-md, 12px);
+  margin: 0 12px 8px;
+  overflow: hidden;
+}
+
+.changes-head {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.changes-title { color: var(--dsw-alias-label-primary, var(--vscode-foreground, #ccc)); font-size: 14px; }
+.changes-totals { display: flex; gap: 6px; font-size: 12px; }
+.changes-add { color: var(--vscode-gitDecoration-addedResourceForeground, #81b88b); }
+.changes-del { color: var(--vscode-gitDecoration-deletedResourceForeground, #c74e39); }
+.changes-list { list-style: none; margin: 0; padding: 0; }
+
+.changes-row {
+  align-items: baseline;
+  background: none;
+  border: none;
+  border-top: 0.5px solid var(--dsw-alias-border-l3, var(--vscode-panel-border, #3c3c3c));
+  color: var(--dsw-alias-label-secondary, var(--vscode-descriptionForeground, #9d9d9d));
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 10px;
+  padding: 8px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.changes-row:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.1)); }
+.changes-path { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

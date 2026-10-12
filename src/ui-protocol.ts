@@ -26,6 +26,7 @@ export type GalaxyUiEvent =
   | Readonly<{ kind: "model/retry"; attempt: number; delayMs: number; reason: string }>
   | Readonly<{ kind: "approval/request"; requestId: string; tool: string; risk: string; args: Record<string, unknown> }>
   | Readonly<{ kind: "completion/rejected"; issues: readonly string[] }>
+  | Readonly<{ kind: "changes/summary"; files: readonly Readonly<{ path: string; added: number; removed: number }>[] }>
   | Readonly<{ kind: "error"; code: string; message: string; retryable: boolean }>
   /**
    * Boot progress before the first run: the panel shows the phase and may let the owner skip ahead instead of
@@ -42,7 +43,8 @@ export type GalaxyUiAction =
   | Readonly<{ type: "context/compact" }>
   | Readonly<{ type: "plan/mode"; on: boolean }>
   | Readonly<{ type: "approval/resolve"; requestId: string; approved: boolean }>
-  | Readonly<{ type: "permission/mode"; mode: "ask" | "smart" | "auto" }>;
+  | Readonly<{ type: "permission/mode"; mode: "ask" | "smart" | "auto" }>
+  | Readonly<{ type: "changes/openDiff"; path: string }>;
 
 /**
  * Mapping from @galaxy-stack/ai-coder-core runtime events (see

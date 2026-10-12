@@ -8,6 +8,7 @@ import "./dsh-disclosure.css";
 import "./dsh-button.css";
 import "./tool-rows.css";
 import "./file-tags.css";
+import "./changes-card.css";
 import "./styles.css";
 
 declare global {

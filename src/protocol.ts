@@ -37,6 +37,7 @@ export type WebviewToHostMessage =
   | Readonly<{ type: "chat-cancel"; runId: string }>
   | Readonly<{ type: "tool-exec"; requestId: string; name: string; args: Readonly<Record<string, unknown>> }>
   | Readonly<{ type: "run-command"; command: string }>
+  | Readonly<{ type: "changes/openDiff"; path: string }>
   | Readonly<{ type: "ui-ready" }>
   | Readonly<{ type: "settings/open" }>
   | Readonly<{ type: "preferences/set"; patch: Partial<UiPreferences> }>
