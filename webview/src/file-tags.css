@@ -1,0 +1,17 @@
+/*
+ * The file tag: a small rounded chip carrying the language, the way the reference marks a file row.
+ */
+.tool-file-tag {
+  align-items: center;
+  background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.16));
+  border-radius: var(--dsw-radius-xs, 4px);
+  display: inline-flex;
+  font-size: 9px;
+  font-weight: 600;
+  height: 16px;
+  justify-content: center;
+  letter-spacing: 0.02em;
+  min-width: 22px;
+  padding: 0 3px;
+  width: auto;
+}

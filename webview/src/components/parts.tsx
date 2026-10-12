@@ -118,6 +118,24 @@ function glyphOf(name: string): string {
   return "•";
 }
 
+/**
+ * The little tag in front of a file row, the way the reference labels one: the language, not a generic sheet.
+ * Two to four characters, so the row stays a row.
+ */
+function fileTagOf(part: UiToolPart): string | null {
+  const path = detailOf(part);
+  if (path.length === 0) return null;
+  const name = path.split("/").pop() ?? "";
+  const dot = name.lastIndexOf(".");
+  if (dot <= 0 || dot === name.length - 1) return null;
+  const extension = name.slice(dot + 1).toLowerCase();
+  const known: Record<string, string> = {
+    ts: "TS", tsx: "TSX", js: "JS", jsx: "JSX", json: "{}", md: "MD", css: "CSS", html: "HTML",
+    yml: "YML", yaml: "YML", sh: "SH", py: "PY", rs: "RS", go: "GO", toml: "TOML", sql: "SQL",
+  };
+  return known[extension] ?? extension.slice(0, 4).toUpperCase();
+}
+
 function statusOf(part: UiToolPart): "running" | "error" | "done" | "pending" {
   if (part.result === undefined) return part.isError === true ? "error" : "pending";
   return part.isError === true ? "error" : "done";
@@ -226,7 +244,9 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
   return (
     <div className={`tool-card tool-${status}`}>
       <button className="tool-header" onClick={() => { if (!compact) setOpen((value) => !value); }}>
-        <span className="tool-icon">{glyphOf(part.toolName)}</span>
+        {fileTagOf(part) === null
+          ? <span className="tool-icon">{glyphOf(part.toolName)}</span>
+          : <span className="tool-icon tool-file-tag">{fileTagOf(part)}</span>}
         <span className="tool-name" title={part.toolName}>
           {label}
           {detailOf(part).length === 0 ? null : <span className="tool-detail-name">{detailOf(part)}</span>}
@@ -237,7 +257,9 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
       {children.length === 0 ? null : children.map(child => (
         <div className="tool-nested" key={child.toolCallId}>
           <button type="button" className="tool-nested-row" onClick={() => { setOpenChild(openChild === child.toolCallId ? null : child.toolCallId); }}>
-            <span className="tool-icon">{glyphOf(child.toolName)}</span>
+            {fileTagOf(child) === null
+              ? <span className="tool-icon">{glyphOf(child.toolName)}</span>
+              : <span className="tool-icon tool-file-tag">{fileTagOf(child)}</span>}
             <span className="tool-name" title={child.toolName}>
               {toolLabel(child.toolName, child.args)}
               {detailOf(child).length === 0 ? null : <span className="tool-detail-name">{detailOf(child)}</span>}
