@@ -90,7 +90,8 @@
   "dependencies": {
     "@galaxy-stack/ai-coder-core": "link:../galaxy-ai-coder-core",
     "clsx": "^2.1.1",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "file:./vendor/dsh-client-ui-primitives"
   },
   "devDependencies": {
     "@assistant-ui/react": "0.15.20",
