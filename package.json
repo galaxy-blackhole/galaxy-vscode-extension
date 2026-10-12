@@ -88,10 +88,14 @@
     "resources:check": "node scripts/sync-brand-assets.mjs --check"
   },
   "dependencies": {
+    "@deepseek-ai/dsh-client-ui-primitives": "file:./vendor/dsh-client-ui-primitives",
     "@galaxy-stack/ai-coder-core": "link:../galaxy-ai-coder-core",
+    "anser": "^2.3.5",
     "clsx": "^2.1.1",
-    "remark-gfm": "^4.0.1",
-    "@deepseek-ai/dsh-client-ui-primitives": "file:./vendor/dsh-client-ui-primitives"
+    "immer": "^11.1.21",
+    "katex": "^0.19.0",
+    "mdast-util-math": "^3.0.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@assistant-ui/react": "0.15.20",
