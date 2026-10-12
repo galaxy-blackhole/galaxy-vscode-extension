@@ -109,6 +109,21 @@ function statusOf(part: UiToolPart): "running" | "error" | "done" | "pending" {
   return part.isError === true ? "error" : "done";
 }
 
+/**
+ * The one argument worth naming beside a tool: which file, which query, which command. A run of six rows all
+ * reading "Đọc tệp" says nothing; with the path on it, the transcript reads like a logbook.
+ */
+function detailOf(part: UiToolPart): string {
+  const args = part.args as Record<string, unknown> | undefined;
+  if (args === undefined || args === null) return "";
+  for (const key of ["path", "file", "filePath", "query", "pattern", "command", "url", "glob"]) {
+    const value = args[key];
+    if (typeof value === "string" && value.length > 0) return value.length > 64 ? "…" + value.slice(-64) : value;
+  }
+  const first = Object.values(args).find((value) => typeof value === "string" && value.length > 0);
+  return typeof first !== "string" ? "" : first.length > 64 ? first.slice(0, 64) + "…" : first;
+}
+
 function ToolDetail({ part }: { part: UiToolPart }) {
   return (
     <div className="tool-detail">
@@ -171,21 +186,33 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
   const children = nestedToolPartsFor(run.messages, part.toolCallId);
   const running = part.status?.type === "running";
   const failed = part.isError === true;
-  const done = part.result !== undefined && !failed;
+  const childFailed = children.some((child) => child.isError === true);
+  const childPending = children.some((child) => child.result === undefined && child.isError !== true);
+  /*
+   * A program reports its own result last; until then the row followed neither its children nor anything else and
+   * sat on PENDING with every child already done. The children decide whenever there are any.
+   */
+  const done = (part.result !== undefined || (children.length > 0 && !childPending && !childFailed)) && !failed;
   const status = running ? "running" : failed ? "error" : done ? "done" : "pending";
   const label = toolLabel(part.toolName, part.args);
   return (
     <div className={`tool-card tool-${status}`}>
       <button className="tool-header" onClick={() => { if (!compact) setOpen((value) => !value); }}>
         <span className="tool-icon">{status === "running" ? "⏳" : status === "error" ? "✗" : status === "done" ? "✓" : "•"}</span>
-        <span className="tool-name" title={part.toolName}>{label}</span>
+        <span className="tool-name" title={part.toolName}>
+          {label}
+          {detailOf(part).length === 0 ? null : <span className="tool-detail-name">{detailOf(part)}</span>}
+        </span>
         <span className="tool-status">{status}</span>
         {compact ? null : <span className="tool-caret">{open ? "▾" : "▸"}</span>}
       </button>
       {children.length === 0 ? null : children.map(child => (
         <div className="tool-nested-row" key={child.toolCallId}>
           <span className="tool-icon">{child.isError === true ? "✗" : child.result === undefined ? "⏳" : "✓"}</span>
-          <span className="tool-name">{toolLabel(child.toolName, child.args)}</span>
+          <span className="tool-name" title={child.toolName}>
+            {toolLabel(child.toolName, child.args)}
+            {detailOf(child).length === 0 ? null : <span className="tool-detail-name">{detailOf(child)}</span>}
+          </span>
         </div>
       ))}
       {open && !compact && <ToolDetail part={{ args: part.args, argsText: part.argsText ?? "", isError: part.isError, result: part.result, toolCallId: "single", toolName: part.toolName, type: "tool-call" }} />}

@@ -1022,3 +1022,17 @@ html, body, #app {
     transition-duration: 0.001ms !important;
   }
 }
+/*
+ * The named argument beside a tool: dimmer than the name, clipped from the left so the file a row acted on stays
+ * readable, and never wide enough to push the status off the row.
+ */
+.tool-detail-name {
+  color: var(--dsw-alias-label-tertiary, var(--vscode-descriptionForeground, #9d9d9d));
+  direction: rtl;
+  margin-left: 6px;
+  max-width: 58%;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
