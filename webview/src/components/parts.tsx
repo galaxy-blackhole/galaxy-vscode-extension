@@ -123,6 +123,14 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
 
   /* The plan strip shows this already; a row for it would be a row about bookkeeping. */
   if (PLAN_TOOLS.has(part.toolName)) return null;
+  /*
+   * A program's inner call belongs inside the card that asked for it. The transcript offers every part to this
+   * component, so without this the same call is drawn twice: once nested, once as a row of its own.
+   */
+  const callId = (props as { toolCallId?: string }).toolCallId;
+  const isNested = run.messages.some((message) => message.content.some((candidate) =>
+    candidate.type === "tool-call" && candidate.toolCallId === callId && candidate.parent !== undefined));
+  if (isNested) return null;
 
   if (group !== undefined && group.length > 1) {
     /* Only the head of the run renders it; the rest of the parts collapse into nothing. */
