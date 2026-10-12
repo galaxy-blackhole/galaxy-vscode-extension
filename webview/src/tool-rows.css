@@ -1,0 +1,35 @@
+/*
+ * The transcript's tool rows: the inner-call button reset and the quiet line a failure speaks in.
+ */
+.tool-nested-row {
+  align-items: center;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: var(--gbh-gap-2, 8px);
+  padding: 6px 10px 6px 22px;
+  text-align: left;
+  width: 100%;
+}
+
+.tool-nested-row:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.1)); }
+
+/* A failed row's reason: quieter than the row's name, and clipped rather than wrapped. */
+.tool-error-reason {
+  color: var(--vscode-errorForeground, #f14c4c);
+  flex: 1 1 auto;
+  font-size: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-error-reason-block {
+  padding: 0 10px 8px 22px;
+  text-align: left;
+}

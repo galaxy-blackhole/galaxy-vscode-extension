@@ -6,6 +6,7 @@ import { SettingsPage } from "./SettingsPage";
 import "./dsh-tokens.css";
 import "./dsh-disclosure.css";
 import "./dsh-button.css";
+import "./tool-rows.css";
 import "./styles.css";
 
 declare global {
