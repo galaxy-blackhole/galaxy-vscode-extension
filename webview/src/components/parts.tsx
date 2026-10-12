@@ -8,6 +8,7 @@ import { useT } from "../i18n";
 import { ReasoningIcon } from "./icons";
 import { DshDisclosureRow } from "./DshDisclosureRow";
 import { DshButton } from "./DshButton";
+import { dispatchUiAction } from "../host-bridge";
 import { runCommand } from "../host-bridge";
 
 /* The label table is shared with the TUI, so a tool reads the same in both hosts. */
@@ -169,9 +170,29 @@ function reasonOf(part: UiToolPart): string {
 }
 
 function ToolDetail({ part }: { part: UiToolPart }) {
+  const t = useT();
+  /*
+   * The row can only show a clipped payload. The tab shows all of it: the editor's search, folding and copy,
+   * which is what a trajectory panel is for — without building a trajectory panel.
+   */
+  const openInTab = () => {
+    const text = [
+      "# " + toolLabel(part.toolName, part.args),
+      "",
+      "## arguments",
+      part.argsText || JSON.stringify(part.args, null, 2),
+      "",
+      "## result",
+      part.result ?? "(no result)",
+    ].join(String.fromCharCode(10));
+    dispatchUiAction({ type: "payload/open", title: part.toolName, text });
+  };
   return (
     <div className="tool-detail">
       <div className="tool-section-label">{toolLabel(part.toolName, part.args)}</div>
+      <div className="tool-detail-actions">
+        <DshButton type="button" size="sm" variant="ghost" onClick={openInTab}>{t("Mở trong tab")}</DshButton>
+      </div>
       <pre className="tool-pre">{preview(part.argsText || part.args)}</pre>
       {part.result !== undefined && (
         <>

@@ -1,0 +1,2 @@
+/* The actions row inside an expanded tool detail. */
+.tool-detail-actions { display: flex; justify-content: flex-end; padding: 0 0 6px; }

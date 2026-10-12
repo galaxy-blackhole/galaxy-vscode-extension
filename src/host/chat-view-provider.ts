@@ -190,6 +190,9 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
           version: this.context.extension.packageJSON.version as string,
         });
         void this.warmUpBoot();
+    this.context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider("galaxy-payload", {
+      provideTextDocumentContent: (uri: vscode.Uri) => this.payloads.get(uri.path.replace(/^\//, "")) ?? "",
+    }));
         return;
       }
       case "chat-start": {
@@ -308,6 +311,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
    * The same line the trace file keeps, mirrored into an output channel: VS Code's own place to watch a run.
    */
   private readonly runLog = vscode.window.createOutputChannel("Galaxy: Luồng chạy");
+  /** Payloads the webview asked to read in full, keyed by the document name the tab opens. */
+  private readonly payloads = new Map<string, string>();
 
   private trace(line: string): void {
     const storageRoot = this.sessionsRoot;
@@ -352,6 +357,19 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       this.trace("thay đổi: " + files.length + " tệp");
       this.post({ type: "ui-event", event: { kind: "changes/summary", files } });
     } catch { /* not a work tree, or git is unavailable: nothing to report */ }
+  }
+
+  /**
+   * Open one tool's payload as an editor tab. The transcript can only show a clipped row; a tab gives the whole
+   * thing with the editor's own search, folding and copy — the part of DSH's trajectory panel worth keeping.
+   */
+  private openPayload(title: string, text: string): void {
+    const name = title.replace(/[^\w.-]+/g, "-").slice(0, 60) + ".txt";
+    this.payloads.set(name, text);
+    void vscode.workspace.openTextDocument(vscode.Uri.parse("galaxy-payload:" + name)).then(
+      (document) => vscode.window.showTextDocument(document, { preview: true }),
+      () => undefined,
+    );
   }
 
   private async warmUpBoot(): Promise<void> {
@@ -612,6 +630,9 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         this.trace("action " + JSON.stringify(action));
         return;
       }
+      case "payload/open":
+        this.openPayload(action.title, action.text);
+        return;
       case "changes/openDiff": {
         /* The editor's own diff, when Git can supply the far side; otherwise just show the file. */
         const root = this.workspaceRoot;
