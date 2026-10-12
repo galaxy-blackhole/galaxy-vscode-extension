@@ -146,13 +146,28 @@ function statusOf(part: UiToolPart): "running" | "error" | "done" | "pending" {
  * The one argument worth naming beside a tool: which file, which query, which command. A run of six rows all
  * reading "Đọc tệp" says nothing; with the path on it, the transcript reads like a logbook.
  */
+/** The argument worth naming for each tool, best first. */
+const DETAIL_KEYS: Readonly<Record<string, readonly string[]>> = Object.freeze({
+  run_code: ["goal"],
+  run_command: ["description", "command"],
+  search_text: ["query", "pattern", "path"],
+  glob_files: ["pattern", "path"],
+  list_files: ["path"],
+  read_file: ["path"],
+  write_file: ["path"],
+  edit_file: ["path"],
+  git_operation: ["action"],
+});
+
 function detailOf(part: UiToolPart): string {
   const args = part.args as Record<string, unknown> | undefined;
   if (args === undefined || args === null) return "";
   /* toolLabel already writes some arguments in brackets; repeating them on the row reads as a stutter. */
   const label = toolLabel(part.toolName, part.args);
   const alreadySaid = (value: string): boolean => value.length === 0 || label.includes(value);
-  for (const key of ["path", "file", "filePath", "query", "pattern", "command", "url", "glob"]) {
+  const aliased = part.toolName.replace(/^mcp_/, "");
+  const keys = DETAIL_KEYS[part.toolName] ?? DETAIL_KEYS[aliased] ?? ["description", "query", "pattern", "path", "command", "goal"];
+  for (const key of keys) {
     const value = args[key];
     if (typeof value === "string" && value.length > 0 && !alreadySaid(value)) {
       return value.length > 64 ? "…" + value.slice(-64) : value;
