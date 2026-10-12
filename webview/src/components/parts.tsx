@@ -124,6 +124,13 @@ function detailOf(part: UiToolPart): string {
   return typeof first !== "string" ? "" : first.length > 64 ? first.slice(0, 64) + "…" : first;
 }
 
+/** The line a failed call reported. A row that says only ✗ leaves the owner to guess what went wrong. */
+function reasonOf(part: UiToolPart): string {
+  if (part.isError !== true) return "";
+  const text = (part.result ?? "").split(String.fromCharCode(10)).map(line => line.trim()).filter(line => line.length > 0)[0] ?? "";
+  return text.length > 120 ? text.slice(0, 120) + "…" : text;
+}
+
 function ToolDetail({ part }: { part: UiToolPart }) {
   return (
     <div className="tool-detail">
@@ -147,6 +154,8 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
   const run = useSyncExternalStore(subscribeUiState, getUiState);
   const group = toolRunFor(run.messages, (props as { toolCallId?: string }).toolCallId);
   const [open, setOpen] = useState(false);
+  /* Which inner call is expanded, if any: a failed read is worth opening without opening the whole program. */
+  const [openChild, setOpenChild] = useState<string | null>(null);
   const part = props;
 
   /* The plan strip shows this already; a row for it would be a row about bookkeeping. */
@@ -207,14 +216,19 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
         {compact ? null : <span className="tool-caret">{open ? "▾" : "▸"}</span>}
       </button>
       {children.length === 0 ? null : children.map(child => (
-        <div className="tool-nested-row" key={child.toolCallId}>
-          <span className="tool-icon">{child.isError === true ? "✗" : child.result === undefined ? "⏳" : "✓"}</span>
-          <span className="tool-name" title={child.toolName}>
-            {toolLabel(child.toolName, child.args)}
-            {detailOf(child).length === 0 ? null : <span className="tool-detail-name">{detailOf(child)}</span>}
-          </span>
+        <div className="tool-nested" key={child.toolCallId}>
+          <button type="button" className="tool-nested-row" onClick={() => { setOpenChild(openChild === child.toolCallId ? null : child.toolCallId); }}>
+            <span className="tool-icon">{child.isError === true ? "✗" : child.result === undefined ? "⏳" : "✓"}</span>
+            <span className="tool-name" title={child.toolName}>
+              {toolLabel(child.toolName, child.args)}
+              {detailOf(child).length === 0 ? null : <span className="tool-detail-name">{detailOf(child)}</span>}
+            </span>
+            {reasonOf(child).length === 0 ? null : <span className="tool-error-reason">{reasonOf(child)}</span>}
+          </button>
+          {openChild === child.toolCallId ? <ToolDetail part={child} /> : null}
         </div>
       ))}
+      {reasonOf(part).length === 0 ? null : <div className="tool-error-reason tool-error-reason-block">{reasonOf(part)}</div>}
       {open && !compact && <ToolDetail part={{ args: part.args, argsText: part.argsText ?? "", isError: part.isError, result: part.result, toolCallId: "single", toolName: part.toolName, type: "tool-call" }} />}
     </div>
   );
