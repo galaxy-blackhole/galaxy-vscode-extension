@@ -1007,7 +1007,9 @@ html, body, #app {
 .tool-pre, .md-body pre { font-size: var(--gbh-text-small); line-height: 1.5; }
 
 /* Status carries a glyph as well as a colour, so it survives a colour-blind reader. */
-.tool-card.tool-done .tool-icon, .tool-status-ok { color: var(--gbh-ok); }
+/* The reference draws a finished row in the label colour, not a success green: green is for the plan's own ticks. */
+.tool-card.tool-done .tool-icon { color: inherit; }
+.tool-status-ok { color: var(--gbh-ok); }
 .tool-card.tool-error .tool-icon, .tool-status-failed { color: var(--gbh-bad); }
 .tool-card.tool-running .tool-name, .tool-card.tool-running .tool-status { color: var(--gbh-accent); }
 .tool-card.tool-pending .tool-name { color: var(--gbh-muted); }

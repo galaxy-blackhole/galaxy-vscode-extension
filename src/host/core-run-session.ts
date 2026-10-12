@@ -188,7 +188,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
     review: warm.review,
     onCodeEvent: (event) => {
       if (event.type === "code/tool-start") {
-        sink({ args: {}, kind: "tool/start", name: event.name, toolCallId: event.callId, ...(codeParent === null ? {} : { parent: codeParent }) });
+        sink({ args: event.args ?? {}, kind: "tool/start", name: event.name, toolCallId: event.callId, ...(codeParent === null ? {} : { parent: codeParent }) });
       }
       if (event.type === "code/tool-result") sink({ kind: "tool/result", ok: event.ok, summary: event.summary, toolCallId: event.callId });
     },
