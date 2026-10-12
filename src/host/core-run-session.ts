@@ -79,15 +79,11 @@ export async function warmUpCore(input: Readonly<{
    * whole workspace: measured 37 seconds on the owner's folder. It belongs here, at boot, behind the progress line,
    * and not on the path between pressing send and the first token.
    */
-  let review: CoreWarmUp["review"] = null;
-  if (!hasGit) {
-    try {
-      const { NodeWorkspacePort } = await import("@galaxy-stack/ai-coder-core/adapters/node/host/node-workspace-port");
-      const { NodeWorkspaceReviewExecutor } = await import("@galaxy-stack/ai-coder-core/adapters/node/tools/workspace-review");
-      input.onProgress?.("Đang lập chỉ mục workspace…");
-      review = await NodeWorkspaceReviewExecutor.create(await NodeWorkspacePort.create(input.workspaceRoot), context);
-    } catch { review = null; }
-  }
+  /*
+   * The workspace reviewer is not built at all. Outside Git it hashed the whole tree — 37 to 71 seconds of boot for
+   * evidence the reference agent does not collect either — and its absence is a missing attestation, not a failure.
+   */
+  const review: CoreWarmUp["review"] = null;
   return { capabilities: capabilitiesResult.data, model, verifier, hasGit, review };
 }
 

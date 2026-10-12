@@ -107,18 +107,28 @@ export async function createCoreToolExecutor(options: CoreToolExecutorOptions): 
    * Built at boot when the host managed it: creating it here indexed the whole workspace on every run's critical
    * path, which is where the owner's 37-second wait lived.
    */
-  const review = options.review ?? (options.hasGit ? null : await NodeWorkspaceReviewExecutor.create(workspace, options.context));
+  const review = options.review ?? null;
   if (review !== null) executors.push(review);
   executors.push(new AgentToolExecutor([...toolOutputReader(options.spill), ...(options.mcpTools ?? [])], async () => true));
 
   return new CompositeToolExecutor(executors);
 }
 
-/** Probe for a Git work tree the same way the CLI host does. */
+/**
+ * A Git work tree, here or one level down. Owners open the folder that holds their repositories, and that folder is
+ * not itself a repository: without this probe the run takes the evidence path instead of Git's own.
+ */
 export async function detectGitWorkTree(workspaceRoot: string): Promise<boolean> {
   try {
     const { stdout } = await promisify(execFile)("git", ["rev-parse", "--is-inside-work-tree"], { cwd: workspaceRoot });
-    return stdout.trim() === "true";
+    if (stdout.trim() === "true") return true;
+  } catch { /* not a work tree here: look one level down */ }
+  try {
+    const { readdirSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    return readdirSync(workspaceRoot, { withFileTypes: true })
+      .some((entry) => entry.isDirectory() && entry.name.startsWith(".") === false
+        && (() => { try { return readdirSync(join(workspaceRoot, entry.name), { withFileTypes: true }).some((child) => child.name === ".git"); } catch { return false; } })());
   } catch {
     return false;
   }
