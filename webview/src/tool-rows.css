@@ -33,3 +33,50 @@
   padding: 0 10px 8px 22px;
   text-align: left;
 }
+
+/*
+ * Toward the reference's process list: a flat row under a hairline, no card frame and no status word. The run's
+ * state is already in the mark on the left and in the row's colour; a chip repeating it costs a column.
+ */
+.tool-card {
+  background: none;
+  border: none;
+  border-radius: 0;
+  margin: 2px 0;
+}
+
+.tool-card > .tool-header {
+  background: none;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l3, var(--vscode-panel-border, #3c3c3c));
+  margin-bottom: 2px;
+  min-height: 26px;
+  padding: 2px 4px;
+}
+
+.tool-card .tool-status { display: none; }
+
+.tool-card .tool-name {
+  color: var(--dsw-alias-label-primary, var(--vscode-foreground, #ccc));
+  font-size: 13px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A program's calls read as children of the header: indented, joined by a hairline, never framed. */
+.tool-nested {
+  border-left: 0.5px solid var(--dsw-alias-border-l3, var(--vscode-panel-border, #3c3c3c));
+  margin-left: 7px;
+}
+
+.tool-nested .tool-nested-row { padding-left: 14px; }
+
+.tool-card .tool-icon {
+  color: var(--dsw-alias-label-tertiary, var(--vscode-descriptionForeground, #9d9d9d));
+  flex: none;
+  font-size: 12px;
+  width: 14px;
+}
+
+.tool-card.tool-error .tool-icon, .tool-card.tool-error .tool-name { color: var(--vscode-errorForeground, #f14c4c); }
