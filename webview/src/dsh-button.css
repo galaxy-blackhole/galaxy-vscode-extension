@@ -1,0 +1,50 @@
+/* Button.module.css from @deepseek-ai/dsh-client-ui-primitives, ported with prefixed class names. */
+.dsh-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: none;
+  border-radius: var(--dsw-radius-md, 12px);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary, inherit);
+  background: transparent;
+  padding: 0 14px;
+  font-family: inherit;
+}
+
+.dsh-button:disabled { cursor: not-allowed; opacity: 0.4; }
+.dsh-button.md { height: 36px; }
+
+.dsh-button.sm {
+  height: 28px;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 0 10px;
+  border-radius: var(--dsw-radius-sm, 8px);
+}
+
+.dsh-button.primary {
+  background: var(--dsw-alias-button-primary-fill, #4d6bfe);
+  color: var(--dsw-alias-label-primary-foreground, #fff);
+}
+
+.dsh-button.primary:hover:not(:disabled) { background: var(--dsw-alias-button-primary-hover, #3b57e0); }
+.dsh-button.ghost:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
+.dsh-button.ghost:active:not(:disabled) { background: var(--dsw-alias-interactive-bg-active); }
+
+.dsh-button.outline {
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  background: transparent;
+}
+
+.dsh-button.outline:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
+.dsh-button.toolbar { background: var(--dsw-alias-button-tool-bar-fill); }
+.dsh-button.toolbar:hover:not(:disabled) { background: var(--dsw-alias-button-tool-bar-hover); }
+.dsh-button-icon { display: inline-flex; width: 16px; height: 16px; align-items: center; justify-content: center; }
+
+/* The row's collapsed line keeps a space after the title, as the reference row does. */
+.dsh-row .reasoning-peek { margin-left: 6px; }

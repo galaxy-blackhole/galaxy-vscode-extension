@@ -7,6 +7,7 @@ import { getUiState, subscribeUiState, type UiToolPart } from "../ui-store";
 import { useT } from "../i18n";
 import { ReasoningIcon } from "./icons";
 import { DshDisclosureRow } from "./DshDisclosureRow";
+import { DshButton } from "./DshButton";
 import { runCommand } from "../host-bridge";
 
 /* The label table is shared with the TUI, so a tool reads the same in both hosts. */
@@ -46,9 +47,9 @@ function CodeBlock(props: { className?: string; children?: React.ReactNode }) {
         <span className="code-lang">{match?.[1] ?? "text"}</span>
         <span className="code-actions">
           {match !== null && SHELL_LANGUAGES.has(match[1].toLowerCase()) ? (
-            <button type="button" className="code-copy" onClick={() => { runCommand(text); }}>{t("Chạy")}</button>
+            <DshButton type="button" size="sm" variant="ghost" onClick={() => { runCommand(text); }}>{t("Chạy")}</DshButton>
           ) : null}
-          <button type="button" className="code-copy" onClick={copy}>{copied ? t("Đã copy") : t("Copy")}</button>
+          <DshButton type="button" size="sm" variant="ghost" onClick={copy}>{copied ? t("Đã copy") : t("Copy")}</DshButton>
         </span>
       </div>
       <pre className="code-body"><code>{text}</code></pre>

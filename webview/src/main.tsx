@@ -5,6 +5,7 @@ import { SettingsPage } from "./SettingsPage";
 /* The DSH token layer first, so our own rules below it can still override. */
 import "./dsh-tokens.css";
 import "./dsh-disclosure.css";
+import "./dsh-button.css";
 import "./styles.css";
 
 declare global {
