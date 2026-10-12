@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { resolveApproval, subscribePendingApprovals } from "../host-bridge";
+import { DshButton } from "./DshButton";
+import { useT } from "../i18n";
 
 type Pending = { requestId: string; tool: string; args: Record<string, unknown>; reason: string };
 
 export function ApprovalBar() {
+  const t = useT();
   const [pending, setPending] = useState<Pending | null>(null);
   useEffect(() => subscribePendingApprovals(setPending), []);
   if (!pending) return null;
@@ -27,8 +30,8 @@ export function ApprovalBar() {
       </div>
       <pre className="approval-preview">{preview}</pre>
       <div className="approval-actions">
-        <button className="btn btn-approve" onClick={() => { answer(true); }}>Allow</button>
-        <button className="btn btn-deny" onClick={() => { answer(false); }}>Deny</button>
+        <DshButton variant="primary" onClick={() => { answer(true); }}>{t("Cho phép")}</DshButton>
+        <DshButton variant="ghost" onClick={() => { answer(false); }}>{t("Từ chối")}</DshButton>
       </div>
     </div>
   );

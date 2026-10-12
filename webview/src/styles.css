@@ -322,10 +322,12 @@ html, body, #app {
 
 .approval-bar {
   margin: 0 12px 8px;
-  border: 1px solid var(--vscode-inputValidation-warningBorder, #b89500);
-  background: var(--vscode-inputValidation-warningBackground, #352b05);
-  border-radius: 8px;
-  padding: 10px 12px;
+  /* DSH's own surfaces rather than the editor's warning colours: the same card the reference shows. */
+  border: 0.5px solid var(--dsw-alias-border-l3, #3c3c3c);
+  background: var(--dsw-alias-bg-elevated, var(--vscode-editorWidget-background, #252526));
+  border-radius: var(--dsw-radius-lg, 16px);
+  padding: 12px 14px;
+  color: var(--dsw-alias-label-primary, var(--vscode-foreground, #ccc));
 }
 .approval-title { font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .approval-badge {
