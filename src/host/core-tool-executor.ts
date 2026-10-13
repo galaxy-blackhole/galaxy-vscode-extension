@@ -38,6 +38,11 @@ export interface CoreToolExecutorOptions {
   readonly mcpTools?: readonly AgentTool[];
   readonly onPendingApproval: ApprovalEmitter;
   readonly permissionMode: () => PermissionMode;
+  /**
+   * How long a permission card waits before deciding on its own. The reference has no timer on that wait, so the
+   * product passes a bound long enough that the person is always the one who answers.
+   */
+  readonly approvalTimeoutMs?: number;
   /** Composed by the host so a session may run in tools mode ptc; absent means run_code is unavailable. */
   readonly codeRuntime?: CodeRuntimePort;
   /** The round's tool mode, so the executor can hold the entry tool open for a ptc round. */
@@ -93,8 +98,10 @@ export async function createCoreToolExecutor(options: CoreToolExecutorOptions): 
     ...(options.toolPresentation === undefined ? {} : { toolPresentation: options.toolPresentation }),
     ...(options.onCodeEvent === undefined ? {} : { onCodeEvent: options.onCodeEvent }),
     approval,
-    approvalProfile: "strict",
+    /* The reference asks about anything that changes the workspace; a stricter profile asked about reads too. */
+    approvalProfile: "balanced",
     approvalTimeoutMs: 5 * 60_000,
+    ...(options.approvalTimeoutMs === undefined ? {} : { approvalTimeoutMs: options.approvalTimeoutMs }),
     capabilities: options.capabilities,
     command,
     enableGit: options.hasGit,

@@ -36,8 +36,14 @@
   border: none;
   cursor: pointer;
   font: inherit;
+  /* A button does not inherit the clipping the span had: without this a long detail runs across the row. */
+  max-width: 58%;
+  min-width: 0;
+  overflow: hidden;
   padding: 0;
   text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tool-detail-link:hover { color: var(--dsw-alias-label-primary, var(--vscode-foreground, #ccc)); }

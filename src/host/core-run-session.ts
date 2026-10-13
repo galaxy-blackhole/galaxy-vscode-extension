@@ -185,6 +185,12 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
   const toolExecutor = await createCoreToolExecutor({
     ...(codeRuntime === undefined ? {} : { codeRuntime }),
     toolPresentation: requestedPresentation,
+    /*
+     * A permission card waits for its person. The reference has no timer on that wait at all, so neither does the
+     * product: a long-bound rather than none, because a card nobody ever answers must not hold a file handle for
+     * the rest of the session.
+     */
+    approvalTimeoutMs: 24 * 60 * 60_000,
     review: warm.review,
     onCodeEvent: (event) => {
       if (event.type === "code/tool-start") {
