@@ -28,6 +28,8 @@ export type GalaxyUiEvent =
   | Readonly<{ kind: "completion/rejected"; issues: readonly string[] }>
   /** The composition this session runs as, so the choice is visible rather than implied. */
   | Readonly<{ kind: "preset/current"; id: string; label: string }>
+  /** What the session is for, so the goal is visible while it is being worked towards. */
+  | Readonly<{ kind: "goal/current"; id: string; objective: string }>
   | Readonly<{ kind: "approval/cleared" }>
   /** The plan is written and plan mode still holds it back: the person decides whether work may start. */
   | Readonly<{ kind: "plan/review"; steps: readonly string[] }>

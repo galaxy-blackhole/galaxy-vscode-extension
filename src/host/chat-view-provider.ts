@@ -591,6 +591,17 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
             mcpTools: await this.mcpTools(),
             onEvent: (event) => {
               /* The plan as the core last described it, for the review card to show without asking again. */
+              /*
+               * The goal, taken from the arguments the model actually sent rather than read out of a sentence: the
+               * row's summary is prose meant for a person, and prose is a poor thing to parse.
+               */
+              if (event.kind === "tool/start" && (event.name === "create_goal" || event.name === "update_goal")) {
+                const args = event.args as { objective?: unknown } | undefined;
+                const objective = typeof args?.objective === "string" ? args.objective : null;
+                if (objective !== null) {
+                  this.post({ type: "ui-event", event: { kind: "goal/current", id: "", objective } });
+                }
+              }
               if (event.kind === "plan/updated") {
                 this.lastPlanSteps = event.steps.map((step) => step.title);
               }

@@ -19,6 +19,7 @@ import "./changes-card.css";
 import "./payload-actions.css";
 import "./plan-review.css";
 import "./preset-badge.css";
+import "./goal-strip.css";
 
 declare global {
   interface Window {

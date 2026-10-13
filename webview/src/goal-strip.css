@@ -1,0 +1,23 @@
+/* The goal, one line, clipped rather than wrapped: it is a heading, not a paragraph. */
+.goal-strip {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  margin: 0 12px 6px;
+  min-width: 0;
+}
+
+.goal-strip-label {
+  color: var(--dsw-alias-label-tertiary, var(--vscode-descriptionForeground, #9d9d9d));
+  flex: none;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.goal-strip-text {
+  color: var(--dsw-alias-label-secondary, var(--vscode-foreground, #ccc));
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
