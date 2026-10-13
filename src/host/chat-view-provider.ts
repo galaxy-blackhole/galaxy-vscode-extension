@@ -313,6 +313,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   private readonly runLog = vscode.window.createOutputChannel("Galaxy: Luồng chạy");
   /** Payloads the webview asked to read in full, keyed by the document name the tab opens. */
   private readonly payloads = new Map<string, string>();
+  /** What each call in flight is, so a failure can name the tool and the arguments it was given. */
+  private readonly callsInFlight = new Map<string, Readonly<{ name: string; args: unknown }>>();
 
   private trace(line: string): void {
     const storageRoot = this.sessionsRoot;
@@ -568,8 +570,10 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
                * written down. One line per failure keeps the log readable.
                */
               if (event.kind === "tool/result" && event.ok === false) {
-                const args = (event as { args?: unknown }).args;
-                this.trace("tool lỗi: " + JSON.stringify((event as { name?: string }).name ?? "") + " args=" + JSON.stringify(args ?? {}).slice(0, 220) + " → " + String(event.summary ?? "").slice(0, 120) + " | " + String(event.outputTail ?? "").replace(/\s+/g, " ").slice(0, 260));
+                const known = this.callsInFlight.get(event.toolCallId);
+        const args = (event as { args?: unknown }).args ?? known?.args;
+        const name = (event as { name?: string }).name ?? known?.name ?? "";
+                this.trace("tool lỗi: " + JSON.stringify(name) + " args=" + JSON.stringify(args ?? {}).slice(0, 220) + " → " + String(event.summary ?? "").slice(0, 120) + " | " + String(event.outputTail ?? "").replace(/\s+/g, " ").slice(0, 260));
               }
               return this.post({ type: "ui-event", event: planEventForWebview(event) });
             },
@@ -629,6 +633,17 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
        */
       default: {
         this.trace("action " + JSON.stringify(action));
+        return;
+      }
+      case "file/open": {
+        /* A path in the transcript is a door: the editor opens the file itself, with its own navigation. */
+        const root = this.workspaceRoot;
+        if (root !== null) {
+          const file = vscode.Uri.joinPath(vscode.Uri.file(root), action.path);
+          try {
+            await vscode.window.showTextDocument(file, { preview: true });
+          } catch { /* the path is gone or outside the workspace: nothing to open */ }
+        }
         return;
       }
       case "payload/open":

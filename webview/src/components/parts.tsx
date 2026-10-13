@@ -126,6 +126,8 @@ function glyphOf(name: string): string {
 function fileTagOf(part: UiToolPart): string | null {
   const path = detailOf(part);
   if (path.length === 0) return null;
+  /* A goal or a query is prose, and prose can contain a dot: only a path gets a file tag. */
+  if (/\s/.test(path) || path.endsWith("…") === true) return null;
   const name = path.split("/").pop() ?? "";
   const dot = name.lastIndexOf(".");
   if (dot <= 0 || dot === name.length - 1) return null;
@@ -292,16 +294,21 @@ export const ToolFallback: ToolCallMessagePartComponent = function ToolFallback(
       </button>
       {children.length === 0 ? null : children.map(child => (
         <div className="tool-nested" key={child.toolCallId}>
-          <button type="button" className="tool-nested-row" onClick={() => { setOpenChild(openChild === child.toolCallId ? null : child.toolCallId); }}>
-            {fileTagOf(child) === null
-              ? <span className="tool-icon">{glyphOf(child.toolName)}</span>
-              : <span className="tool-icon tool-file-tag">{fileTagOf(child)}</span>}
-            <span className="tool-name" title={child.toolName}>
-              {toolLabel(child.toolName, child.args)}
-              {detailOf(child).length === 0 ? null : <span className="tool-detail-name">{detailOf(child)}</span>}
-            </span>
+          <div className="tool-nested-row">
+            <button type="button" className="tool-row-toggle" onClick={() => { setOpenChild(openChild === child.toolCallId ? null : child.toolCallId); }}>
+              {fileTagOf(child) === null
+                ? <span className="tool-icon">{glyphOf(child.toolName)}</span>
+                : <span className="tool-icon tool-file-tag">{fileTagOf(child)}</span>}
+              <span className="tool-name" title={child.toolName}>{toolLabel(child.toolName, child.args)}</span>
+            </button>
+            {/* A path in the row is a door: the editor opens the file itself, the way the reference does. */}
+            {fileTagOf(child) === null ? null : (
+              <button type="button" className="tool-detail-name tool-detail-link" onClick={() => { dispatchUiAction({ type: "file/open", path: detailOf(child) }); }}>
+                {detailOf(child)}
+              </button>
+            )}
             {reasonOf(child).length === 0 ? null : <span className="tool-error-reason">{reasonOf(child)}</span>}
-          </button>
+          </div>
           {openChild === child.toolCallId ? <ToolDetail part={child} /> : null}
         </div>
       ))}

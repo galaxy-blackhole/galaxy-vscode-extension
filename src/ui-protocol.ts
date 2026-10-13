@@ -45,7 +45,8 @@ export type GalaxyUiAction =
   | Readonly<{ type: "approval/resolve"; requestId: string; approved: boolean }>
   | Readonly<{ type: "permission/mode"; mode: "ask" | "smart" | "auto" }>
   | Readonly<{ type: "changes/openDiff"; path: string }>
-  | Readonly<{ type: "payload/open"; title: string; text: string }>;
+  | Readonly<{ type: "payload/open"; title: string; text: string }>
+  | Readonly<{ type: "file/open"; path: string }>;
 
 /**
  * Mapping from @galaxy-stack/ai-coder-core runtime events (see
