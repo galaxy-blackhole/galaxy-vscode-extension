@@ -113,7 +113,11 @@ export async function createCoreToolExecutor(options: CoreToolExecutorOptions): 
     /* The reference asks about anything that changes the workspace; a stricter profile asked about reads too. */
     ...(preset === null
       ? {}
-      : { approvalProfile: preset.approvalProfile, toolPresentation: preset.toolPresentation }),
+      : {
+        approvalProfile: preset.approvalProfile,
+        presetPermissions: preset.permissions,
+        toolPresentation: preset.toolPresentation,
+      }),
     approvalTimeoutMs: 5 * 60_000,
     ...(options.approvalTimeoutMs === undefined ? {} : { approvalTimeoutMs: options.approvalTimeoutMs }),
     capabilities: options.capabilities,
