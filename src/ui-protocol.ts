@@ -26,6 +26,7 @@ export type GalaxyUiEvent =
   | Readonly<{ kind: "model/retry"; attempt: number; delayMs: number; reason: string }>
   | Readonly<{ kind: "approval/request"; requestId: string; tool: string; risk: string; args: Record<string, unknown> }>
   | Readonly<{ kind: "completion/rejected"; issues: readonly string[] }>
+  | Readonly<{ kind: "approval/cleared" }>
   | Readonly<{ kind: "changes/summary"; files: readonly Readonly<{ path: string; added: number; removed: number }>[] }>
   | Readonly<{ kind: "error"; code: string; message: string; retryable: boolean }>
   /**

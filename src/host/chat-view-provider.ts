@@ -563,6 +563,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
                */
               if (event.kind === "run/status" && event.status !== "running") {
                 void this.reportChanges();
+                /* A card outlives the program that asked for it: clear it, or the owner answers a dead question. */
+                this.post({ type: "ui-event", event: { kind: "approval/cleared" } });
                 this.trace("run dừng: " + event.status + " — " + (event.reason ?? ""));
               }
               /*

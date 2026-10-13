@@ -127,8 +127,14 @@ function fileTagOf(part: UiToolPart): string | null {
   const path = detailOf(part);
   if (path.length === 0) return null;
   /* A goal or a query is prose, and prose can contain a dot: only a path gets a file tag. */
+  /*
+   * Only a real path gets a tag. A search row's detail is a query or a pattern — `md.*`, `COMMIT_EDITMSG`s cousins,
+   * a regular expression full of dots — and reading an extension out of those produced tags that meant nothing.
+   */
   if (/\s/.test(path) || path.endsWith("…") === true) return null;
   const name = path.split("/").pop() ?? "";
+  const looksLikePath = /[a-z0-9_-]+\.[a-z0-9]+$/i.test(name) && !/[|*?\[\](){}+^$]/.test(name);
+  if (!looksLikePath) return null;
   const dot = name.lastIndexOf(".");
   if (dot <= 0 || dot === name.length - 1) return null;
   const extension = name.slice(dot + 1).toLowerCase();
