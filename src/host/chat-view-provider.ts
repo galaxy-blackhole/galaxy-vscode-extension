@@ -539,6 +539,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         if (planCommand !== null) {
           const on = planCommand[1] === undefined ? !this.planModeHeld : planCommand[1].toLowerCase() === "on";
           this.planModeHeld = on;
+          await this.context.workspaceState.update("galaxy.planMode", on);
           await this.session?.setPlanMode(on);
           this.trace("plan mode: " + (on ? "bật" : "tắt") + " (lệnh /plan)");
           this.post({ type: "ui-event", event: { kind: "plan/updated", mode: on, steps: [] } });
