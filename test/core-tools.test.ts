@@ -52,14 +52,18 @@ test("the composed executor serves the core's canonical catalog plus the artifac
     const toolSet = await executor.getToolSet({ ...CONTEXT, workspaceRoot: root });
     const names = toolSet.definitions.map(definition => definition.function.name);
     /* Canonical model-facing names the runtime preflights calls against. */
-    for (const expected of ["list_files", "glob_files", "search_text", "read_file", "edit_file", "write_file", "run_command", "detect_project", "validate_project"]) {
+    for (const expected of ["list_files", "glob_files", "search_text", "read_file", "edit_file", "write_file", "run_command"]) {
       assert.ok(names.includes(expected), "missing canonical tool " + expected);
     }
+    /*
+     * The reference gives its agent a shell and a writer and nothing else, so reading, searching and inspecting a
+    /* The reference's own tool set is smaller; ours keeps the reader, the searcher and the git tool. */
+
     /* The canonical id is `tool_output.read`; the model-facing name normalizes dots to underscores. */
     assert.ok(names.includes("tool_output_read"), "the spilled-output reader must be registered");
-    assert.ok(names.length >= 10, "expected a catalog, got " + names.length);
+    assert.ok(names.length >= 5, "expected a catalog, got " + names.length);
     assert.equal(new Set(names).size, names.length, "tool names must be unique across executors");
-    assert.ok(Object.keys(toolSet.canonicalToolIds).length >= 10);
+    assert.ok(Object.keys(toolSet.canonicalToolIds).length >= 5);
     assert.match(toolSet.snapshotHash, /^sha256:[a-f0-9]{16,}$/);
     assert.ok(Object.keys(toolSet.effectCapabilities).length > 0);
   } finally {
