@@ -9,6 +9,7 @@ import { SettingsPage } from "./SettingsPage";
  * design on top.
  */
 import "./styles.css";
+import "./dsh-chat.css";
 import "./dsh-tokens.css";
 import "./dsh-disclosure.css";
 import "./dsh-button.css";

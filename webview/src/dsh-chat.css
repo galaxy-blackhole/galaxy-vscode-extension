@@ -1,0 +1,30 @@
+/*
+ * The chat's rhythm, taken from the reference: room between turns, the owner's words on their own surface to the
+ * right, the answer left plain on the background. It loads after the base sheet, so it decides.
+ */
+.msg {
+  line-height: 24px;
+  max-width: 100%;
+}
+
+.msg-assistant {
+  margin: 14px 0 6px;
+}
+
+.msg-user {
+  align-self: flex-end;
+  background: var(--dsw-alias-bg-elevated, var(--vscode-editorWidget-background, #252526));
+  border-radius: var(--dsw-radius-lg, 16px);
+  margin: 10px 0 14px;
+  max-width: 84%;
+  padding: 10px 14px;
+  width: fit-content;
+}
+
+/* The process list breathes a little more than a paragraph does. */
+.tool-card { margin: 8px 0; }
+.tool-card > .tool-header .tool-name { letter-spacing: 0.005em; }
+.tool-nested .tool-nested-row:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.08)); }
+
+/* Reasoning sits with the work it explains, not with the answer. */
+.dsh-row-root + .tool-card { margin-top: 6px; }
