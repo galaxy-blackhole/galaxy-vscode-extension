@@ -313,6 +313,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   private readonly runLog = vscode.window.createOutputChannel("Galaxy: Luồng chạy");
   /** Payloads the webview asked to read in full, keyed by the document name the tab opens. */
   private readonly payloads = new Map<string, string>();
+  /** Plan mode as the last command left it; the session keeps its own copy, this one answers the next command. */
+  private planModeHeld = false;
   /** What each call in flight is, so a failure can name the tool and the arguments it was given. */
   private readonly callsInFlight = new Map<string, Readonly<{ name: string; args: unknown }>>();
 
@@ -515,6 +517,20 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   private async handleUiAction(action: GalaxyUiAction): Promise<void> {
     switch (action.type) {
       case "run/start": {
+        /*
+         * `/plan` is a command about the mode, not a message: it turns plan mode on or off, says so, and sends
+         * nothing. The reference gives plan mode exactly this — a direct slash command — so the transcript never
+         * has to carry a turn whose only content was a switch.
+         */
+        const planCommand = /^\/plan(?:\s+(on|off))?$/i.exec(action.input.trim());
+        if (planCommand !== null) {
+          const on = planCommand[1] === undefined ? !this.planModeHeld : planCommand[1].toLowerCase() === "on";
+          this.planModeHeld = on;
+          await this.session?.setPlanMode(on);
+          this.trace("plan mode: " + (on ? "bật" : "tắt") + " (lệnh /plan)");
+          this.post({ type: "ui-event", event: { kind: "plan/updated", mode: on, steps: [] } });
+          return;
+        }
         this.testLog.push("run/start:" + action.input.slice(0, 60));
         if (this.session) return; // one run at a time in the prototype
         if (!this.connection || !this.workspaceRoot) return;
