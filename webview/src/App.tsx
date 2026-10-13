@@ -12,6 +12,7 @@ import { ApprovalBar } from "./components/ApprovalBar";
 import { Composer } from "./components/Composer";
 import { PlanStrip } from "./components/PlanStrip";
 import { ChangesCard } from "./components/ChangesCard";
+import { PlanReviewCard } from "./components/PlanReviewCard";
 import { GearIcon, NewThreadIcon } from "./components/icons";
 import { startNewThread } from "./host-bridge";
 import { ReasoningPart, TextPart, ToolFallback } from "./components/parts";
@@ -133,6 +134,7 @@ export function App() {
           <ThreadPrimitive.ScrollToBottom className="scroll-to-bottom">↓</ThreadPrimitive.ScrollToBottom>
         </ThreadPrimitive.Root>
         <ApprovalBar />
+        <PlanReviewCard />
         <ChangesCard />
         <PlanStrip />
         <Composer info={info} />

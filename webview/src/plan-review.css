@@ -1,0 +1,22 @@
+/* The plan asking for approval: the same surface as the permission card, because it asks the same kind of question. */
+.plan-review {
+  background: var(--dsw-alias-bg-elevated, var(--vscode-editorWidget-background, #252526));
+  border: 0.5px solid var(--dsw-alias-border-l3, var(--vscode-panel-border, #3c3c3c));
+  border-radius: var(--dsw-radius-lg, 16px);
+  margin: 0 12px 8px;
+  padding: 12px 14px;
+}
+
+.plan-review-head { align-items: baseline; display: flex; gap: 10px; margin-bottom: 8px; }
+.plan-review-title { color: var(--dsw-alias-label-primary, var(--vscode-foreground, #ccc)); font-size: 14px; }
+.plan-review-count { color: var(--dsw-alias-label-tertiary, var(--vscode-descriptionForeground, #9d9d9d)); font-size: 12px; }
+
+.plan-review-steps {
+  color: var(--dsw-alias-label-secondary, var(--vscode-descriptionForeground, #9d9d9d));
+  font-size: 13px;
+  line-height: 22px;
+  margin: 0 0 10px;
+  padding-left: 20px;
+}
+
+.plan-review-actions { display: flex; gap: 8px; justify-content: flex-end; }

@@ -27,6 +27,8 @@ export type GalaxyUiEvent =
   | Readonly<{ kind: "approval/request"; requestId: string; tool: string; risk: string; args: Record<string, unknown> }>
   | Readonly<{ kind: "completion/rejected"; issues: readonly string[] }>
   | Readonly<{ kind: "approval/cleared" }>
+  /** The plan is written and plan mode still holds it back: the person decides whether work may start. */
+  | Readonly<{ kind: "plan/review"; steps: readonly string[] }>
   | Readonly<{ kind: "changes/summary"; files: readonly Readonly<{ path: string; added: number; removed: number }>[] }>
   | Readonly<{ kind: "error"; code: string; message: string; retryable: boolean }>
   /**

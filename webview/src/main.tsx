@@ -17,6 +17,7 @@ import "./tool-rows.css";
 import "./file-tags.css";
 import "./changes-card.css";
 import "./payload-actions.css";
+import "./plan-review.css";
 
 declare global {
   interface Window {

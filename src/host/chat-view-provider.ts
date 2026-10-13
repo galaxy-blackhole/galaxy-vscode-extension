@@ -315,6 +315,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   private readonly payloads = new Map<string, string>();
   /** Plan mode as the last command left it; the session keeps its own copy, this one answers the next command. */
   private planModeHeld = false;
+  /** The steps the last plan event carried, so the review card can show the plan without asking again. */
+  private lastPlanSteps: readonly string[] = [];
   /** What each call in flight is, so a failure can name the tool and the arguments it was given. */
   private readonly callsInFlight = new Map<string, Readonly<{ name: string; args: unknown }>>();
 
@@ -578,6 +580,16 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
                * that line keeps the log short and makes "did this run fail, and why" answerable after the fact.
                */
               if (event.kind === "run/status" && event.status !== "running") {
+                /*
+                 * The run stopped with plan mode still on: the plan exists and nothing has been done with it. That is
+                 * the moment the reference hands the plan to its person — a plan nobody approves is a plan that never
+                 * becomes work, and one that runs itself is not plan mode at all.
+                 */
+                if (this.planModeHeld) {
+                  const steps = this.lastPlanSteps;
+                  this.trace("plan xong: " + steps.length + " bước, chờ người duyệt");
+                  this.post({ type: "ui-event", event: { kind: "plan/review", steps } });
+                }
                 void this.reportChanges();
                 /* A card outlives the program that asked for it: clear it, or the owner answers a dead question. */
                 this.post({ type: "ui-event", event: { kind: "approval/cleared" } });
