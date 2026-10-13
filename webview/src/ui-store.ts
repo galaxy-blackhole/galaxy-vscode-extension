@@ -49,6 +49,8 @@ export interface UiState {
   readonly changes: readonly Readonly<{ path: string; added: number; removed: number }>[];
   /** Steps waiting for the owner's approval before any of them may be worked on; null when nothing waits. */
   readonly planReview: readonly string[] | null;
+  /** The composition this session runs as, shown so the choice is visible rather than implied. */
+  readonly preset: Readonly<{ id: string; label: string }> | null;
 }
 
 type Listener = () => void;
@@ -63,6 +65,7 @@ let activeSessionId: string | null = null;
 let planMode = false;
 let changes: UiState["changes"] = [];
 let planReview: UiState["planReview"] = null;
+let preset: UiState["preset"] = null;
 let bootPhase: "index" | "mcp" | null = "index";
 let bootMessage = "";
 let bootDone = false;
@@ -92,7 +95,7 @@ function notify(): void {
 }
 
 function snapshot(): UiState {
-  return { activeSessionId, boot: { phase: bootPhase, message: bootMessage, done: bootDone }, changes, planReview, messages, plan, planMode, sessions, status, statusReason, thinking };
+  return { activeSessionId, boot: { phase: bootPhase, message: bootMessage, done: bootDone }, changes, planReview, preset, messages, plan, planMode, sessions, status, statusReason, thinking };
 }
 
 let cachedSnapshot: UiState = snapshot();
@@ -198,6 +201,11 @@ function handleEvent(event: GalaxyUiEvent): void {
         parts.push({ type: "reasoning", text: event.text });
       }
       updateLastAssistant(() => parts);
+      commit();
+      return;
+    }
+    case "preset/current": {
+      preset = { id: event.id, label: event.label };
       commit();
       return;
     }

@@ -18,6 +18,7 @@ import "./file-tags.css";
 import "./changes-card.css";
 import "./payload-actions.css";
 import "./plan-review.css";
+import "./preset-badge.css";
 
 declare global {
   interface Window {

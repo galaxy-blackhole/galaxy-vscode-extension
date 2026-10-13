@@ -26,6 +26,8 @@ export type GalaxyUiEvent =
   | Readonly<{ kind: "model/retry"; attempt: number; delayMs: number; reason: string }>
   | Readonly<{ kind: "approval/request"; requestId: string; tool: string; risk: string; args: Record<string, unknown> }>
   | Readonly<{ kind: "completion/rejected"; issues: readonly string[] }>
+  /** The composition this session runs as, so the choice is visible rather than implied. */
+  | Readonly<{ kind: "preset/current"; id: string; label: string }>
   | Readonly<{ kind: "approval/cleared" }>
   /** The plan is written and plan mode still holds it back: the person decides whether work may start. */
   | Readonly<{ kind: "plan/review"; steps: readonly string[] }>
@@ -44,6 +46,7 @@ export type GalaxyUiAction =
   | Readonly<{ type: "run/cancel" }>
   | Readonly<{ type: "run/pause" }>
   | Readonly<{ type: "context/compact" }>
+  | Readonly<{ type: "preset/set"; id: string }>
   | Readonly<{ type: "plan/mode"; on: boolean }>
   | Readonly<{ type: "approval/resolve"; requestId: string; approved: boolean }>
   | Readonly<{ type: "permission/mode"; mode: "ask" | "smart" | "auto" }>

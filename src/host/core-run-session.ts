@@ -109,6 +109,8 @@ export interface StartCoreRunOptions {
   warm?: CoreWarmUp;
   mcpTools?: readonly AgentTool[];
   permissionMode: PermissionMode;
+  /** The composition this run uses, by name; absent means the product default. */
+  presetId?: string;
   /** Extension global storage: checkpoints, traces, and spilled output live here, never in the workspace. */
   storageRoot: string;
   taskId: string;
@@ -208,6 +210,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
       options.onPendingApproval(pending);
     },
     permissionMode: () => permissionMode,
+    ...(options.presetId === undefined ? {} : { presetId: options.presetId }),
     spill,
     workspaceRoot: options.workspaceRoot,
   });

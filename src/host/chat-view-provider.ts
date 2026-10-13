@@ -14,6 +14,7 @@ import { buildWorkspaceMap, type ContextItem } from "./workspace-map";
 import { resolveModelLibraryUrl, resolveOllamaConnection, type OllamaConnection } from "./config";
 import { streamOllamaChat } from "./ollama-client";
 import { startCoreRun, warmUpCore, type CoreRunSession, type CoreWarmUp } from "./core-run-session";
+import { DEFAULT_AGENT_PRESET_ID, resolveAgentPreset } from "@galaxy-stack/ai-coder-core/runtime/agent-presets";
 import { appendSessionTurn, createSession, deleteSession, listSessions, readSession } from "./session-store";
 import type { AgentTool } from "@galaxy-stack/ai-coder-core/agent";
 import { tryConnectWorkspaceMcp, workspaceMcpServers, type WorkspaceMcpHandle } from "./workspace-mcp";
@@ -46,6 +47,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   private readonly disposables: vscode.Disposable[] = [];
   private session: CoreRunSession | null = null;
   private permissionMode: PermissionMode = "smart";
+  /** The named composition this session runs as; the preset answers how much to ask and how work is presented. */
+  private presetId = DEFAULT_AGENT_PRESET_ID;
   private workspaceRoot: string | null = null;
   private connection: OllamaConnection | null = null;
 
@@ -170,6 +173,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       case "ui-ready": {
         this.testLog.push("ui-ready");
         this.postThinking();
+        this.postPreset();
         this.post({ type: "preferences", preferences: readPreferences(this.storageRoot) });
         const connection = resolveOllamaConnection();
         this.connection = connection;
@@ -509,6 +513,13 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
     this.post({ type: "thinking", choice: stored ?? policy.default, options: policy.choices.map(value => Object.freeze({ label: thinkingLabel(value), value })) });
   }
 
+  /** Tells the panel which composition is in force, so the badge is right before anything is changed. */
+  private postPreset(): void {
+    const preset = resolveAgentPreset(this.presetId);
+    if (preset === null) return;
+    this.post({ type: "ui-event", event: { kind: "preset/current", id: preset.id, label: preset.label } });
+  }
+
   private async postSessionList(): Promise<void> {
     const root = this.sessionsRoot;
     if (root === null) return;
@@ -625,6 +636,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
               });
             },
             permissionMode: this.permissionMode,
+            presetId: this.presetId,
             storageRoot: this.storageRoot,
             taskId: action.taskId,
             workspaceRoot: this.workspaceRoot,
@@ -647,6 +659,17 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       case "run/cancel":
         this.session?.handle.cancel("Cancelled from webview.");
         return;
+      case "preset/set": {
+        const chosen = resolveAgentPreset(action.id);
+        if (chosen === null) {
+          this.trace("preset lạ, bỏ qua: " + action.id);
+          return;
+        }
+        this.presetId = chosen.id;
+        this.trace("preset: " + chosen.id + " (" + chosen.label + ")");
+        this.post({ type: "ui-event", event: { kind: "preset/current", id: chosen.id, label: chosen.label } });
+        return;
+      }
       case "plan/mode": {
         await this.session?.setPlanMode(action.on);
         return;
