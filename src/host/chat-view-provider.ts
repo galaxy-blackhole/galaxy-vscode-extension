@@ -571,6 +571,10 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
              */
             mcpTools: await this.mcpTools(),
             onEvent: (event) => {
+              /* The plan as the core last described it, for the review card to show without asking again. */
+              if (event.kind === "plan/updated") {
+                this.lastPlanSteps = event.steps.map((step) => step.title);
+              }
               if (this.runStartedAt > 0 && (event.kind === "message/thinking-delta" || event.kind === "message/text-delta")) {
                 this.trace("delta đầu tiên sau " + (Date.now() - this.runStartedAt) + "ms");
                 this.runStartedAt = 0;
