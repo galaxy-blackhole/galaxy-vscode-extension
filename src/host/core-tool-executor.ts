@@ -15,6 +15,7 @@ import { NodeWorkspacePort } from "@galaxy-stack/ai-coder-core/adapters/node/hos
 import { NodeToolExecutor } from "@galaxy-stack/ai-coder-core/adapters/node/tools/tool-executor";
 import { NodeWorkspaceReviewExecutor } from "@galaxy-stack/ai-coder-core/adapters/node/tools/workspace-review";
 import type { FileToolOutputSpill } from "./core-host";
+import { DEFAULT_AGENT_PRESET_ID, resolveAgentPreset } from "@galaxy-stack/ai-coder-core/runtime/agent-presets";
 
 /** One approval the webview must answer before the run continues. */
 export interface PendingApproval {
@@ -38,6 +39,11 @@ export interface CoreToolExecutorOptions {
   readonly mcpTools?: readonly AgentTool[];
   readonly onPendingApproval: ApprovalEmitter;
   readonly permissionMode: () => PermissionMode;
+  /**
+   * Which composition this session runs as, by name. Absent means the product's default preset, and an unknown
+   * name resolves to nothing so the core's own defaults stand — never to a value this file invented.
+   */
+  readonly presetId?: string;
   /**
    * How long a permission card waits before deciding on its own. The reference has no timer on that wait, so the
    * product passes a bound long enough that the person is always the one who answers.
@@ -74,6 +80,10 @@ export async function createCoreToolExecutor(options: CoreToolExecutorOptions): 
    * webview mode, which can relax (smart) or bypass (auto) that threshold.
    */
   const approval: ApprovalPort = async (request) => {
+    /*
+     * The preset is read once, here, so every setting it names comes from one decision the caller can see — and
+     * an unknown name leaves the core's defaults alone instead of being papered over with an invented one.
+     */
     const mode = options.permissionMode();
     const decidedAt = new Date().toISOString();
     if (mode === "auto") return portSuccess({ approved: true, decidedAt, scope: "once" as const });
@@ -93,13 +103,17 @@ export async function createCoreToolExecutor(options: CoreToolExecutorOptions): 
     return portSuccess({ approved, decidedAt, scope: "once" as const });
   };
 
+  /* One decision, read once: how much to ask, and whether work goes through tools or a program. */
+  const preset = resolveAgentPreset(options.presetId ?? DEFAULT_AGENT_PRESET_ID);
   const hostTools = new NodeToolExecutor({
     ...(options.codeRuntime === undefined ? {} : { codeRuntime: options.codeRuntime }),
     ...(options.toolPresentation === undefined ? {} : { toolPresentation: options.toolPresentation }),
     ...(options.onCodeEvent === undefined ? {} : { onCodeEvent: options.onCodeEvent }),
     approval,
     /* The reference asks about anything that changes the workspace; a stricter profile asked about reads too. */
-    approvalProfile: "balanced",
+    ...(preset === null
+      ? {}
+      : { approvalProfile: preset.approvalProfile, toolPresentation: preset.toolPresentation }),
     approvalTimeoutMs: 5 * 60_000,
     ...(options.approvalTimeoutMs === undefined ? {} : { approvalTimeoutMs: options.approvalTimeoutMs }),
     capabilities: options.capabilities,
