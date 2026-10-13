@@ -174,6 +174,13 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         this.testLog.push("ui-ready");
         this.postThinking();
         this.postPreset();
+        /*
+         * Plan mode is a decision about the session, so it outlives a reload. The workspace keeps it, and the panel
+         * is told what it is before anything else happens — a mode that silently resets teaches nobody.
+         */
+        this.planModeHeld = this.context.workspaceState.get<boolean>("galaxy.planMode") === true;
+        this.post({ type: "ui-event", event: { kind: "plan/updated", mode: this.planModeHeld, steps: [] } });
+        await this.session?.setPlanMode(this.planModeHeld);
         this.post({ type: "preferences", preferences: readPreferences(this.storageRoot) });
         const connection = resolveOllamaConnection();
         this.connection = connection;
