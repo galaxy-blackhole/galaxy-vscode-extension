@@ -13,6 +13,7 @@ import { createOllamaCoreModel } from "./core-model";
 import { createEvidenceVerifier, createDurableRunStore, FileToolOutputSpill, NdjsonTracePort } from "./core-host";
 import type { AgentTool } from "@galaxy-stack/ai-coder-core/agent";
 import { createCoreToolExecutor, detectGitWorkTree, type PendingApproval, type PermissionMode } from "./core-tool-executor";
+import type { SubagentRegistry } from "@galaxy-stack/ai-coder-core/runtime/subagent-registry";
 
 export type GalaxyUiEventSink = (event: import("../ui-protocol").GalaxyUiEvent) => void;
 
@@ -111,6 +112,8 @@ export interface StartCoreRunOptions {
   permissionMode: PermissionMode;
   /** The composition this run uses, by name; absent means the product default. */
   presetId?: string;
+  /** The child-agent seam, so a run's executor can delegate. */
+  readonly subagents?: SubagentRegistry;
   /** Extension global storage: checkpoints, traces, and spilled output live here, never in the workspace. */
   storageRoot: string;
   taskId: string;
@@ -211,6 +214,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
     },
     permissionMode: () => permissionMode,
     ...(options.presetId === undefined ? {} : { presetId: options.presetId }),
+    ...(options.subagents === undefined ? {} : { subagents: options.subagents }),
     spill,
     workspaceRoot: options.workspaceRoot,
   });

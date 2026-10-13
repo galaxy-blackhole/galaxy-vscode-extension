@@ -16,6 +16,7 @@ import { NodeToolExecutor } from "@galaxy-stack/ai-coder-core/adapters/node/tool
 import { NodeWorkspaceReviewExecutor } from "@galaxy-stack/ai-coder-core/adapters/node/tools/workspace-review";
 import type { FileToolOutputSpill } from "./core-host";
 import { DEFAULT_AGENT_PRESET_ID, resolveAgentPreset } from "@galaxy-stack/ai-coder-core/runtime/agent-presets";
+import type { SubagentRegistry } from "@galaxy-stack/ai-coder-core/runtime/subagent-registry";
 
 /** One approval the webview must answer before the run continues. */
 export interface PendingApproval {
@@ -44,6 +45,8 @@ export interface CoreToolExecutorOptions {
    * name resolves to nothing so the core's own defaults stand — never to a value this file invented.
    */
   readonly presetId?: string;
+  /** The child-agent seam; absent means the delegation tools refuse, which is honest and visible. */
+  readonly subagents?: SubagentRegistry;
   /**
    * How long a permission card waits before deciding on its own. The reference has no timer on that wait, so the
    * product passes a bound long enough that the person is always the one who answers.
@@ -116,6 +119,7 @@ export async function createCoreToolExecutor(options: CoreToolExecutorOptions): 
       : {
         approvalProfile: preset.approvalProfile,
         presetPermissions: preset.permissions,
+        ...(options.subagents === undefined ? {} : { subagents: options.subagents }),
         toolPresentation: preset.toolPresentation,
       }),
     approvalTimeoutMs: 5 * 60_000,
