@@ -92,3 +92,37 @@
 .tool-card.tool-done .tool-icon { color: var(--dsw-alias-label-tertiary, #9d9d9d); }
 .tool-card.tool-running .tool-icon, .tool-card.tool-pending .tool-icon { opacity: 0.6; }
 .tool-card.tool-error .tool-icon, .tool-card.tool-error .tool-name { color: var(--vscode-errorForeground, #f14c4c); }
+
+/*
+ * The rhythm of the process list, taken from the reference: a slightly heavier section title over a hairline,
+ * children a little further in, and every row on the same 24px line as the design system's disclosure rows.
+ */
+.tool-card > .tool-header {
+  gap: 8px;
+  padding: 3px 2px 6px;
+}
+
+.tool-card > .tool-header .tool-name {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 24px;
+}
+
+.tool-card .tool-detail-name {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.tool-nested { margin-left: 9px; }
+
+.tool-nested .tool-nested-row {
+  min-height: 24px;
+  padding: 3px 10px 3px 14px;
+}
+
+.tool-nested .tool-name { font-size: 13px; line-height: 24px; }
+
+/* The file tag rides the 24px line without pushing it taller. */
+.tool-file-tag { height: 15px; line-height: 15px; }
