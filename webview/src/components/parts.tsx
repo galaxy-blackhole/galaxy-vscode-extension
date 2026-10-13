@@ -165,6 +165,9 @@ const DETAIL_KEYS: Readonly<Record<string, readonly string[]>> = Object.freeze({
   write_file: ["path"],
   edit_file: ["path"],
   git_operation: ["action"],
+  "job.list": [],
+  "job.output": ["job_id"],
+  "job.kill": ["job_id"],
 });
 
 function detailOf(part: UiToolPart): string {
