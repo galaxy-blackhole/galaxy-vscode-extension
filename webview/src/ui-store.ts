@@ -53,6 +53,8 @@ export interface UiState {
   readonly preset: Readonly<{ id: string; label: string }> | null;
   /** What the session is for. */
   readonly goal: string | null;
+  /** The children this session started, as the book keeps them. */
+  readonly agents: readonly Readonly<{ depth: number; description: string; id: string; status: string }>[];
 }
 
 type Listener = () => void;
@@ -69,6 +71,7 @@ let changes: UiState["changes"] = [];
 let planReview: UiState["planReview"] = null;
 let preset: UiState["preset"] = null;
 let goal: UiState["goal"] = null;
+let agents: UiState["agents"] = [];
 let bootPhase: "index" | "mcp" | null = "index";
 let bootMessage = "";
 let bootDone = false;
@@ -98,7 +101,7 @@ function notify(): void {
 }
 
 function snapshot(): UiState {
-  return { activeSessionId, boot: { phase: bootPhase, message: bootMessage, done: bootDone }, changes, goal, planReview, preset, messages, plan, planMode, sessions, status, statusReason, thinking };
+  return { activeSessionId, boot: { phase: bootPhase, message: bootMessage, done: bootDone }, agents, changes, goal, planReview, preset, messages, plan, planMode, sessions, status, statusReason, thinking };
 }
 
 let cachedSnapshot: UiState = snapshot();
@@ -204,6 +207,11 @@ function handleEvent(event: GalaxyUiEvent): void {
         parts.push({ type: "reasoning", text: event.text });
       }
       updateLastAssistant(() => parts);
+      commit();
+      return;
+    }
+    case "agents/current": {
+      agents = [...event.agents];
       commit();
       return;
     }

@@ -73,7 +73,12 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
           nextTaskId: () => (this.session?.handle.runId ?? "run") + "-child-" + String(++this.childRuns),
           start: (input) => this.startChildRun(input),
         }),
-        reporter: { finish: (id, status) => { this.subagents.finish(id, status); } },
+        reporter: {
+          finish: (id, status) => {
+            this.subagents.finish(id, status);
+            this.postAgents();
+          },
+        },
       }),
     );
   }
@@ -198,6 +203,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         this.testLog.push("ui-ready");
         this.postThinking();
         this.postPreset();
+        this.postAgents();
         /*
          * Plan mode is a decision about the session, so it outlives a reload. The workspace keeps it, and the panel
          * is told what it is before anything else happens — a mode that silently resets teaches nobody.
@@ -592,6 +598,20 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       cancel: () => { session?.handle.cancel("Parent stopped this child."); },
       done: done.then(() => undefined).catch(() => undefined),
     };
+  }
+
+  /**
+   * The children, as the book has them. Posted whenever one starts or ends, so the list is the truth rather than a
+   * memory of events: the registry already knows, and a second copy could only disagree with it.
+   */
+  private postAgents(): void {
+    this.post({
+      type: "ui-event",
+      event: {
+        kind: "agents/current",
+        agents: this.subagents.list().map((agent) => ({ depth: agent.depth, description: agent.description, id: agent.id, status: agent.status })),
+      },
+    });
   }
 
   private async postSessionList(): Promise<void> {
