@@ -19,6 +19,7 @@ import "./changes-card.css";
 import "./payload-actions.css";
 import "./plan-review.css";
 import "./preset-badge.css";
+import "./sessions.css";
 import "./goal-strip.css";
 import "./agents-strip.css";
 import "./jobs-strip.css";

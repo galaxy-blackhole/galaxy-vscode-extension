@@ -13,6 +13,8 @@ import { Composer } from "./components/Composer";
 import { PlanStrip } from "./components/PlanStrip";
 import { ChangesCard } from "./components/ChangesCard";
 import { PlanReviewCard } from "./components/PlanReviewCard";
+import { SessionsPage } from "./SessionsPage";
+import { refreshSessions } from "./ui-store";
 import { PresetBadge } from "./components/PresetBadge";
 import { GoalStrip } from "./components/GoalStrip";
 import { AgentsStrip } from "./components/AgentsStrip";
@@ -94,7 +96,10 @@ export function App() {
   const settings = info?.modelSettings ?? null;
   /* Đổi cỡ chữ trong Cài đặt là đổi luôn nội dung hội thoại. */
   const fontSize = useSyncExternalStore(subscribePreferenceChanges, getPreferences).fontSize;
-  const boot = useSyncExternalStore(subscribeUiState, getUiState).boot;
+  const ui = useSyncExternalStore(subscribeUiState, getUiState);
+  const boot = ui.boot;
+  /* The list and the conversation are two views of one panel; the header says which one you are looking at. */
+  const [view, setView] = useState<"chat" | "sessions">("chat");
   useEffect(() => { document.documentElement.style.setProperty("--ui-font-size", fontSize + "px"); }, [fontSize]);
   /* No key on the active provider means the first run cannot start: open the panel. */
   const needsKey = settings !== null && info?.credentialSource !== "environment"
@@ -115,7 +120,18 @@ export function App() {
     <AssistantRuntimeProvider runtime={runtime}>
       <div className="app-shell">
         <header className="app-header">
-          <span className="app-title">Galaxy Blackhole</span>
+          {ui.activeSessionId === null ? null : (
+            <button
+              type="button"
+              className="app-back"
+              aria-label="Danh sách phiên"
+              title="Danh sách phiên"
+              onClick={() => { refreshSessions(); setView("sessions"); }}
+            >
+              ◀
+            </button>
+          )}
+          <span className="app-title">{ui.activeSessionTitle ?? "Galaxy Blackhole"}</span>
           {/* The mode sits beside the name: it is the thing that explains every row below it. */}
           <PresetBadge />
           <span className="app-header-actions">
@@ -130,6 +146,10 @@ export function App() {
           </span>
         </header>
         {!boot.done && boot.phase === "mcp" ? <BootNotice message={boot.message} /> : null}
+                {view === "sessions" ? (
+          <SessionsPage onOpen={() => setView("chat")} />
+        ) : (
+          <>
         <ThreadPrimitive.Root className="thread-root">
           <ThreadPrimitive.Viewport className="thread-viewport">
             <ThreadPrimitive.Empty>
@@ -147,6 +167,8 @@ export function App() {
         <ChangesCard />
         <PlanStrip />
         <Composer info={info} />
+          </>
+        )}
       </div>
     </AssistantRuntimeProvider>
   );

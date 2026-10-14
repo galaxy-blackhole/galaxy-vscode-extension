@@ -1,4 +1,5 @@
 import type { GalaxyUiEvent, GalaxyUiRunStatus } from "../../src/ui-protocol";
+import { vscodeApi } from "./vscode";
 import { subscribeNewThread, subscribeSessionMessages, subscribeThinking, subscribeUiEvents } from "./host-events";
 
 export interface UiToolPart {
@@ -41,6 +42,8 @@ export interface UiState {
   readonly sessions: readonly UiSessionSummary[];
   readonly thinking: Readonly<{ choice: string; options: readonly Readonly<{ label: string; value: string }>[] }> | null;
   readonly activeSessionId: string | null;
+  /** The session's own name, so the header says what this conversation is instead of the product's. */
+  readonly activeSessionTitle: string | null;
   readonly planMode: boolean;
   readonly statusReason: string | null;
   /** Boot progress before the first run: `index` holds the panel, `mcp` only annotates it. */
@@ -66,6 +69,7 @@ let status: GalaxyUiRunStatus | "idle" = "idle";
 let statusReason: string | null = null;
 let plan: UiPlan | null = null;
 let sessions: UiSessionSummary[] = [];
+let activeSessionTitle: string | null = null;
 let thinking: UiState["thinking"] = null;
 let activeSessionId: string | null = null;
 let planMode = false;
@@ -104,7 +108,7 @@ function notify(): void {
 }
 
 function snapshot(): UiState {
-  return { activeSessionId, boot: { phase: bootPhase, message: bootMessage, done: bootDone }, agents, changes, jobs, goal, planReview, preset, messages, plan, planMode, sessions, status, statusReason, thinking };
+  return { activeSessionId, activeSessionTitle, boot: { phase: bootPhase, message: bootMessage, done: bootDone }, agents, changes, jobs, goal, planReview, preset, messages, plan, planMode, sessions, status, statusReason, thinking };
 }
 
 let cachedSnapshot: UiState = snapshot();
@@ -351,6 +355,7 @@ subscribeSessionMessages(message => {
     return;
   }
   activeSessionId = message.id;
+  activeSessionTitle = message.id === null ? null : message.title;
   messages = message.messages.map((turn, index) => ({
     content: [{ type: "text" as const, text: turn.content }],
     id: message.id + "-" + String(index),
@@ -362,6 +367,22 @@ subscribeSessionMessages(message => {
 });
 
 /** Called when the composer submits a new user message. */
+
+  /*
+   * The list is a view; the store owns the message. Opening, creating and refreshing a session go through here, so
+   * a component stays a component and the host's vocabulary lives in one place.
+   */
+  export function openSession(id: string): void {
+    vscodeApi().postMessage({ action: { id, type: "open" }, type: "session/action" });
+  }
+
+  export function startNewSession(): void {
+    vscodeApi().postMessage({ action: { type: "new" }, type: "session/action" });
+  }
+
+  export function refreshSessions(): void {
+    vscodeApi().postMessage({ action: { type: "list" }, type: "session/action" });
+  }
 export function appendUserMessage(text: string): void {
   messages = [...messages, { content: [{ type: "text", text }], id: `user-${Date.now()}`, role: "user" }];
   status = "running";
