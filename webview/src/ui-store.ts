@@ -50,7 +50,7 @@ export interface UiState {
   /** Steps waiting for the owner's approval before any of them may be worked on; null when nothing waits. */
   readonly planReview: readonly string[] | null;
   /** The composition this session runs as, shown so the choice is visible rather than implied. */
-  readonly preset: Readonly<{ id: string; label: string }> | null;
+  readonly preset: Readonly<{ help: string; id: string; label: string }> | null;
   /** What the session is for. */
   readonly goal: string | null;
   /** The children this session started, as the book keeps them. */
@@ -229,7 +229,7 @@ function handleEvent(event: GalaxyUiEvent): void {
       return;
     }
     case "preset/current": {
-      preset = { id: event.id, label: event.label };
+      preset = { help: event.help, id: event.id, label: event.label };
       commit();
       return;
     }

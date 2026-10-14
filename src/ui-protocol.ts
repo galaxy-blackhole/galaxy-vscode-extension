@@ -27,7 +27,7 @@ export type GalaxyUiEvent =
   | Readonly<{ kind: "approval/request"; requestId: string; tool: string; risk: string; args: Record<string, unknown> }>
   | Readonly<{ kind: "completion/rejected"; issues: readonly string[] }>
   /** The composition this session runs as, so the choice is visible rather than implied. */
-  | Readonly<{ kind: "preset/current"; id: string; label: string }>
+  | Readonly<{ kind: "preset/current"; help: string; id: string; label: string }>
   /** What the session is for, so the goal is visible while it is being worked towards. */
   | Readonly<{ kind: "goal/current"; id: string; objective: string }>
   /** The children this session started, straight from the book that keeps them. */

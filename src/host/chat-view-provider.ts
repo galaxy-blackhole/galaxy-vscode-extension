@@ -556,7 +556,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   private postPreset(): void {
     const preset = resolveAgentPreset(this.presetId);
     if (preset === null) return;
-    this.post({ type: "ui-event", event: { kind: "preset/current", id: preset.id, label: preset.label } });
+    this.post({ type: "ui-event", event: { kind: "preset/current", help: preset.help, id: preset.id, label: preset.label } });
   }
 
   /**
@@ -741,9 +741,15 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
                */
               if (event.kind === "tool/result" && event.ok === false) {
                 const known = this.callsInFlight.get(event.toolCallId);
-        const args = (event as { args?: unknown }).args ?? known?.args;
-        const name = (event as { name?: string }).name ?? known?.name ?? "";
-                this.trace("tool lỗi: " + JSON.stringify(name) + " args=" + JSON.stringify(args ?? {}).slice(0, 220) + " → " + String(event.summary ?? "").slice(0, 120) + " | " + String(event.outputTail ?? "").replace(/\s+/g, " ").slice(0, 260));
+                const args = (event as { args?: unknown }).args ?? known?.args;
+                /*
+                 * Never let a failure be anonymous. A program that dies has no tool call of its own, so the name it
+                 * falls back to is the kind of failure and the call it belonged to — enough to grep, which is the
+                 * whole point of the line. A log that says '"" args={}' tells the reader nothing at the exact moment
+                 * they need to know something.
+                 */
+                const name = (event as { name?: string }).name ?? known?.name ?? ("chương trình:" + String(event.toolCallId).slice(0, 8));
+                this.trace("tool lỗi: " + name + " args=" + JSON.stringify(args ?? {}).slice(0, 220) + " → " + String(event.summary ?? "").slice(0, 120) + " | " + String(event.outputTail ?? "").replace(/\s+/g, " ").slice(0, 260));
               }
               return this.post({ type: "ui-event", event: planEventForWebview(event) });
             },
@@ -800,7 +806,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         }
         this.presetId = chosen.id;
         this.trace("preset: " + chosen.id + " (" + chosen.label + ")");
-        this.post({ type: "ui-event", event: { kind: "preset/current", id: chosen.id, label: chosen.label } });
+        this.post({ type: "ui-event", event: { kind: "preset/current", help: chosen.help, id: chosen.id, label: chosen.label } });
         return;
       }
       case "plan/mode": {
