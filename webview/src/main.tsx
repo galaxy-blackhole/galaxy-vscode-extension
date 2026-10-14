@@ -21,6 +21,7 @@ import "./plan-review.css";
 import "./preset-badge.css";
 import "./goal-strip.css";
 import "./agents-strip.css";
+import "./jobs-strip.css";
 
 declare global {
   interface Window {

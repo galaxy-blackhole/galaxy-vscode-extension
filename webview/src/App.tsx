@@ -16,6 +16,7 @@ import { PlanReviewCard } from "./components/PlanReviewCard";
 import { PresetBadge } from "./components/PresetBadge";
 import { GoalStrip } from "./components/GoalStrip";
 import { AgentsStrip } from "./components/AgentsStrip";
+import { JobsStrip } from "./components/JobsStrip";
 import { GearIcon, NewThreadIcon } from "./components/icons";
 import { startNewThread } from "./host-bridge";
 import { ReasoningPart, TextPart, ToolFallback } from "./components/parts";
@@ -137,6 +138,7 @@ export function App() {
           <ThreadPrimitive.ScrollToBottom className="scroll-to-bottom">↓</ThreadPrimitive.ScrollToBottom>
         </ThreadPrimitive.Root>
         <ApprovalBar />
+        <JobsStrip />
         <AgentsStrip />
         <GoalStrip />
         <PresetBadge />

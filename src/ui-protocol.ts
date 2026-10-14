@@ -32,6 +32,8 @@ export type GalaxyUiEvent =
   | Readonly<{ kind: "goal/current"; id: string; objective: string }>
   /** The children this session started, straight from the book that keeps them. */
   | Readonly<{ kind: "agents/current"; agents: readonly Readonly<{ depth: number; description: string; id: string; status: string }>[] }>
+  /** Background work: what is running, as the book in the executor has it. */
+  | Readonly<{ kind: "jobs/current"; jobs: readonly Readonly<{ kind: string; label: string; status: string }>[] }>
   | Readonly<{ kind: "approval/cleared" }>
   /** The plan is written and plan mode still holds it back: the person decides whether work may start. */
   | Readonly<{ kind: "plan/review"; steps: readonly string[] }>

@@ -1,0 +1,19 @@
+/* The background book: what is running, and what happened to it. */
+.jobs-strip { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 12px 8px; }
+
+.job-chip {
+  align-items: baseline;
+  background: var(--dsw-alias-bg-elevated, var(--vscode-editorWidget-background, #252526));
+  border: 0.5px solid var(--dsw-alias-border-l3, var(--vscode-panel-border, #3c3c3c));
+  border-radius: var(--dsw-radius-md, 10px);
+  color: var(--dsw-alias-label-secondary, var(--vscode-foreground, #ccc));
+  display: inline-flex;
+  font-size: 11px;
+  gap: 6px;
+  padding: 2px 8px;
+}
+
+.job-status { color: var(--dsw-alias-label-tertiary, var(--vscode-descriptionForeground, #9d9d9d)); }
+.job-running .job-status { color: var(--vscode-charts-blue, #4a9eff); }
+.job-failed .job-status { color: var(--vscode-errorForeground, #f14c4c); }
+.job-completed .job-status { color: var(--vscode-charts-green, #89d185); }

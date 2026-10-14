@@ -114,6 +114,7 @@ export interface StartCoreRunOptions {
   presetId?: string;
   /** The child-agent seam, so a run's executor can delegate. */
   readonly subagents?: SubagentRegistry;
+  readonly onJobsChanged?: (rows: readonly { readonly kind: string; readonly label: string; readonly status: string }[]) => void;
   /** Extension global storage: checkpoints, traces, and spilled output live here, never in the workspace. */
   storageRoot: string;
   taskId: string;
@@ -215,6 +216,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
     permissionMode: () => permissionMode,
     ...(options.presetId === undefined ? {} : { presetId: options.presetId }),
     ...(options.subagents === undefined ? {} : { subagents: options.subagents }),
+    ...(options.onJobsChanged === undefined ? {} : { onJobsChanged: options.onJobsChanged }),
     spill,
     workspaceRoot: options.workspaceRoot,
   });

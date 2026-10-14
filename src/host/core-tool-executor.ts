@@ -47,6 +47,8 @@ export interface CoreToolExecutorOptions {
   readonly presetId?: string;
   /** The child-agent seam; absent means the delegation tools refuse, which is honest and visible. */
   readonly subagents?: SubagentRegistry;
+  /** Told whenever the background book changes, so the panel can show what is running. */
+  readonly onJobsChanged?: (rows: readonly { readonly kind: string; readonly label: string; readonly status: string }[]) => void;
   /**
    * How long a permission card waits before deciding on its own. The reference has no timer on that wait, so the
    * product passes a bound long enough that the person is always the one who answers.
@@ -120,6 +122,7 @@ export async function createCoreToolExecutor(options: CoreToolExecutorOptions): 
         approvalProfile: preset.approvalProfile,
         presetPermissions: preset.permissions,
         ...(options.subagents === undefined ? {} : { subagents: options.subagents }),
+        ...(options.onJobsChanged === undefined ? {} : { onJobsChanged: options.onJobsChanged }),
         toolPresentation: preset.toolPresentation,
       }),
     approvalTimeoutMs: 5 * 60_000,

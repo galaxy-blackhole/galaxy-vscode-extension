@@ -744,6 +744,13 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
             permissionMode: this.permissionMode,
             presetId: this.presetId,
             subagents: this.subagents,
+            /*
+             * The book, as the executor changes it. Pushed rather than polled: the executor knows the moment a job
+             * starts or ends, and a panel that has to ask is a panel that is always slightly wrong.
+             */
+            onJobsChanged: (rows) => {
+              this.post({ type: "ui-event", event: { kind: "jobs/current", jobs: rows.map((row) => ({ kind: row.kind, label: row.label, status: row.status })) } });
+            },
             storageRoot: this.storageRoot,
             taskId: action.taskId,
             workspaceRoot: this.workspaceRoot,

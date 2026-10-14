@@ -55,6 +55,8 @@ export interface UiState {
   readonly goal: string | null;
   /** The children this session started, as the book keeps them. */
   readonly agents: readonly Readonly<{ depth: number; description: string; id: string; status: string }>[];
+  /** Background work, as the executor's book has it. */
+  readonly jobs: readonly Readonly<{ kind: string; label: string; status: string }>[];
 }
 
 type Listener = () => void;
@@ -72,6 +74,7 @@ let planReview: UiState["planReview"] = null;
 let preset: UiState["preset"] = null;
 let goal: UiState["goal"] = null;
 let agents: UiState["agents"] = [];
+let jobs: UiState["jobs"] = [];
 let bootPhase: "index" | "mcp" | null = "index";
 let bootMessage = "";
 let bootDone = false;
@@ -101,7 +104,7 @@ function notify(): void {
 }
 
 function snapshot(): UiState {
-  return { activeSessionId, boot: { phase: bootPhase, message: bootMessage, done: bootDone }, agents, changes, goal, planReview, preset, messages, plan, planMode, sessions, status, statusReason, thinking };
+  return { activeSessionId, boot: { phase: bootPhase, message: bootMessage, done: bootDone }, agents, changes, jobs, goal, planReview, preset, messages, plan, planMode, sessions, status, statusReason, thinking };
 }
 
 let cachedSnapshot: UiState = snapshot();
@@ -207,6 +210,11 @@ function handleEvent(event: GalaxyUiEvent): void {
         parts.push({ type: "reasoning", text: event.text });
       }
       updateLastAssistant(() => parts);
+      commit();
+      return;
+    }
+    case "jobs/current": {
+      jobs = [...event.jobs];
       commit();
       return;
     }
