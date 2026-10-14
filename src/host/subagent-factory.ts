@@ -31,6 +31,8 @@ export interface ChildRunFactoryOptions {
   /** A fresh id per child; the caller decides the shape, the factory only asks for uniqueness. */
   readonly nextTaskId: () => string;
   readonly start: ChildRunStarter;
+    /** The tail of the parent's conversation for a fork; null for a spawn, or when there is no history. */
+    readonly seed?: () => Promise<string | null>;
 }
 
 /**
@@ -41,8 +43,14 @@ export function createChildRunFactory(options: ChildRunFactoryOptions) {
   return async (request: ChildRunRequest): Promise<ChildRunOutcome> => {
     const text: string[] = [];
     let failed = false;
-    const run = options.start({
-      goal: request.prompt,
+      /*
+       * A fork starts holding the tail of this session; a spawn starts holding nothing but its task. The seed travels
+       * inside the goal because that is the only channel a child run has, and the core's builder already frames it as
+       * history rather than as orders.
+       */
+      const seed = request.record.kind === "fork" ? await (options.seed?.() ?? null) : null;
+      const run = options.start({
+        goal: seed === null ? request.prompt : seed + String.fromCharCode(10) + String.fromCharCode(10) + request.prompt,
       onEvent: (event) => {
         if (event.kind === "message/text-delta") text.push(event.text);
         if (event.kind === "run/status" && event.status === "failed") failed = true;

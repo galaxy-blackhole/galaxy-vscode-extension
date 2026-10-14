@@ -20,6 +20,7 @@ import { SubagentRegistry } from "@galaxy-stack/ai-coder-core/runtime/subagent-r
 import { createChildRunFactory, type ChildRunHandle } from "./subagent-factory";
 import type { GalaxyUiEvent } from "../ui-protocol";
 import { appendSessionTurn, createSession, deleteSession, listSessions, readSession } from "./session-store";
+import { buildSubagentSeed } from "@galaxy-stack/ai-coder-core/runtime/subagent-seed";
 import type { AgentTool } from "@galaxy-stack/ai-coder-core/agent";
 import { tryConnectWorkspaceMcp, workspaceMcpServers, type WorkspaceMcpHandle } from "./workspace-mcp";
 import type { PermissionMode } from "./core-tool-executor";
@@ -74,6 +75,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
         factory: createChildRunFactory({
           nextTaskId: () => (this.session?.handle.runId ?? "run") + "-child-" + String(++this.childRuns),
           start: (input) => this.startChildRun(input),
+          seed: () => this.forkSeed(),
         }),
         reporter: {
           finish: (id, status) => {
@@ -330,6 +332,20 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
 
   /** The Galaxy session this view shows; created lazily by the first run. */
   private sessionId: string | null = null;
+
+  /**
+   * The tail of the session a child is forked from, or null.
+   *
+   * The panel writes its transcript to the session store as it goes, so a fork reads the same history the person
+   * sees. The cap lives in the core's builder rather than in a copy of that rule here.
+   */
+  private async forkSeed(): Promise<string | null> {
+    const root = this.sessionsRoot;
+    if (root === null || this.sessionId === null) return null;
+    const stored = await readSession(root, this.sessionId);
+    if (stored === null) return null;
+    return buildSubagentSeed(stored.messages);
+  }
 
   /** The settings tab, when one is open. */
   private settingsPanel: vscode.WebviewPanel | undefined;
