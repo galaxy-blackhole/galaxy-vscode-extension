@@ -116,6 +116,8 @@ export function App() {
       <div className="app-shell">
         <header className="app-header">
           <span className="app-title">Galaxy Blackhole</span>
+          {/* The mode sits beside the name: it is the thing that explains every row below it. */}
+          <PresetBadge />
           <span className="app-header-actions">
             <button type="button" className="app-icon-btn" aria-label="Trò chuyện mới" title="Trò chuyện mới (xoá nội dung, mở phiên mới)" onClick={() => startNewThread()}>
               <NewThreadIcon />
@@ -141,7 +143,6 @@ export function App() {
         <JobsStrip />
         <AgentsStrip />
         <GoalStrip />
-        <PresetBadge />
         <PlanReviewCard />
         <ChangesCard />
         <PlanStrip />
