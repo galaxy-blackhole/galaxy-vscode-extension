@@ -15,6 +15,10 @@ import { resolveModelLibraryUrl, resolveOllamaConnection, type OllamaConnection 
 import { streamOllamaChat } from "./ollama-client";
 import { startCoreRun, warmUpCore, type CoreRunSession, type CoreWarmUp } from "./core-run-session";
 import { DEFAULT_AGENT_PRESET_ID, resolveAgentPreset } from "@galaxy-stack/ai-coder-core/runtime/agent-presets";
+import { InProcessSubagentProvider } from "@galaxy-stack/ai-coder-core/runtime/subagent-in-process";
+import { SubagentRegistry } from "@galaxy-stack/ai-coder-core/runtime/subagent-registry";
+import { createChildRunFactory, type ChildRunHandle } from "./subagent-factory";
+import type { GalaxyUiEvent } from "../ui-protocol";
 import { appendSessionTurn, createSession, deleteSession, listSessions, readSession } from "./session-store";
 import type { AgentTool } from "@galaxy-stack/ai-coder-core/agent";
 import { tryConnectWorkspaceMcp, workspaceMcpServers, type WorkspaceMcpHandle } from "./workspace-mcp";
@@ -49,10 +53,30 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
   private permissionMode: PermissionMode = "smart";
   /** The named composition this session runs as; the preset answers how much to ask and how work is presented. */
   private presetId = DEFAULT_AGENT_PRESET_ID;
+  /**
+   * The child-agent seam, created once: every run's executor gets it, so a delegation from any run lands in the same
+   * book. Its limits — depth and width — are the ones the reference's own settings page exposes.
+   */
+  private readonly subagents = new SubagentRegistry();
+  private childRuns = 0;
   private workspaceRoot: string | null = null;
   private connection: OllamaConnection | null = null;
 
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(private readonly context: vscode.ExtensionContext) {
+    /*
+     * The seam needs a backend before any run can delegate: the in-process one, fed by this host's own run builder.
+     * Without it the delegation tools refuse — which is honest, and is what they said before this line existed.
+     */
+    this.subagents.register(
+      new InProcessSubagentProvider({
+        factory: createChildRunFactory({
+          nextTaskId: () => (this.session?.handle.runId ?? "run") + "-child-" + String(++this.childRuns),
+          start: (input) => this.startChildRun(input),
+        }),
+        reporter: { finish: (id, status) => { this.subagents.finish(id, status); } },
+      }),
+    );
+  }
 
   /** Checkpoints, traces, and spilled output live in global storage, never in the workspace. */
   private get storageRoot(): string {
@@ -527,6 +551,49 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
     this.post({ type: "ui-event", event: { kind: "preset/current", id: preset.id, label: preset.label } });
   }
 
+  /**
+   * One child run, assembled the same way the parent's is — because it is the same kind of run. Its events go to the
+   * same panel, its approvals to the same owner, and its stop button is its own handle's cancel.
+   */
+  private startChildRun(request: Readonly<{ goal: string; onEvent: (event: GalaxyUiEvent) => void; taskId: string }>): ChildRunHandle {
+    let session: CoreRunSession | null = null;
+    const done = (async () => {
+      const started = await startCoreRun({
+        connection: this.connection as OllamaConnection,
+        goal: request.goal,
+        onEvent: (event) => {
+          request.onEvent(event);
+          this.post({ type: "ui-event", event });
+        },
+        /*
+         * A child's permission request goes to the same owner as its parent's, in the same shape: the reference lets a
+         * child ask, and an owner who cannot see the ask is an owner who cannot answer it.
+         */
+        onPendingApproval: (pending) => {
+          this.trace("approval của con: " + pending.tool + " (" + pending.requestId + ")");
+          this.post({
+            type: "pending-approval",
+            requestId: pending.requestId,
+            tool: pending.tool,
+            args: pending.args,
+            reason: pending.reason,
+          });
+        },
+        permissionMode: this.permissionMode,
+        presetId: this.presetId,
+        storageRoot: this.storageRoot as string,
+        taskId: request.taskId,
+        workspaceRoot: this.workspaceRoot as string,
+      });
+      session = started;
+      await started.handle.result;
+    })();
+    return {
+      cancel: () => { session?.handle.cancel("Parent stopped this child."); },
+      done: done.then(() => undefined).catch(() => undefined),
+    };
+  }
+
   private async postSessionList(): Promise<void> {
     const root = this.sessionsRoot;
     if (root === null) return;
@@ -656,6 +723,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
             },
             permissionMode: this.permissionMode,
             presetId: this.presetId,
+            subagents: this.subagents,
             storageRoot: this.storageRoot,
             taskId: action.taskId,
             workspaceRoot: this.workspaceRoot,
