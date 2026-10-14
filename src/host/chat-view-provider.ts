@@ -59,6 +59,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
    */
   private readonly subagents = new SubagentRegistry();
   private childRuns = 0;
+  /** What each child was asked and what it answered, so the catalogue can show more than a status word. */
+  private readonly childNotes = new Map<string, { result: string; task: string }>();
   private workspaceRoot: string | null = null;
   private connection: OllamaConnection | null = null;
 
@@ -562,12 +564,18 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
    * same panel, its approvals to the same owner, and its stop button is its own handle's cancel.
    */
   private startChildRun(request: Readonly<{ goal: string; onEvent: (event: GalaxyUiEvent) => void; taskId: string }>): ChildRunHandle {
+    /*
+     * The child's own words, kept here rather than asked for later: its events pass through this exact function, and
+     * a catalogue that has to reconstruct a conversation it already saw is a catalogue that will get it wrong.
+     */
+    const spoken: string[] = [];
     let session: CoreRunSession | null = null;
     const done = (async () => {
       const started = await startCoreRun({
         connection: this.connection as OllamaConnection,
         goal: request.goal,
         onEvent: (event) => {
+          if (event.kind === "message/text-delta") spoken.push(event.text);
           request.onEvent(event);
           this.post({ type: "ui-event", event });
         },
@@ -593,6 +601,8 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       });
       session = started;
       await started.handle.result;
+      this.childNotes.set(request.taskId, { result: spoken.join(""), task: request.goal });
+      this.postAgents();
     })();
     return {
       cancel: () => { session?.handle.cancel("Parent stopped this child."); },
@@ -609,7 +619,16 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       type: "ui-event",
       event: {
         kind: "agents/current",
-        agents: this.subagents.list().map((agent) => ({ depth: agent.depth, description: agent.description, id: agent.id, status: agent.status })),
+        agents: this.subagents.list().map((agent) => {
+          const note = this.childNotes.get(agent.id);
+          return {
+            depth: agent.depth,
+            description: agent.description,
+            id: agent.id,
+            ...(note === undefined ? {} : { result: note.result, task: note.task }),
+            status: agent.status,
+          };
+        }),
       },
     });
   }

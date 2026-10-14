@@ -54,7 +54,7 @@ export interface UiState {
   /** What the session is for. */
   readonly goal: string | null;
   /** The children this session started, as the book keeps them. */
-  readonly agents: readonly Readonly<{ depth: number; description: string; id: string; status: string }>[];
+  readonly agents: readonly Readonly<{ depth: number; description: string; id: string; result?: string; status: string; task?: string }>[];
   /** Background work, as the executor's book has it. */
   readonly jobs: readonly Readonly<{ kind: string; label: string; status: string }>[];
 }

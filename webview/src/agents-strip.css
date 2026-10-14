@@ -1,5 +1,33 @@
 /* Small chips: who is working, and whether they are still working. */
-.agents-strip { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 12px 8px; }
+.agents { margin: 0 12px 8px; }
+.agents-strip { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* A chip is a button: the catalogue is one click away, and the click is the whole interface. */
+.agent-chip { cursor: pointer; font-family: inherit; }
+.agent-chip:hover { border-color: var(--vscode-focusBorder, #4a9eff); }
+.agent-open { border-color: var(--vscode-focusBorder, #4a9eff); }
+
+.agent-detail {
+  border-left: 2px solid var(--dsw-alias-border-l3, var(--vscode-panel-border, #3c3c3c));
+  margin-top: 6px;
+  padding-left: 10px;
+}
+
+.agent-detail-row { display: flex; gap: 8px; margin-bottom: 4px; }
+.agent-detail-label { color: var(--dsw-alias-label-tertiary, var(--vscode-descriptionForeground, #9d9d9d)); flex: none; font-size: 11px; min-width: 84px; }
+.agent-detail-text { color: var(--dsw-alias-label-secondary, var(--vscode-foreground, #ccc)); font-size: 12px; }
+
+.agent-detail-answer {
+  color: var(--dsw-alias-label-secondary, var(--vscode-foreground, #ccc));
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11px;
+  line-height: 17px;
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
 .agent-chip {
   align-items: baseline;

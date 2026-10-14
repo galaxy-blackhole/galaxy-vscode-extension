@@ -31,7 +31,10 @@ export type GalaxyUiEvent =
   /** What the session is for, so the goal is visible while it is being worked towards. */
   | Readonly<{ kind: "goal/current"; id: string; objective: string }>
   /** The children this session started, straight from the book that keeps them. */
-  | Readonly<{ kind: "agents/current"; agents: readonly Readonly<{ depth: number; description: string; id: string; status: string }>[] }>
+  | Readonly<{
+      kind: "agents/current";
+      agents: readonly Readonly<{ depth: number; description: string; id: string; result?: string; status: string; task?: string }>[];
+    }>
   /** Background work: what is running, as the book in the executor has it. */
   | Readonly<{ kind: "jobs/current"; jobs: readonly Readonly<{ kind: string; label: string; status: string }>[] }>
   | Readonly<{ kind: "approval/cleared" }>
