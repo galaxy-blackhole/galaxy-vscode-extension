@@ -3,7 +3,7 @@ import {
   emitHostInfo,
   emitPreferences,
   emitNewThread,
-  emitPendingApproval,
+  emitCredentialRequest, emitPendingApproval,
   emitSessionMessage,
   emitThinking,
   emitUiEvent,
@@ -17,6 +17,7 @@ export {
   subscribeHostInfo,
   subscribePreferences,
   subscribeNewThread,
+  subscribeCredentialRequests,
   subscribePendingApprovals,
   subscribeSessionMessages,
   subscribeThinking,
@@ -80,6 +81,14 @@ export function startUiRun(input: string, workspacePath: string): void {
 
 export function cancelUiRun(): void {
   dispatchUiAction({ type: "run/cancel" });
+}
+
+/**
+ * Answers a masked credential prompt. `null` is a decline: the run is told no credential was supplied, which is a
+ * different outcome from an empty string and is deliberately never sent.
+ */
+export function answerCredential(requestId: string, value: string | null): void {
+  postToHost({ type: "credential-answer", requestId, value });
 }
 
 export function resolveApproval(requestId: string, approved: boolean): void {
@@ -180,6 +189,9 @@ if (typeof window !== "undefined") {
         return;
       case "pending-approval":
         emitPendingApproval(message);
+        return;
+      case "credential-request":
+        emitCredentialRequest(message);
         return;
       case "chat-delta":
         chatRuns.get(message.runId)?.onDelta(message.delta);

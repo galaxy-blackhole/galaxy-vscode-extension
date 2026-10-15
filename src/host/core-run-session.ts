@@ -1,4 +1,5 @@
 import { codeWorkerUrl } from "./code-runtime";
+import type { AiCoderAuthorizationPort } from "@galaxy-stack/ai-coder-core/ports";
 import type { ContextItem } from "./workspace-map";
 import { WorkerCodeRuntime, type CodeRunEvent, type ToolPresentationMode } from "@galaxy-stack/ai-coder-core";
 import * as crypto from "node:crypto";
@@ -91,6 +92,8 @@ export async function warmUpCore(input: Readonly<{
 
 export interface StartCoreRunOptions {
   /** The composer asked for a compaction while nothing was running; do it first. */
+  /** How a run asks for a credential it cannot find; without it the tool reports UNAVAILABLE. */
+  readonly authorization?: AiCoderAuthorizationPort;
   compactOnStart?: boolean;
   connection: OllamaConnection;
   goal: string;
@@ -191,6 +194,7 @@ export async function startCoreRun(options: StartCoreRunOptions): Promise<CoreRu
   const toolExecutor = await createCoreToolExecutor({
     ...(codeRuntime === undefined ? {} : { codeRuntime }),
     toolPresentation: requestedPresentation,
+    ...(options.authorization === undefined ? {} : { authorization: options.authorization }),
     /*
      * A permission card waits for its person. The reference has no timer on that wait at all, so neither does the
      * product: a long-bound rather than none, because a card nobody ever answers must not hold a file handle for

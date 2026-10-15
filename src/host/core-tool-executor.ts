@@ -9,6 +9,7 @@ import {
   type ModelCapabilities,
   type RunExecutionContext,
 } from "@galaxy-stack/ai-coder-core";
+import type { AiCoderAuthorizationPort } from "@galaxy-stack/ai-coder-core/ports";
 import { AgentToolExecutor, CompositeToolExecutor, agentFunction, type AgentTool } from "@galaxy-stack/ai-coder-core/agent";
 import { NodeCommandPort } from "@galaxy-stack/ai-coder-core/adapters/node/host/node-command-port";
 import { NodeWorkspacePort } from "@galaxy-stack/ai-coder-core/adapters/node/host/node-workspace-port";
@@ -39,6 +40,8 @@ export interface CoreToolExecutorOptions {
   /** Tools the workspace's own MCP servers expose; the host connects them before the run. */
   readonly mcpTools?: readonly AgentTool[];
   readonly onPendingApproval: ApprovalEmitter;
+  /** How a run asks for a credential it cannot find; without it the tool reports UNAVAILABLE. */
+  readonly authorization?: AiCoderAuthorizationPort;
   readonly permissionMode: () => PermissionMode;
   /**
    * Which composition this session runs as, by name. Absent means the product's default preset, and an unknown
@@ -133,6 +136,8 @@ export async function createCoreToolExecutor(options: CoreToolExecutorOptions): 
     workspace,
   });
 
+  /* A run that needs a credential asks the panel; the answer goes to the key store, never to the model. */
+  if (options.authorization !== undefined) hostTools.attachAuthorization(options.authorization);
   const executors: AiCoderRuntimeToolExecutor[] = [hostTools];
   /* Outside a Git repository the snapshot reviewer is what attests inspect/diff evidence. */
   /*

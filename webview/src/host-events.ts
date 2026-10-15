@@ -28,6 +28,7 @@ export type ThinkingMessage = Extract<HostToWebviewMessage, { type: "thinking" }
 
 const uiEventListeners = new Set<UiEventListener>();
 const pendingApprovalListeners = new Set<PendingApprovalListener>();
+const credentialListeners = new Set<CredentialRequestListener>();
 const sessionListeners = new Set<(message: SessionMessage) => void>();
 const thinkingListeners = new Set<(message: ThinkingMessage) => void>();
 const infoListeners = new Set<(info: HostInfo) => void>();
@@ -37,6 +38,17 @@ const preferencesListeners = new Set<(preferences: UiPreferences) => void>();
 export function subscribeUiEvents(listener: UiEventListener): () => void {
   uiEventListeners.add(listener);
   return () => uiEventListeners.delete(listener);
+}
+
+export type CredentialRequestListener = (request: Extract<HostToWebviewMessage, { type: "credential-request" }>) => void;
+
+export function subscribeCredentialRequests(listener: CredentialRequestListener): () => void {
+  credentialListeners.add(listener);
+  return () => credentialListeners.delete(listener);
+}
+
+export function emitCredentialRequest(request: Parameters<CredentialRequestListener>[0]): void {
+  for (const listener of credentialListeners) listener(request);
 }
 
 export function subscribePendingApprovals(listener: PendingApprovalListener): () => void {

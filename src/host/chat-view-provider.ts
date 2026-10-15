@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { appendFileSync, mkdirSync } from "node:fs";
+import { ExtensionAuthorization } from "./authorization.js";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { join } from "node:path";
@@ -116,6 +117,35 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
     this.post({ type: "new-thread" });
   }
 
+  /** Requests the panel has not answered yet: the answer arrives as a `credential-answer` message. */
+  private readonly pendingCredentials = new Map<string, (value: string | null) => void>();
+  private credentialSeq = 0;
+
+  /**
+   * How a run asks for a credential: the panel shows a masked input, and the answer goes into the same key store the
+   * settings tab writes. Nobody answering - a closed panel, a cancelled prompt - is a decline, never a hang.
+   */
+  private authorizationForRun(): ExtensionAuthorization {
+    return new ExtensionAuthorization({
+      ask: (request) => new Promise<string | null>((resolve) => {
+        const requestId = "credential-" + String(++this.credentialSeq);
+        this.pendingCredentials.set(requestId, resolve);
+        this.post({
+          type: "credential-request",
+          requestId,
+          credential: request.credential,
+          message: request.message,
+          ...(request.placeholder === undefined ? {} : { placeholder: request.placeholder }),
+        });
+      }),
+      save: ({ credential, secret }) => {
+        writeCanonicalKey(credential, secret);
+        writeModelSettings(setApiKey(hydrateKeys(readModelSettings(this.configPath)), credential, secret), this.configPath);
+        this.refreshConnection();
+      },
+    });
+  }
+
   private post(message: HostToWebviewMessage): void {
     void this.view?.webview.postMessage(message);
     /* The settings tab listens to the same stream, so a key saved there refreshes in place. */
@@ -124,6 +154,15 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
 
   private async handleMessage(message: WebviewToHostMessage): Promise<void> {
     switch (message.type) {
+      case "credential-answer": {
+        /* The panel answered a masked prompt; the run that asked is waiting on this resolver. */
+        const resolveCredential = this.pendingCredentials.get(message.requestId);
+        if (resolveCredential !== undefined) {
+          this.pendingCredentials.delete(message.requestId);
+          resolveCredential(message.value);
+        }
+        return;
+      }
       case "model-settings/save-key": {
         /* One secrets file for every host: write the shared document, then mirror it. */
         writeCanonicalKey(message.providerId, message.apiKey);
@@ -590,6 +629,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
       const started = await startCoreRun({
         connection: this.connection as OllamaConnection,
         goal: request.goal,
+        authorization: this.authorizationForRun(),
         onEvent: (event) => {
           if (event.kind === "message/text-delta") spoken.push(event.text);
           request.onEvent(event);
@@ -700,6 +740,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
           this.session = await startCoreRun({
             compactOnStart,
             connection: this.connection,
+            authorization: this.authorizationForRun(),
             goal: action.input,
             /*
              * A message can arrive before the boot finished; waiting on the same promise keeps the work single.

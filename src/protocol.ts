@@ -39,6 +39,7 @@ export type WebviewToHostMessage =
   | Readonly<{ type: "run-command"; command: string }>
   | Readonly<{ type: "changes/openDiff"; path: string }>
   | Readonly<{ type: "ui-ready" }>
+  | Readonly<{ type: "credential-answer"; requestId: string; value: string | null }>
   | Readonly<{ type: "settings/open" }>
   | Readonly<{ type: "preferences/set"; patch: Partial<UiPreferences> }>
   | Readonly<{ type: "open-external"; url: string }>
@@ -66,6 +67,7 @@ export type HostToWebviewMessage =
   | Readonly<{ type: "chat-error"; runId: string; message: string }>
   | Readonly<{ type: "ui-event"; event: GalaxyUiEvent }>
   | Readonly<{ type: "pending-approval"; requestId: string; tool: string; args: Readonly<Record<string, unknown>>; reason: string }>
+  | Readonly<{ type: "credential-request"; requestId: string; credential: string; message: string; placeholder?: string }>
   | Readonly<{ type: "tool-result"; requestId: string; ok: boolean; result: string }>
   | Readonly<{ type: "host-info"; workspaceName: string; workspacePath: string; platform: string; shell: string; model: string; baseUrl: string; credentialSource: string; modelLibraryUrl?: string; modelSettings: ModelSettingsSummary; version: string }>
   | Readonly<{ type: "model-settings"; settings: ModelSettingsSummary }>

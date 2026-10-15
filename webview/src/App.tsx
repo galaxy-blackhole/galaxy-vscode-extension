@@ -9,6 +9,7 @@ import {
 } from "@assistant-ui/react";
 import { useGalaxyUiRuntime } from "./galaxy-ui-runtime";
 import { ApprovalBar } from "./components/ApprovalBar";
+import { CredentialPrompt } from "./components/CredentialPrompt";
 import { Composer } from "./components/Composer";
 import { PlanStrip } from "./components/PlanStrip";
 import { ChangesCard } from "./components/ChangesCard";
@@ -160,6 +161,7 @@ export function App() {
           <ThreadPrimitive.ScrollToBottom className="scroll-to-bottom">↓</ThreadPrimitive.ScrollToBottom>
         </ThreadPrimitive.Root>
         <ApprovalBar />
+        <CredentialPrompt />
         <JobsStrip />
         <AgentsStrip />
         <GoalStrip />
