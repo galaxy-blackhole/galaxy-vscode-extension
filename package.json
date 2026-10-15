@@ -89,7 +89,7 @@
   },
   "dependencies": {
     "@deepseek-ai/dsh-client-ui-primitives": "file:./vendor/dsh-client-ui-primitives",
-    "@galaxy-stack/ai-coder-core": "0.5.1",
+    "@galaxy-stack/ai-coder-core": "link:../galaxy-ai-coder-core",
     "anser": "^2.3.5",
     "clsx": "^2.1.1",
     "immer": "^11.1.21",
