@@ -3,7 +3,7 @@
   "displayName": "Galaxy Blackhole",
   "icon": "resources/icon.png",
   "description": "AI coding chat for VS Code with per-workspace sessions, project MCP servers, plan checklists and approvals, built on the Galaxy Blackhole core.",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "private": true,
   "publisher": "kevinbui",
   "license": "MIT",
@@ -89,7 +89,7 @@
   },
   "dependencies": {
     "@deepseek-ai/dsh-client-ui-primitives": "file:./vendor/dsh-client-ui-primitives",
-    "@galaxy-stack/ai-coder-core": "link:../galaxy-ai-coder-core",
+    "@galaxy-stack/ai-coder-core": "0.5.1",
     "anser": "^2.3.5",
     "clsx": "^2.1.1",
     "immer": "^11.1.21",
