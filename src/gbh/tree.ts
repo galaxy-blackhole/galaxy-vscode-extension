@@ -9,10 +9,19 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { matchFolder, readWorkspaces, sessionSummary } from "./mapping";
 import { gbhHome, readReadyUrl, sessionCacheDir, workspaceRegistryPath } from "./paths";
+import { parseReadyUrl, probeHost, type GbhHost } from "./host";
 import type { GbhSessionSummary } from "./types";
 
 /** One row in the tree. */
-export type GbhNode = WorkspaceNode | SessionNode | NoteNode;
+export type GbhNode = WorkspaceNode | SessionNode | NoteNode | HostNode;
+
+/** The running kernel: the URL the CLI printed, plus what a probe learned. */
+export interface HostNode {
+  readonly kind: "host";
+  readonly host: GbhHost;
+  readonly alive: boolean;
+  readonly detail: string;
+}
 
 /** The matched kernel workspace for a folder. */
 export interface WorkspaceNode {
@@ -78,7 +87,21 @@ export class GbhKernelTreeProvider implements vscode.TreeDataProvider<GbhNode> {
   /** VS Code re-renders the view when this fires. */
   readonly onDidChangeTreeData = this.changed.event;
 
+  private alive = false;
+  private detail = "chưa kiểm tra";
+
   constructor(private readonly configuredHome: () => string) {}
+
+  /**
+   * Report what the last host probe learned (the extension calls probeHost and hands the answer in).
+   * @param alive - whether something answers at the host origin.
+   * @param detail - one line for the row description.
+   */
+  setProbe(alive: boolean, detail: string): void {
+    this.alive = alive;
+    this.detail = detail;
+    this.refresh();
+  }
 
   /** Ask VS Code to re-read the kernel state. */
   refresh(): void {
@@ -111,6 +134,10 @@ export class GbhKernelTreeProvider implements vscode.TreeDataProvider<GbhNode> {
       };
     });
     if (ready === undefined) nodes.push({ kind: "note", label: "Chưa thấy host nào chạy (" + home + "/ready-url.txt)" });
+    else {
+      const host = parseReadyUrl(ready);
+      nodes.unshift({ kind: "host", host: host ?? { baseUrl: "", token: "", url: ready }, alive: this.alive, detail: this.detail });
+    }
     return nodes;
   }
 
@@ -124,6 +151,14 @@ export class GbhKernelTreeProvider implements vscode.TreeDataProvider<GbhNode> {
 
   /** Render one row. */
   getTreeItem(element: GbhNode): vscode.TreeItem {
+    if (element.kind === "host") {
+      const item = new vscode.TreeItem(element.alive ? "Kernel đang chạy" : "Kernel không phản hồi", vscode.TreeItemCollapsibleState.None);
+      item.description = element.detail;
+      item.tooltip = element.host.url;
+      item.iconPath = new vscode.ThemeIcon(element.alive ? "vm-running" : "vm-outline");
+      item.contextValue = "gbhHost";
+      return item;
+    }
     if (element.kind === "note") {
       const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
       item.iconPath = new vscode.ThemeIcon("info");
@@ -142,6 +177,7 @@ export class GbhKernelTreeProvider implements vscode.TreeDataProvider<GbhNode> {
         .join("\n");
       item.iconPath = new vscode.ThemeIcon("comment-discussion");
       item.contextValue = "gbhSession";
+      item.command = { command: "galaxy-code.openGbhSession", title: "Mở trong GBH Web", arguments: [element] };
       return item;
     }
     const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Expanded);

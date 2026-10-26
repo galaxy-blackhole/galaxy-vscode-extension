@@ -2,6 +2,8 @@ import * as vscode from "vscode";
 import { GalaxyChatViewProvider } from "./host/chat-view-provider";
 import { WebGuiLauncher } from "./host/web-launcher";
 import { GbhKernelTreeProvider } from "./gbh/tree";
+import { parseReadyUrl, probeHost } from "./gbh/host";
+import { gbhHome, readReadyUrl } from "./gbh/paths";
 
 export function activate(context: vscode.ExtensionContext): void {
   const provider = new GalaxyChatViewProvider(context);
@@ -11,15 +13,48 @@ export function activate(context: vscode.ExtensionContext): void {
    * workspace and its sessions show up in a native tree view. Read-only: no host is started here.
    */
   const gbhTree = new GbhKernelTreeProvider(() => vscode.workspace.getConfiguration("galaxy-code").get<string>("gbhHome", ""));
+  /** Probe the kernel the ready URL points at, then let the tree show the verdict. */
+  const probeKernel = async (): Promise<void> => {
+    const home = gbhHome(vscode.workspace.getConfiguration("galaxy-code").get<string>("gbhHome", ""));
+    const ready = readReadyUrl(home);
+    if (ready === undefined) {
+      gbhTree.setProbe(false, "chưa có ready-url.txt");
+      return;
+    }
+    const host = parseReadyUrl(ready);
+    if (host === undefined) {
+      gbhTree.setProbe(false, "ready-url.txt không phải URL");
+      return;
+    }
+    const probe = await probeHost(host);
+    gbhTree.setProbe(probe.alive, probe.alive ? host.baseUrl : (probe.reason ?? "không phản hồi"));
+  };
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("galaxy-code.gbhSessions", gbhTree),
-    vscode.commands.registerCommand("galaxy-code.refreshGbhSessions", () => gbhTree.refresh()),
+    vscode.commands.registerCommand("galaxy-code.refreshGbhSessions", async () => {
+      await probeKernel();
+      gbhTree.refresh();
+    }),
+    vscode.commands.registerCommand("galaxy-code.openGbhSession", async (node?: { session?: { id: string } }) => {
+      const home = gbhHome(vscode.workspace.getConfiguration("galaxy-code").get<string>("gbhHome", ""));
+      const ready = readReadyUrl(home);
+      if (ready === undefined) {
+        await vscode.window.showWarningMessage("Chưa có kernel nào chạy: " + home + "/ready-url.txt");
+        return;
+      }
+      await vscode.env.openExternal(vscode.Uri.parse(ready));
+      if (node?.session !== undefined) await vscode.env.clipboard.writeText(node.session.id);
+    }),
     vscode.commands.registerCommand("galaxy-code.openGbhHome", async () => {
       const home = vscode.workspace.getConfiguration("galaxy-code").get<string>("gbhHome", "");
       await vscode.window.showInformationMessage("GBH home: " + (home.length > 0 ? home : "(GBH_HOME hoặc ~/.galaxy/blackhole)"));
     }),
-    vscode.workspace.onDidChangeWorkspaceFolders(() => gbhTree.refresh()),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      void probeKernel();
+      gbhTree.refresh();
+    }),
   );
+  void probeKernel();
   /*
    * The extension-host E2E needs one goal run through the real pieces (connection, core, executor,
    * session store). The probe exists only while VS Code runs our tests, and is not part of the product.

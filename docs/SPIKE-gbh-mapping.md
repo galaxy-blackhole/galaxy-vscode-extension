@@ -64,3 +64,32 @@ Nhật ký phiên là `session.v4.jsonl.zstd` (nén) nên spike **không** đọ
 2. Thêm hành động trên từng dòng phiên: mở trong panel hội thoại, mở trong GBH web, xoá phiên (dùng `session-delete` seam).
 3. Hội thoại: đóng gói cụm UI `client-ui-conversation` + `client-ui-chat` + `client-ui-renderer` vào webview (Hướng D trong ADR 0028 của `blackhole-tauri`).
 4. Giữ `matchFolder()` làm ranh giới mapping — nó đã có test, sẽ chỉ đổi nguồn dữ liệu.
+
+## 7. Bổ sung sau khi chủ dự án duyệt (26/10/2026)
+
+### 7.1 Đã thêm
+
+| Thành phần | Việc làm được |
+|---|---|
+| `src/gbh/host.ts` | `parseReadyUrl()` tách `origin` / `token` / `url`; `probeHost()` kiểm tra kernel còn sống — **401 vẫn tính là sống** (đúng bẫy đã ghi trong AGENTS: request trần luôn 401 dù app lành) |
+| Dòng đầu của view | `Kernel đang chạy` / `Kernel không phản hồi` + origin, icon `vm-running`/`vm-outline` |
+| Command `galaxy-code.refreshGbhSessions` | chạy lại probe rồi vẽ lại cây |
+| Command `galaxy-code.openGbhSession` (bấm vào dòng phiên) | mở GBH Web qua `vscode.env.openExternal(ready-url)` + copy session id vào clipboard |
+| Làm mới tự động | `onDidChangeWorkspaceFolders` → probe + refresh |
+
+### 7.2 Bằng chứng đo được
+
+```
+$ node --import ./test/helpers/ts-resolve.mjs -e '…probeHost…'
+ready: http://127.0.0.1:5439/?token=…
+host:  http://127.0.0.1:5439  | token dài: 43
+probe: {"alive":true,"status":401}     ← server sống, cookie chưa set (đúng thiết kế)
+```
+
+Test: `node --test test/*.test.ts` → **75/75 pass** (7 mapping + 3 host + 65 cũ); `tsc` sạch; `node esbuild.js` build OK.
+
+### 7.3 Còn lại của bước 1–3
+
+1. Gọi **Remote thật** thay vì đọc tệp: hiện spike đã có `probeHost` + `ready-url` nên bước này là "nối WS + typert codec" — cần đọc `packages/host/api-gateway` (frame) và dùng đúng codec client sinh sẵn, không tự viết tay.
+2. Deep-link phiên: web hiện chưa có route `#/session/<id>` ⇒ tạm mở trang chủ + copy id; muốn mở đúng phiên phải thêm route ở `client-ui-workspace` (việc phía `blackhole-tauri`).
+3. Hội thoại trong `WebviewView`: đóng gói cụm `client-ui-conversation`/`chat`/`renderer` (Hướng D của ADR 0028).
