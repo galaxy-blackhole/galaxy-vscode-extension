@@ -25,7 +25,7 @@ interface SessionItem {
   readonly sessionId?: unknown;
   readonly cwd?: unknown;
   readonly updatedAt?: unknown;
-  readonly projections?: { readonly values?: Record<string, unknown> };
+  readonly projections?: { readonly values?: Record<string, unknown>; readonly asOfSeq?: unknown };
 }
 
 /** Injectable fetch so tests never need a server. */
@@ -102,6 +102,7 @@ export function mapSessionItem(item: unknown): GbhSessionSummary | undefined {
     ...(typeof updatedAt === "number" ? { createdAt: updatedAt } : {}),
     ...(typeof stats?.uncachedInputTokens === "number" ? { uncachedInputTokens: stats.uncachedInputTokens } : {}),
     ...(typeof stats?.outputTokens === "number" ? { outputTokens: stats.outputTokens } : {}),
+    ...(typeof row.projections?.asOfSeq === "number" ? { asOfSeq: row.projections.asOfSeq } : {}),
   };
 }
 

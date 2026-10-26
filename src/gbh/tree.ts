@@ -239,7 +239,7 @@ export class GbhKernelTreeProvider implements vscode.TreeDataProvider<GbhNode> {
         .join("\n");
       item.iconPath = new vscode.ThemeIcon("comment-discussion");
       item.contextValue = "gbhSession";
-      item.command = { command: "galaxy-code.openGbhSession", title: "Mở trong GBH Web", arguments: [element] };
+      item.command = { command: "galaxy-code.showGbhTranscript", title: "Xem hội thoại", arguments: [element] };
       return item;
     }
     const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Expanded);

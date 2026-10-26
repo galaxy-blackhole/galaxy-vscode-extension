@@ -174,3 +174,48 @@ Runner giờ trả lời như host thật: `/?token=` → 303 + cookie, `POST /a
 ### 9.3 Test
 
 `node --test test/*.test.ts` → **82/82** (thêm 7 test cho `remote.ts`: cookie, endpoint, envelope, map row, lỗi gateway, thứ tự mới→cũ).
+
+## 10. Hội thoại NATIVE trong VS Code (26/10/2026) — Hướng D, lát cắt 1
+
+Thêm **WebviewView “Hội thoại”** (`src/gbh/conversation-view.ts`): khung là của VS Code (activity bar, view, biến theme `--vscode-*`), dữ liệu là **Remote API của kernel**, không nhúng app web GBH.
+
+| Việc | Cách làm |
+|---|---|
+| Bấm một dòng phiên | mở panel hội thoại native (`galaxy-code.showGbhTranscript`) |
+| Panel đọc gì | `POST /api/session/page` với `{request:{address:{kind:"session",sessionId},throughSeq:<asOfSeq>,maxMessages:40}}` |
+| Dòng nào được vẽ | chỉ `user/message` + `assistant/message` có block `text`; tool result/khung khác bị bỏ |
+| Nút trong panel | “Làm mới”, “Mở trong GBH Web” (bàn giao khi cần ghi) |
+| Ghi/xoá/gửi tin | **ngoài phạm vi** lát cắt này — vẫn làm trong GBH web |
+
+`throughSeq` là **bắt buộc**; lấy từ `session.list` (`projections.asOfSeq`). Test khoá cả hai điều này.
+
+### 10.1 Bằng chứng LIVE
+
+Kernel thật của máy:
+
+```
+$ node --import ./test/helpers/ts-resolve.mjs test/gbh-transcript-live.ts
+phiên: session-f6f5e690-1f7b-4d83-a106-d5200bde7a12 | Tìm hiểu kỹ dự án này
+số dòng: 5 | hasMore: true
+ - user | Time sampled while preparing turn 2, step 1: 2026-10-23T16:37:51+07:00
+ - user | Background subagent 98eb0234-… finished and will do no further work…
+```
+
+Trong VS Code thật (fixture trả lời cả `/api/session/list` và `/api/session/page`):
+
+```
+[gbh-spike] step: tree:{"source":"remote", …}
+[gbh-spike] step: transcript → transcript:ok      ← panel vẽ đúng 2 tin nhắn, giữ tiêu đề phiên
+[gbh-spike] VS Code extension host finished with 0 failure(s)
+```
+
+### 10.2 Test
+
+`node --test test/*.test.ts` → **85/85** (thêm 3 test cho `transcript.ts`: lọc event, `throughSeq`, phiên không có trong danh sách).
+
+### 10.3 Còn lại để “hoàn thiện VS Code”
+
+1. **Gửi tin từ panel** — cần `session/control` + luồng assistant; hiện bàn giao sang GBH web.
+2. **Deep-link `?session=`** — phải thêm xử lý phía `blackhole-tauri` (client plugin mới `ui-deep-link` dùng `ctx.uiWorkspace.open`), vì app web chưa đọc query param. Panel native đã bỏ được phụ thuộc này.
+3. **Tái dùng nguyên cụm UI GBH** (`client-ui-conversation`/`chat`/`renderer`) trong webview — chỉ cần khi muốn giống 100% giao diện web.
+4. Diff/preview tệp agent sửa (`vscode.diff`), duyệt uỷ quyền bằng QuickPick.

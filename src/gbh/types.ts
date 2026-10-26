@@ -29,6 +29,8 @@ export interface GbhSessionSummary {
   readonly createdAt?: number;
   readonly uncachedInputTokens?: number;
   readonly outputTokens?: number;
+  /** Log cut the kernel reported for this session (session.list's projections.asOfSeq). */
+  readonly asOfSeq?: number;
 }
 
 /** Result of matching the open VS Code folder against the kernel state. */

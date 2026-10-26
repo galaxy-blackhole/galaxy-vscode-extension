@@ -2,6 +2,8 @@ import * as vscode from "vscode";
 import { GalaxyChatViewProvider } from "./host/chat-view-provider";
 import { WebGuiLauncher } from "./host/web-launcher";
 import { GbhKernelTreeProvider } from "./gbh/tree";
+import { GbhConversationView } from "./gbh/conversation-view";
+import { parseReadyUrl as parseGbhReadyUrl } from "./gbh/host";
 import { parseReadyUrl, probeHost } from "./gbh/host";
 import { gbhHome, readReadyUrl } from "./gbh/paths";
 
@@ -17,6 +19,33 @@ export function activate(context: vscode.ExtensionContext): void {
    * The tree loads the kernel itself now (Remote first, files second), so a refresh is a plain fire.
    * The probe moved into the provider; the extension only has to redraw.
    */
+  /*
+   * The conversation panel: a native WebviewView that paints the selected session's transcript from the
+   * kernel's Remote API. Clicking a session row shows it here; writing still happens in GBH web.
+   */
+  const conversation = new GbhConversationView(
+    () => {
+      const ready = readReadyUrl(gbhHome(vscode.workspace.getConfiguration("galaxy-code").get<string>("gbhHome", "")));
+      return ready === undefined ? undefined : parseGbhReadyUrl(ready);
+    },
+    async (url) => {
+      await vscode.env.openExternal(vscode.Uri.parse(url));
+    },
+  );
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider("galaxy-code.gbhConversation", conversation, {
+      webviewOptions: { retainContextWhenHidden: true },
+    }),
+    vscode.commands.registerCommand("galaxy-code.showGbhTranscript", async (node?: { session?: { id: string } }) => {
+      const sessionId = node?.session?.id;
+      if (sessionId === undefined) {
+        await vscode.window.showWarningMessage("Chọn một phiên trong danh sách GBH Kernel trước.");
+        return;
+      }
+      await conversation.show(sessionId);
+      await vscode.commands.executeCommand("galaxy-code.gbhConversation.focus");
+    }),
+  );
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("galaxy-code.gbhSessions", gbhTree),
     vscode.commands.registerCommand("galaxy-code.refreshGbhSessions", async () => {
@@ -51,6 +80,7 @@ export function activate(context: vscode.ExtensionContext): void {
      */
     context.subscriptions.push(
       vscode.commands.registerCommand("galaxy-code.__gbhTree", async () => await gbhTree.snapshotForTest()),
+      vscode.commands.registerCommand("galaxy-code.__gbhConversation", async () => conversation.snapshot()),
     );
 
     context.subscriptions.push(vscode.commands.registerCommand("galaxy-code.__e2e", async (request?: Readonly<{ goal?: string; id?: string; kind?: string; text?: string }>) => {

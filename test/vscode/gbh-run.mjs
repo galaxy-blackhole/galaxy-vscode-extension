@@ -92,6 +92,20 @@ const server = createServer((request, response) => {
     });
     return;
   }
+  if (url.pathname === "/api/session/page" && request.method === "POST") {
+    let body = "";
+    request.on("data", (chunk) => { body += chunk; });
+    request.on("end", () => {
+      const envelope = JSON.parse(body || "{}");
+      const records = [
+        { type: "event", event: { type: "user/message", seq: 1, time: 1, data: { role: "user", content: [{ type: "text", text: "chào GBH" }] } } },
+        { type: "event", event: { type: "assistant/message", seq: 2, time: 2, data: { role: "assistant", content: [{ type: "text", text: "chào bạn" }] } } },
+      ];
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value: { records, hasMore: false } } }));
+    });
+    return;
+  }
   if (url.searchParams.has("token")) {
     response.statusCode = 303;
     response.setHeader("location", "./");

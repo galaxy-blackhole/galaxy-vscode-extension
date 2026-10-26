@@ -14,6 +14,7 @@ const COMMANDS = [
   "galaxy-code.refreshGbhSessions",
   "galaxy-code.openGbhHome",
   "galaxy-code.openGbhSession",
+  "galaxy-code.showGbhTranscript",
 ];
 
 const step = (name) => console.log("[gbh-spike] step: " + name);
@@ -64,6 +65,13 @@ async function run() {
    * openGbhHome shows an information message; awaiting it would block the host until a human clicks OK,
    * so the suite fires it and moves on.
    */
+  step("transcript");
+  await vscode.commands.executeCommand("galaxy-code.showGbhTranscript", { session: { id: "session-moi" } });
+  const conversation = await vscode.commands.executeCommand("galaxy-code.__gbhConversation");
+  assert.equal(conversation.messages, 2, "the panel painted the two messages from session.page: " + JSON.stringify(conversation));
+  assert.equal(conversation.title, "phiên Remote mới", "and it kept the session title");
+  step("transcript:ok");
+
   void vscode.commands.executeCommand("galaxy-code.openGbhHome");
   console.log("[gbh-spike] activation, contributions, live probe and the mapped tree are green");
 }

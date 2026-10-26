@@ -36,6 +36,12 @@
           "name": "GBH Kernel",
           "type": "tree",
           "icon": "resources/icon.svg"
+        },
+        {
+          "id": "galaxy-code.gbhConversation",
+          "name": "Hội thoại",
+          "type": "webview",
+          "icon": "resources/icon.svg"
         }
       ]
     },
@@ -64,6 +70,11 @@
         "command": "galaxy-code.openGbhHome",
         "title": "Galaxy Blackhole: Show GBH Home",
         "category": "Galaxy Blackhole"
+      },
+      {
+        "command": "galaxy-code.showGbhTranscript",
+        "title": "Galaxy Blackhole: Show Session Transcript",
+        "category": "Galaxy Blackhole"
       }
     ],
     "configuration": {
@@ -85,6 +96,15 @@
           "markdownDescription": "Thư mục home của kernel GBH (để trống = dùng GBH_HOME, rồi tới ~/.galaxy/blackhole)."
         }
       }
+    },
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "galaxy-code.openGbhSession",
+          "when": "view == galaxy-code.gbhSessions && viewItem == gbhSession",
+          "group": "inline"
+        }
+      ]
     }
   },
   "scripts": {
