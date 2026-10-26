@@ -129,3 +129,48 @@ cd galaxy-vscode-extension && yarn compile
 node --test test/*.test.ts                     # 78 test logic (node)
 node test/vscode/gbh-run.mjs                   # VS Code thật, ~3 phút, in 0 failure(s) là đạt
 ```
+
+## 9. Remote THẬT (26/10/2026) — thay đọc tệp
+
+Wire đã đọc từ host đang chạy, không đoán:
+
+```
+GET  <ready-url>                        → 303 + set-cookie: dsh-auth-<id>=v1.<payload>.<sig>
+POST <origin>/api/session/list          (endpoint = method dotted đổi . thành /)
+     {type:"client-request", rpcId, method:"session.list", payload:{args:{_request:{}}}}
+  →  {type:"server-response", result:{ok:true, value:{items:[…]}}}
+```
+
+Ba chi tiết dễ sai (đều đã khoá bằng test):
+
+| Chi tiết | Sai thì |
+|---|---|
+| `payload` phải **đúng một khoá `args`** | gateway trả `gateway/bad-request` |
+| `method` dùng **dấu chấm** (`session.list`), URL dùng **dấu /** (`/api/session/list`) | 404 `not found` |
+| `args` của `session.list` là `{_request:{}}` | `gateway/arguments-invalid: missing "_request"` |
+
+Module: `src/gbh/remote.ts` (`authenticate`, `callRemote`, `listSessions`, `mapSessionItem`, `endpointOf`, `buildRequest`). Cây chuyển sang **Remote trước, tệp sau**: `source: "remote" | "files"`.
+
+### 9.1 Bằng chứng LIVE với kernel thật của máy này
+
+```
+$ node --import ./test/helpers/ts-resolve.mjs test/gbh-remote-live.ts
+host: http://127.0.0.1:5439 | probe: {"alive":true,"status":401}
+cookie: dsh-auth-839a4abd7d12a88…
+session.list trả về: 16 phiên
+map /Users/buitronghieu/Desktop/Project/galaxy → 12 phiên qua Remote | vd: [null,"Tìm hiểu kỹ dự án này"]
+```
+
+### 9.2 Bằng chứng LIVE trong VS Code (fixture giả lập kernel)
+
+Runner giờ trả lời như host thật: `/?token=` → 303 + cookie, `POST /api/session/list` → envelope. Suite khẳng định **`source === "remote"`** và tiêu đề là `phiên Remote mới` / `phiên Remote cũ` (khác hẳn dữ liệu tệp để chứng minh không phải đọc tệp):
+
+```
+[gbh-spike] step: tree:{"source":"remote","roots":[{"kind":"host","detail":"http://127.0.0.1:50432 · Remote","alive":true}, …]}
+[gbh-spike] activation, contributions, live probe and the mapped tree are green
+[gbh-spike] VS Code extension host finished with 0 failure(s)
+```
+
+### 9.3 Test
+
+`node --test test/*.test.ts` → **82/82** (thêm 7 test cho `remote.ts`: cookie, endpoint, envelope, map row, lỗi gateway, thứ tự mới→cũ).

@@ -58,8 +58,47 @@ const cacheOf = (title, createdAt) =>
 await writeFile(join(cacheDir, "session-cu.json"), cacheOf("phiên cũ hơn", 1_700_000_000_000), "utf8");
 await writeFile(join(cacheDir, "session-moi.json"), cacheOf("phiên mới hơn", 1_800_000_000_000), "utf8");
 
-/* A server that answers 401 to everything: exactly what a running kernel does to a bare request. */
-const server = createServer((_request, response) => {
+/*
+ * The scripted kernel: the token URL answers 303 + set-cookie like the real host, /api/session/list
+ * answers the envelope the gateway produces, and every other bare request answers 401. The rows say
+ * "Remote" in their titles so the suite can prove it painted the API, not the files left on disk.
+ */
+const REMOTE_ITEMS = [
+  {
+    sessionId: "session-moi",
+    cwd: workspace,
+    updatedAt: 1_800_000_000_000,
+    running: false,
+    projections: { kind: "sequenced", asOfSeq: 5, values: { title: "phiên Remote mới", workingDirectory: workspace, tokenUsage: { uncachedInputTokens: 10, outputTokens: 5 } } },
+  },
+  {
+    sessionId: "session-cu",
+    cwd: workspace,
+    updatedAt: 1_700_000_000_000,
+    running: false,
+    projections: { kind: "sequenced", asOfSeq: 5, values: { title: "phiên Remote cũ", workingDirectory: workspace, tokenUsage: { uncachedInputTokens: 1, outputTokens: 1 } } },
+  },
+];
+
+const server = createServer((request, response) => {
+  const url = new URL(request.url ?? "/", "http://127.0.0.1");
+  if (url.pathname === "/api/session/list" && request.method === "POST") {
+    let body = "";
+    request.on("data", (chunk) => { body += chunk; });
+    request.on("end", () => {
+      const envelope = JSON.parse(body || "{}");
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value: { items: REMOTE_ITEMS } } }));
+    });
+    return;
+  }
+  if (url.searchParams.has("token")) {
+    response.statusCode = 303;
+    response.setHeader("location", "./");
+    response.setHeader("set-cookie", "dsh-auth-fixture=v1.fixture.sig; Path=/; HttpOnly; SameSite=Strict");
+    response.end();
+    return;
+  }
   response.statusCode = 401;
   response.end("unauthorized");
 });

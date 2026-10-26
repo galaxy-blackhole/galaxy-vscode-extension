@@ -13,26 +13,13 @@ export function activate(context: vscode.ExtensionContext): void {
    * workspace and its sessions show up in a native tree view. Read-only: no host is started here.
    */
   const gbhTree = new GbhKernelTreeProvider(() => vscode.workspace.getConfiguration("galaxy-code").get<string>("gbhHome", ""));
-  /** Probe the kernel the ready URL points at, then let the tree show the verdict. */
-  const probeKernel = async (): Promise<void> => {
-    const home = gbhHome(vscode.workspace.getConfiguration("galaxy-code").get<string>("gbhHome", ""));
-    const ready = readReadyUrl(home);
-    if (ready === undefined) {
-      gbhTree.setProbe(false, "chưa có ready-url.txt");
-      return;
-    }
-    const host = parseReadyUrl(ready);
-    if (host === undefined) {
-      gbhTree.setProbe(false, "ready-url.txt không phải URL");
-      return;
-    }
-    const probe = await probeHost(host);
-    gbhTree.setProbe(probe.alive, probe.alive ? host.baseUrl : (probe.reason ?? "không phản hồi"));
-  };
+  /*
+   * The tree loads the kernel itself now (Remote first, files second), so a refresh is a plain fire.
+   * The probe moved into the provider; the extension only has to redraw.
+   */
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("galaxy-code.gbhSessions", gbhTree),
     vscode.commands.registerCommand("galaxy-code.refreshGbhSessions", async () => {
-      await probeKernel();
       gbhTree.refresh();
     }),
     vscode.commands.registerCommand("galaxy-code.openGbhSession", async (node?: { session?: { id: string } }) => {
@@ -50,11 +37,9 @@ export function activate(context: vscode.ExtensionContext): void {
       await vscode.window.showInformationMessage("GBH home: " + (home.length > 0 ? home : "(GBH_HOME hoặc ~/.galaxy/blackhole)"));
     }),
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
-      void probeKernel();
       gbhTree.refresh();
     }),
   );
-  void probeKernel();
   /*
    * The extension-host E2E needs one goal run through the real pieces (connection, core, executor,
    * session store). The probe exists only while VS Code runs our tests, and is not part of the product.
@@ -65,10 +50,7 @@ export function activate(context: vscode.ExtensionContext): void {
      * real and asks what the view would paint, so the mapping is proven inside an editor, not in node.
      */
     context.subscriptions.push(
-      vscode.commands.registerCommand("galaxy-code.__gbhTree", async () => {
-        await probeKernel();
-        return gbhTree.snapshotForTest();
-      }),
+      vscode.commands.registerCommand("galaxy-code.__gbhTree", async () => await gbhTree.snapshotForTest()),
     );
 
     context.subscriptions.push(vscode.commands.registerCommand("galaxy-code.__e2e", async (request?: Readonly<{ goal?: string; id?: string; kind?: string; text?: string }>) => {

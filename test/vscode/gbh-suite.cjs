@@ -53,10 +53,11 @@ async function run() {
   assert.equal(folder.label, require("node:path").basename(workspace), "the row is labelled by the folder");
   assert.match(String(folder.detail), /2 phiên/u, "the row counts the fixture sessions: " + String(folder.detail));
 
+  assert.equal(snapshot.source, "remote", "the rows came from the kernel API, not the files: " + String(snapshot.source));
   assert.deepEqual(
     snapshot.sessions.map((session) => session.title),
-    ["phiên mới hơn", "phiên cũ hơn"],
-    "sessions come from the projection cache, newest first",
+    ["phiên Remote mới", "phiên Remote cũ"],
+    "sessions come from /api/session/list (the scripted kernel), newest first",
   );
 
   /*

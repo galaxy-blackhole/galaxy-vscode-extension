@@ -1,8 +1,9 @@
 /*
  * The sidebar view: one kernel workspace per open VS Code folder, its sessions underneath.
  *
- * Read-only on purpose. The spike proves the mapping; a follow-up replaces the two file reads with
- * sessionController / workspaceController Remote calls and adds "open session in the panel".
+ * Data source order: the kernel's Remote API when a host answers (session.list), then the read model
+ * on disk. The Remote path is the real one; the files are the fallback when no host is running, which
+ * is the normal case for someone who has not started the app.
  */
 import * as vscode from "vscode";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -10,7 +11,11 @@ import { basename, join } from "node:path";
 import { matchFolder, readWorkspaces, sessionSummary } from "./mapping";
 import { gbhHome, readReadyUrl, sessionCacheDir, workspaceRegistryPath } from "./paths";
 import { parseReadyUrl, probeHost, type GbhHost } from "./host";
-import type { GbhSessionSummary } from "./types";
+import { authenticate, listSessions, type KernelSession } from "./remote";
+import type { GbhSessionSummary, GbhWorkspace } from "./types";
+
+/** Where the rows came from. */
+export type KernelSource = "remote" | "files";
 
 /** One row in the tree. */
 export type GbhNode = WorkspaceNode | SessionNode | NoteNode | HostNode;
@@ -44,8 +49,18 @@ export interface NoteNode {
   readonly label: string;
 }
 
+/** Everything one refresh learned. */
+export interface KernelData {
+  readonly host?: GbhHost;
+  readonly alive: boolean;
+  readonly detail: string;
+  readonly workspaces: readonly GbhWorkspace[];
+  readonly sessions: readonly GbhSessionSummary[];
+  readonly source: KernelSource;
+}
+
 /**
- * Read every session summary the kernel has cached.
+ * Read every session summary the kernel has cached on disk.
  * @param home - app home of the kernel.
  * @returns summaries; a missing directory yields an empty list.
  */
@@ -70,13 +85,32 @@ export function readSessionSummaries(home: string): GbhSessionSummary[] {
  * @param home - app home of the kernel.
  * @returns workspaces; a missing or unreadable file yields an empty list.
  */
-export function readRegistry(home: string) {
+export function readRegistry(home: string): GbhWorkspace[] {
   const path = workspaceRegistryPath(home);
   if (!existsSync(path)) return [];
   try {
     return readWorkspaces(JSON.parse(readFileSync(path, "utf8")));
   } catch {
     return [];
+  }
+}
+
+/**
+ * Authenticate against the announced host and list its sessions.
+ * @param host - parsed ready URL.
+ * @returns the sessions and the detail line, or undefined when the host would not authenticate.
+ */
+async function readFromRemote(host: GbhHost): Promise<{ sessions: GbhSessionSummary[]; detail: string } | undefined> {
+  const probe = await probeHost(host);
+  if (!probe.alive) return undefined;
+  const cookie = await authenticate(host);
+  if (cookie === undefined) return { sessions: [], detail: host.baseUrl + " · không lấy được cookie" };
+  const session: KernelSession = { host, cookie };
+  try {
+    const sessions = await listSessions(session);
+    return { sessions, detail: host.baseUrl + " · Remote" };
+  } catch (error) {
+    return { sessions: [], detail: host.baseUrl + " · " + (error instanceof Error ? error.message : String(error)) };
   }
 }
 
@@ -87,37 +121,41 @@ export class GbhKernelTreeProvider implements vscode.TreeDataProvider<GbhNode> {
   /** VS Code re-renders the view when this fires. */
   readonly onDidChangeTreeData = this.changed.event;
 
-  private alive = false;
-  private detail = "chưa kiểm tra";
-
   constructor(private readonly configuredHome: () => string) {}
-
-  /**
-   * Report what the last host probe learned (the extension calls probeHost and hands the answer in).
-   * @param alive - whether something answers at the host origin.
-   * @param detail - one line for the row description.
-   */
-  setProbe(alive: boolean, detail: string): void {
-    this.alive = alive;
-    this.detail = detail;
-    this.refresh();
-  }
 
   /** Ask VS Code to re-read the kernel state. */
   refresh(): void {
     this.changed.fire(undefined);
   }
 
-  /** Rows to show: one workspace per open folder, or a note explaining what is missing. */
-  private roots(): GbhNode[] {
+  /** Load the kernel state, Remote first and files second. */
+  async load(): Promise<KernelData> {
     const home = gbhHome(this.configuredHome());
+    const ready = readReadyUrl(home);
+    const workspaces = readRegistry(home);
+    if (ready !== undefined) {
+      const host = parseReadyUrl(ready);
+      if (host !== undefined) {
+        const remote = await readFromRemote(host);
+        if (remote !== undefined && remote.sessions.length > 0) {
+          return { host, alive: true, detail: remote.detail, workspaces, sessions: remote.sessions, source: "remote" };
+        }
+        if (remote !== undefined) {
+          return { host, alive: true, detail: remote.detail, workspaces, sessions: readSessionSummaries(home), source: "files" };
+        }
+        if (host !== undefined) return { host, alive: false, detail: "không phản hồi", workspaces, sessions: readSessionSummaries(home), source: "files" };
+      }
+    }
+    return { alive: false, detail: "chưa có ready-url.txt", workspaces, sessions: readSessionSummaries(home), source: "files" };
+  }
+
+  /** Rows to show: one workspace per open folder, or a note explaining what is missing. */
+  private async roots(): Promise<GbhNode[]> {
     const folders = vscode.workspace.workspaceFolders ?? [];
     if (folders.length === 0) return [{ kind: "note", label: "Mở một thư mục để khớp với workspace của kernel" }];
-    const workspaces = readRegistry(home);
-    const sessions = readSessionSummaries(home);
-    const ready = readReadyUrl(home);
+    const data = await this.load();
     const nodes: GbhNode[] = folders.map((folder) => {
-      const match = matchFolder(workspaces, sessions, folder.uri.fsPath);
+      const match = matchFolder(data.workspaces, data.sessions, folder.uri.fsPath);
       const detail = [
         match.workspace === undefined ? "chưa có workspace trong kernel" : "workspace " + match.workspace.id.slice(0, 8),
         String(match.sessions.length) + " phiên",
@@ -133,17 +171,14 @@ export class GbhKernelTreeProvider implements vscode.TreeDataProvider<GbhNode> {
         sessions: match.sessions,
       };
     });
-    if (ready === undefined) nodes.push({ kind: "note", label: "Chưa thấy host nào chạy (" + home + "/ready-url.txt)" });
-    else {
-      const host = parseReadyUrl(ready);
-      nodes.unshift({ kind: "host", host: host ?? { baseUrl: "", token: "", url: ready }, alive: this.alive, detail: this.detail });
-    }
+    if (data.host === undefined) nodes.push({ kind: "note", label: "Chưa thấy host nào chạy (" + gbhHome(this.configuredHome()) + "/ready-url.txt)" });
+    else nodes.unshift({ kind: "host", host: data.host, alive: data.alive, detail: data.detail });
     return nodes;
   }
 
   /** Children: the sessions of a workspace node. */
-  getChildren(element?: GbhNode): GbhNode[] {
-    if (element === undefined) return this.roots();
+  async getChildren(element?: GbhNode): Promise<GbhNode[]> {
+    if (element === undefined) return await this.roots();
     if (element.kind !== "workspace") return [];
     if (element.sessions.length === 0) return [{ kind: "note", label: "Chưa có phiên nào cho thư mục này" }];
     return element.sessions.map((session) => ({ kind: "session" as const, session }));
@@ -151,15 +186,18 @@ export class GbhKernelTreeProvider implements vscode.TreeDataProvider<GbhNode> {
 
   /**
    * Plain snapshot for the VS Code-level test: what the view would paint, without any vscode types.
-   * @returns the root rows plus the sessions of the first workspace row.
+   * @returns the root rows, the source of the data and the sessions of the first workspace row.
    */
-  snapshotForTest(): {
+  async snapshotForTest(): Promise<{
+    source: KernelSource;
     roots: { kind: string; label?: string; detail?: string; alive?: boolean }[];
     sessions: { id: string; title?: string }[];
-  } {
-    const roots = this.roots();
+  }> {
+    const roots = await this.roots();
+    const data = await this.load();
     const first = roots.find((node): node is WorkspaceNode => node.kind === "workspace");
     return {
+      source: data.source,
       roots: roots.map((node) => {
         if (node.kind === "host") return { kind: node.kind, detail: node.detail, alive: node.alive };
         if (node.kind === "workspace") return { kind: node.kind, label: node.label, detail: node.detail };
