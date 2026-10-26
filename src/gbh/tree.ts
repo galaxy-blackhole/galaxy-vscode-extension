@@ -1,0 +1,154 @@
+/*
+ * The sidebar view: one kernel workspace per open VS Code folder, its sessions underneath.
+ *
+ * Read-only on purpose. The spike proves the mapping; a follow-up replaces the two file reads with
+ * sessionController / workspaceController Remote calls and adds "open session in the panel".
+ */
+import * as vscode from "vscode";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { basename, join } from "node:path";
+import { matchFolder, readWorkspaces, sessionSummary } from "./mapping";
+import { gbhHome, readReadyUrl, sessionCacheDir, workspaceRegistryPath } from "./paths";
+import type { GbhSessionSummary } from "./types";
+
+/** One row in the tree. */
+export type GbhNode = WorkspaceNode | SessionNode | NoteNode;
+
+/** The matched kernel workspace for a folder. */
+export interface WorkspaceNode {
+  readonly kind: "workspace";
+  readonly folder: string;
+  readonly label: string;
+  readonly detail: string;
+  readonly sessions: readonly GbhSessionSummary[];
+}
+
+/** One session of that workspace. */
+export interface SessionNode {
+  readonly kind: "session";
+  readonly session: GbhSessionSummary;
+}
+
+/** An informational row (no host, no workspace, no sessions). */
+export interface NoteNode {
+  readonly kind: "note";
+  readonly label: string;
+}
+
+/**
+ * Read every session summary the kernel has cached.
+ * @param home - app home of the kernel.
+ * @returns summaries; a missing directory yields an empty list.
+ */
+export function readSessionSummaries(home: string): GbhSessionSummary[] {
+  const dir = sessionCacheDir(home);
+  if (!existsSync(dir)) return [];
+  const out: GbhSessionSummary[] = [];
+  for (const name of readdirSync(dir)) {
+    if (!name.endsWith(".json")) continue;
+    const id = name.slice(0, -".json".length);
+    try {
+      out.push(sessionSummary(id, JSON.parse(readFileSync(join(dir, name), "utf8"))));
+    } catch {
+      // A half-written cache file must not blank the whole tree.
+    }
+  }
+  return out;
+}
+
+/**
+ * Read the workspace registry.
+ * @param home - app home of the kernel.
+ * @returns workspaces; a missing or unreadable file yields an empty list.
+ */
+export function readRegistry(home: string) {
+  const path = workspaceRegistryPath(home);
+  if (!existsSync(path)) return [];
+  try {
+    return readWorkspaces(JSON.parse(readFileSync(path, "utf8")));
+  } catch {
+    return [];
+  }
+}
+
+/** Tree provider for the "GBH Kernel" view. */
+export class GbhKernelTreeProvider implements vscode.TreeDataProvider<GbhNode> {
+  private readonly changed = new vscode.EventEmitter<GbhNode | undefined>();
+
+  /** VS Code re-renders the view when this fires. */
+  readonly onDidChangeTreeData = this.changed.event;
+
+  constructor(private readonly configuredHome: () => string) {}
+
+  /** Ask VS Code to re-read the kernel state. */
+  refresh(): void {
+    this.changed.fire(undefined);
+  }
+
+  /** Rows to show: one workspace per open folder, or a note explaining what is missing. */
+  private roots(): GbhNode[] {
+    const home = gbhHome(this.configuredHome());
+    const folders = vscode.workspace.workspaceFolders ?? [];
+    if (folders.length === 0) return [{ kind: "note", label: "Mở một thư mục để khớp với workspace của kernel" }];
+    const workspaces = readRegistry(home);
+    const sessions = readSessionSummaries(home);
+    const ready = readReadyUrl(home);
+    const nodes: GbhNode[] = folders.map((folder) => {
+      const match = matchFolder(workspaces, sessions, folder.uri.fsPath);
+      const detail = [
+        match.workspace === undefined ? "chưa có workspace trong kernel" : "workspace " + match.workspace.id.slice(0, 8),
+        String(match.sessions.length) + " phiên",
+        match.matchedByCwdOnly ? "khớp theo cwd" : undefined,
+      ]
+        .filter((part): part is string => part !== undefined)
+        .join(" · ");
+      return {
+        kind: "workspace" as const,
+        folder: folder.uri.fsPath,
+        label: basename(folder.uri.fsPath),
+        detail,
+        sessions: match.sessions,
+      };
+    });
+    if (ready === undefined) nodes.push({ kind: "note", label: "Chưa thấy host nào chạy (" + home + "/ready-url.txt)" });
+    return nodes;
+  }
+
+  /** Children: the sessions of a workspace node. */
+  getChildren(element?: GbhNode): GbhNode[] {
+    if (element === undefined) return this.roots();
+    if (element.kind !== "workspace") return [];
+    if (element.sessions.length === 0) return [{ kind: "note", label: "Chưa có phiên nào cho thư mục này" }];
+    return element.sessions.map((session) => ({ kind: "session" as const, session }));
+  }
+
+  /** Render one row. */
+  getTreeItem(element: GbhNode): vscode.TreeItem {
+    if (element.kind === "note") {
+      const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
+      item.iconPath = new vscode.ThemeIcon("info");
+      return item;
+    }
+    if (element.kind === "session") {
+      const title = element.session.title ?? element.session.id.slice(0, 12);
+      const item = new vscode.TreeItem(title, vscode.TreeItemCollapsibleState.None);
+      item.description = element.session.id.slice(0, 12);
+      item.tooltip = [
+        element.session.id,
+        element.session.workingDirectory ?? element.session.cwd,
+        element.session.createdAt === undefined ? undefined : new Date(element.session.createdAt).toISOString(),
+      ]
+        .filter((part): part is string => part !== undefined)
+        .join("\n");
+      item.iconPath = new vscode.ThemeIcon("comment-discussion");
+      item.contextValue = "gbhSession";
+      return item;
+    }
+    const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Expanded);
+    item.description = element.detail;
+    item.tooltip = element.folder;
+    item.iconPath = new vscode.ThemeIcon("folder-library");
+    item.contextValue = "gbhWorkspace";
+    return item;
+  }
+}

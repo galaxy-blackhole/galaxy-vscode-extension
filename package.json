@@ -30,6 +30,12 @@
           "name": "Chat",
           "type": "webview",
           "icon": "resources/icon.svg"
+        },
+        {
+          "id": "galaxy-code.gbhSessions",
+          "name": "GBH Kernel",
+          "type": "tree",
+          "icon": "resources/icon.svg"
         }
       ]
     },
@@ -48,6 +54,16 @@
         "command": "galaxy-code.openWeb",
         "title": "Galaxy Blackhole: Open Web GUI",
         "category": "Galaxy Blackhole"
+      },
+      {
+        "command": "galaxy-code.refreshGbhSessions",
+        "title": "Galaxy Blackhole: Refresh GBH Kernel Sessions",
+        "category": "Galaxy Blackhole"
+      },
+      {
+        "command": "galaxy-code.openGbhHome",
+        "title": "Galaxy Blackhole: Show GBH Home",
+        "category": "Galaxy Blackhole"
       }
     ],
     "configuration": {
@@ -62,6 +78,11 @@
           "type": "number",
           "default": 3090,
           "markdownDescription": "Cổng cho Galaxy Blackhole web GUI (mặc định 3090)."
+        },
+        "galaxy-code.gbhHome": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Thư mục home của kernel GBH (để trống = dùng GBH_HOME, rồi tới ~/.galaxy/blackhole)."
         }
       }
     }
