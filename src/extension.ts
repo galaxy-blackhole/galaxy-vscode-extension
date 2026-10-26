@@ -60,6 +60,17 @@ export function activate(context: vscode.ExtensionContext): void {
    * session store). The probe exists only while VS Code runs our tests, and is not part of the product.
    */
   if (context.extensionMode === vscode.ExtensionMode.Test) {
+    /*
+     * The VS Code-level test reads the spike's tree through this probe: it activates the extension for
+     * real and asks what the view would paint, so the mapping is proven inside an editor, not in node.
+     */
+    context.subscriptions.push(
+      vscode.commands.registerCommand("galaxy-code.__gbhTree", async () => {
+        await probeKernel();
+        return gbhTree.snapshotForTest();
+      }),
+    );
+
     context.subscriptions.push(vscode.commands.registerCommand("galaxy-code.__e2e", async (request?: Readonly<{ goal?: string; id?: string; kind?: string; text?: string }>) => {
       /*
        * The two webview kinds ask the view to do what a click would, then report the breadcrumbs the

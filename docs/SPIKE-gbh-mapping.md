@@ -93,3 +93,39 @@ Test: `node --test test/*.test.ts` → **75/75 pass** (7 mapping + 3 host + 65 c
 1. Gọi **Remote thật** thay vì đọc tệp: hiện spike đã có `probeHost` + `ready-url` nên bước này là "nối WS + typert codec" — cần đọc `packages/host/api-gateway` (frame) và dùng đúng codec client sinh sẵn, không tự viết tay.
 2. Deep-link phiên: web hiện chưa có route `#/session/<id>` ⇒ tạm mở trang chủ + copy id; muốn mở đúng phiên phải thêm route ở `client-ui-workspace` (việc phía `blackhole-tauri`).
 3. Hội thoại trong `WebviewView`: đóng gói cụm `client-ui-conversation`/`chat`/`renderer` (Hướng D của ADR 0028).
+
+## 8. Kiểm chứng LIVE trong VS Code thật (26/10/2026)
+
+`node test/vscode/gbh-run.mjs` dựng một **kernel home giả** đúng khuôn dữ liệu thật (registry v2 + projection cache v7 + `ready-url.txt` trỏ tới một HTTP server trả 401) rồi chạy extension trong **VS Code thật** (`.vscode-test`, 1.143.1).
+
+Kết quả lần chạy cuối:
+
+```
+[gbh-spike] step: activate
+[gbh-spike] step: activated
+[gbh-spike] step: commands:3177
+[gbh-spike] step: refresh
+[gbh-spike] step: tree
+[gbh-spike] step: tree:{"roots":[{"kind":"host","detail":"http://127.0.0.1:50317","alive":true},
+                            {"kind":"workspace","label":"gbh-spike-ws-VI3cS8","detail":"workspace w-fixtur · 2 phiên"}],
+                     "sessions":[{"id":"session-moi","title":"phiên mới hơn"}, …]}
+[gbh-spike] activation, contributions, live probe and the mapped tree are green
+[gbh-spike] VS Code extension host finished with 0 failure(s)
+```
+
+Điều này chứng minh **trong editor thật**: extension activate được, 3 command có mặt, `probeHost` sống với server 401, và view vẽ đúng workspace + 2 phiên lấy từ cache — không phải chỉ đúng trong node.
+
+### 8.1 Hai lỗi thật phát hiện khi chạy live (đã sửa trong nhánh)
+
+| Lỗi | Nguyên nhân | Sửa |
+|---|---|---|
+| Extension **không activate** trên VS Code 1.143 | `chat-view-provider.ts` import tĩnh `workspace-mcp` → kéo `@modelcontextprotocol/sdk` → zod JIT chạm `navigator` và ném khi nạp module | đổi sang `await import("./workspace-mcp.js")` trong `mcpTools()` (chỉ nạp khi thật sự chạy) — activate nhẹ lại, lỗi biến mất |
+| Runner **treo vô hạn** | suite `await` command `openGbhHome`, mà command đó `await showInformationMessage` → chờ người bấm OK | suite không `await` command đó nữa (`void`), host kết thúc sạch |
+
+### 8.2 Cách chạy lại
+
+```bash
+cd galaxy-vscode-extension && yarn compile
+node --test test/*.test.ts                     # 78 test logic (node)
+node test/vscode/gbh-run.mjs                   # VS Code thật, ~3 phút, in 0 failure(s) là đạt
+```

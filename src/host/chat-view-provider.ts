@@ -23,7 +23,13 @@ import type { GalaxyUiEvent } from "../ui-protocol";
 import { appendSessionTurn, createSession, deleteSession, listSessions, readSession } from "./session-store";
 import { buildSubagentSeed } from "@galaxy-stack/ai-coder-core/runtime/subagent-seed";
 import type { AgentTool } from "@galaxy-stack/ai-coder-core/agent";
-import { tryConnectWorkspaceMcp, workspaceMcpServers, type WorkspaceMcpHandle } from "./workspace-mcp";
+import type { WorkspaceMcpHandle } from "./workspace-mcp";
+/*
+ * SPIKE-adjacent fix (branch spike/gbh-kernel-map): the MCP SDK pulls zod, whose JIT touches `navigator`;
+ * loading it at module scope made the whole extension fail to activate on VS Code 1.143. It is only needed
+ * when a run starts, so the import becomes dynamic and activation stays cheap.
+ */
+const loadWorkspaceMcp = async () => await import("./workspace-mcp.js");
 import type { PermissionMode } from "./core-tool-executor";
 import type { GalaxyUiAction } from "../ui-protocol";
 import { planEventForWebview } from "./plan-event";
@@ -490,6 +496,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
      */
     this.workspaceMap = buildWorkspaceMap(workspaceRoot);
     this.trace(this.workspaceMap === null ? "bản đồ workspace: không dựng được" : "bản đồ workspace: " + this.workspaceMap.content.length + " ký tự");
+    const { workspaceMcpServers } = await loadWorkspaceMcp();
     const servers = workspaceMcpServers(workspaceRoot);
     /*
      * The two steps a run would otherwise open with, done here while the owner is still reading the panel, and then
@@ -539,6 +546,7 @@ export class GalaxyChatViewProvider implements vscode.WebviewViewProvider {
     const storageRoot = this.sessionsRoot;
     if (workspaceRoot === null || storageRoot === null) return [];
     if (this.mcp === null) {
+      const { tryConnectWorkspaceMcp, workspaceMcpServers } = await loadWorkspaceMcp();
       const servers = workspaceMcpServers(workspaceRoot);
       if (servers.length === 0) {
         this.mcp = Promise.resolve(null);

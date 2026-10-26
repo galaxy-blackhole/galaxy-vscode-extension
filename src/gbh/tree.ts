@@ -149,6 +149,30 @@ export class GbhKernelTreeProvider implements vscode.TreeDataProvider<GbhNode> {
     return element.sessions.map((session) => ({ kind: "session" as const, session }));
   }
 
+  /**
+   * Plain snapshot for the VS Code-level test: what the view would paint, without any vscode types.
+   * @returns the root rows plus the sessions of the first workspace row.
+   */
+  snapshotForTest(): {
+    roots: { kind: string; label?: string; detail?: string; alive?: boolean }[];
+    sessions: { id: string; title?: string }[];
+  } {
+    const roots = this.roots();
+    const first = roots.find((node): node is WorkspaceNode => node.kind === "workspace");
+    return {
+      roots: roots.map((node) => {
+        if (node.kind === "host") return { kind: node.kind, detail: node.detail, alive: node.alive };
+        if (node.kind === "workspace") return { kind: node.kind, label: node.label, detail: node.detail };
+        if (node.kind === "note") return { kind: node.kind, label: node.label };
+        return { kind: node.kind, label: node.session.title ?? node.session.id };
+      }),
+      sessions: (first?.sessions ?? []).map((session) => ({
+        id: session.id,
+        ...(session.title === undefined ? {} : { title: session.title }),
+      })),
+    };
+  }
+
   /** Render one row. */
   getTreeItem(element: GbhNode): vscode.TreeItem {
     if (element.kind === "host") {
