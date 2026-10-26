@@ -72,6 +72,13 @@ async function run() {
   assert.equal(conversation.title, "phiên Remote mới", "and it kept the session title");
   step("transcript:ok");
 
+  step("send");
+  const afterSend = await vscode.commands.executeCommand("galaxy-code.__gbhSend", { sessionId: "session-moi", text: "chào từ panel VS Code" });
+  assert.equal(afterSend.messages, 2, "the panel repainted from the kernel after sending: " + JSON.stringify(afterSend));
+  assert.equal(afterSend.error, undefined, "and the send raised nothing");
+  step("send:ok");
+
+
   void vscode.commands.executeCommand("galaxy-code.openGbhHome");
   console.log("[gbh-spike] activation, contributions, live probe and the mapped tree are green");
 }

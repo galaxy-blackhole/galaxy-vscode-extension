@@ -81,6 +81,11 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
       vscode.commands.registerCommand("galaxy-code.__gbhTree", async () => await gbhTree.snapshotForTest()),
       vscode.commands.registerCommand("galaxy-code.__gbhConversation", async () => conversation.snapshot()),
+      vscode.commands.registerCommand("galaxy-code.__gbhSend", async (request?: { sessionId?: string; text?: string }) => {
+        await conversation.show(String(request?.sessionId ?? "session-moi"));
+        await conversation.send(String(request?.text ?? "chào từ panel"));
+        return conversation.snapshot();
+      }),
     );
 
     context.subscriptions.push(vscode.commands.registerCommand("galaxy-code.__e2e", async (request?: Readonly<{ goal?: string; id?: string; kind?: string; text?: string }>) => {

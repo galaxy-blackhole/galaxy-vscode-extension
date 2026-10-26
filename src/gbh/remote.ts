@@ -147,3 +147,40 @@ export async function listSessions(session: KernelSession, fetchImpl: FetchLike 
   const summaries = items.map((item) => mapSessionItem(item)).filter((item): item is GbhSessionSummary => item !== undefined);
   return summaries.sort((left, right) => (right.createdAt ?? 0) - (left.createdAt ?? 0));
 }
+
+/** What sending a prompt needs from the caller. */
+export interface PromptRequest {
+  readonly sessionId: string;
+  readonly text: string;
+  /** queue appends after the running turn; steer interrupts it. */
+  readonly mode?: "queue" | "steer";
+  /** IANA zone stamped on the message; defaults to the host's own zone. */
+  readonly clientTimeZone?: string;
+  readonly requestId?: string;
+}
+
+/**
+ * Admit one prompt into a session (the kernel resumes it on demand).
+ * @param kernel - authenticated connection.
+ * @param request - session, text and delivery mode.
+ * @param fetchImpl - injectable for tests.
+ * @returns true when the kernel accepted the prompt.
+ */
+export async function sendPrompt(kernel: KernelSession, request: PromptRequest, fetchImpl: FetchLike = fetch): Promise<boolean> {
+  const value = (await callRemote(
+    kernel,
+    "session.prompt",
+    {
+      request: {
+        requestId: request.requestId ?? "gbh-" + Math.random().toString(16).slice(2),
+        sessionId: request.sessionId,
+        mode: request.mode ?? "queue",
+        content: [{ type: "text", text: request.text }],
+        clientTimeZone: request.clientTimeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC",
+      },
+    },
+    fetchImpl,
+  )) as { accepted?: unknown } | undefined;
+  return value?.accepted === true;
+}
+

@@ -219,3 +219,44 @@ Trong VS Code thật (fixture trả lời cả `/api/session/list` và `/api/ses
 2. **Deep-link `?session=`** — phải thêm xử lý phía `blackhole-tauri` (client plugin mới `ui-deep-link` dùng `ctx.uiWorkspace.open`), vì app web chưa đọc query param. Panel native đã bỏ được phụ thuộc này.
 3. **Tái dùng nguyên cụm UI GBH** (`client-ui-conversation`/`chat`/`renderer`) trong webview — chỉ cần khi muốn giống 100% giao diện web.
 4. Diff/preview tệp agent sửa (`vscode.diff`), duyệt uỷ quyền bằng QuickPick.
+
+## 11. Gửi tin từ panel (26/10/2026) — không cần stream
+
+Hoá ra **không cần** WebSocket: gửi prompt là **unary RPC**. Đọc từ client thật của kernel:
+
+```
+remote.session.prompt({ requestId, sessionId, mode, content, clientTimeZone })
+  → POST /api/session/prompt
+    {request:{requestId, sessionId, mode:"queue"|"steer", content:[{type:"text",text}], clientTimeZone}}
+  → {"ok":true,"value":{"accepted":true}}
+```
+
+(`session/control` mới là stream, và nó chỉ là baseline điều khiển — không dùng để gửi tin.)
+
+Panel có composer: gõ tin → `sendPrompt()` → gọi lại `session.page` để vẽ lại. Lỗi hiện ngay trong panel.
+
+### 11.1 Bằng chứng LIVE với kernel thật
+
+```
+$ curl ... /api/session/prompt  (phiên trống session-5d902e63…)
+{"result":{"ok":true,"value":{"accepted":true}}}
+# sau 12s đọc lại:
+phiên: session-5d902e63… | title: Yêu cầu trả lời một chữ | asOfSeq: 21   (trước khi gửi: asOfSeq 3)
+ - user | Trả lời đúng một chữ: OK
+```
+
+Tức là kernel **nhận prompt thật**, đặt tiêu đề phiên và chạy turn — đúng luồng mà panel dùng.
+
+### 11.2 Bằng chứng LIVE trong VS Code
+
+```
+[gbh-spike] step: send → send:ok
+[gbh-spike] prompt the panel sent: {"sessionId":"session-moi","mode":"queue",
+                                    "content":[{"type":"text","text":"chào từ panel VS Code"}],
+                                    "clientTimeZone":"Asia/Saigon"}
+[gbh-spike] VS Code extension host finished with 0 failure(s)
+```
+
+### 11.3 Test
+
+`node --test test/*.test.ts` → **87/87** (thêm 2 test cho `sendPrompt`: hình dạng request + `accepted:false`).

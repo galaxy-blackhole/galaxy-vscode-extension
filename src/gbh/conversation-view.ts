@@ -7,12 +7,12 @@
  * GBH web for anything that writes.
  */
 import * as vscode from "vscode";
-import { authenticate, type KernelSession } from "./remote";
+import { authenticate, sendPrompt, type KernelSession } from "./remote";
 import { parseReadyUrl, type GbhHost } from "./host";
 import { readTranscript, type Transcript } from "./transcript";
 
 /** Messages the view sends up. */
-type ViewMessage = { readonly type: "refresh" } | { readonly type: "openWeb" };
+type ViewMessage = { readonly type: "refresh" } | { readonly type: "openWeb" } | { readonly type: "send"; readonly text?: string };
 
 /** What the panel currently shows, for the tests and for the status bar. */
 export interface ConversationState {
@@ -26,6 +26,8 @@ export interface ConversationState {
 export class GbhConversationView implements vscode.WebviewViewProvider {
   private view: vscode.WebviewView | undefined;
   private state: ConversationState = { messages: 0 };
+  /** Set when the last send failed, so the panel can say why. */
+  private pending: string | undefined;
   private transcript: Transcript | undefined;
 
   constructor(
@@ -40,6 +42,7 @@ export class GbhConversationView implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(async (message: ViewMessage) => {
       if (message.type === "refresh") await this.reload();
       if (message.type === "openWeb") await this.handOff();
+      if (message.type === "send") await this.send(message.text ?? "");
     });
     webviewView.webview.html = this.render();
   }
@@ -83,6 +86,27 @@ export class GbhConversationView implements vscode.WebviewViewProvider {
     } catch (error) {
       this.paint(undefined, error instanceof Error ? error.message : String(error));
     }
+  }
+
+  /**
+   * Admit one prompt into the session on screen, then repaint from the kernel.
+   * @param text - the prompt text typed in the panel.
+   */
+  async send(text: string): Promise<void> {
+    const sessionId = this.state.sessionId;
+    const host = this.resolveHost();
+    const body = text.trim();
+    if (sessionId === undefined || host === undefined || body.length === 0) return;
+    try {
+      const cookie = await authenticate(host);
+      if (cookie === undefined) throw new Error("Kernel từ chối token (không lấy được cookie).");
+      const accepted = await sendPrompt({ host, cookie }, { sessionId, text: body });
+      if (!accepted) throw new Error("Kernel không nhận prompt.");
+      this.pending = undefined;
+    } catch (error) {
+      this.pending = error instanceof Error ? error.message : String(error);
+    }
+    await this.reload();
   }
 
   /** Hand this session over to the GBH web app. */
@@ -149,8 +173,10 @@ export class GbhConversationView implements vscode.WebviewViewProvider {
       "</style></head><body>",
       head,
       body,
+      '<div class="composer"><textarea id="prompt" rows="3" placeholder="Nhập tin nhắn cho phiên này…"></textarea><button id="send">Gửi</button></div>',
+      this.pending === undefined ? "" : '<p class="error">' + escapeHtml(this.pending) + "</p>",
       '<button id="refresh">Làm mới</button> <button id="web">Mở trong GBH Web</button>',
-      "<script>const api=acquireVsCodeApi();document.getElementById('refresh').onclick=()=>api.postMessage({type:'refresh'});document.getElementById('web').onclick=()=>api.postMessage({type:'openWeb'});</script>",
+      "<script>const api=acquireVsCodeApi();document.getElementById('refresh').onclick=()=>api.postMessage({type:'refresh'});document.getElementById('web').onclick=()=>api.postMessage({type:'openWeb'});document.getElementById('send').onclick=()=>{const el=document.getElementById('prompt');const text=el.value;if(text.trim().length===0)return;el.value='';api.postMessage({type:'send',text});};</script>",
       "</body></html>",
     ].join("");
   }

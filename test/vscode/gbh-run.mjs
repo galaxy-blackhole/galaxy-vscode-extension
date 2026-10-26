@@ -63,6 +63,8 @@ await writeFile(join(cacheDir, "session-moi.json"), cacheOf("phiên mới hơn",
  * answers the envelope the gateway produces, and every other bare request answers 401. The rows say
  * "Remote" in their titles so the suite can prove it painted the API, not the files left on disk.
  */
+const prompts = [];
+
 const REMOTE_ITEMS = [
   {
     sessionId: "session-moi",
@@ -106,6 +108,17 @@ const server = createServer((request, response) => {
     });
     return;
   }
+  if (url.pathname === "/api/session/prompt" && request.method === "POST") {
+    let body = "";
+    request.on("data", (chunk) => { body += chunk; });
+    request.on("end", () => {
+      const envelope = JSON.parse(body || "{}");
+      prompts.push(envelope.payload?.args?.request);
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value: { accepted: true } } }));
+    });
+    return;
+  }
   if (url.searchParams.has("token")) {
     response.statusCode = 303;
     response.setHeader("location", "./");
@@ -143,5 +156,6 @@ try {
   else process.env.GBH_HOME = previousHome;
   await new Promise((resolve) => server.close(resolve));
 }
+console.log("[gbh-spike] prompt the panel sent: " + JSON.stringify(prompts[0] ?? null));
 console.log("[gbh-spike] VS Code extension host finished with " + String(failures) + " failure(s)");
 if (failures !== 0) process.exitCode = 1;
