@@ -371,3 +371,16 @@ Bản hiện tại render markdown **trong extension host** (không JS trong web
 Test: `node --test test/*.test.ts` → **110/110** (thêm 4 test model/catalog/beforeSeq + 1 test `looksUnanswered` + 1 test `statsOf`). VS Code thật: **0 failure(s)**, 13 mốc `step:`.
 
 Ghi chú về B6 (hộp thoại duyệt): vẫn **không** lấy được `toolName` vì host chỉ gửi `request: {}` qua Remote — thay vào đó panel cảnh báo đúng chỗ (B5) và nút “Mở trong GBH Web” để xem chi tiết.
+
+## 16. C1 — lock khớp dependency `ws` (27/10/2026)
+
+`ws` (WS client cho stream `$events`) khai `^8.21.3` trong khi `yarn.lock` chỉ có key `ws@^8.21.0` ⇒ `yarn install --frozen-lockfile` sẽ đỏ trên máy sạch. Máy này **không có `yarn`** trong PATH (và không có `corepack`), nên thay vì sinh entry mới, khai báo được **hạ về đúng range đã khoá**: `"ws": "^8.21.0"` → khớp `ws@^8.21.0 → 8.21.3` có sẵn.
+
+Kiểm chứng:
+
+```
+grep -c '^ws@\^8.21.0:' yarn.lock      → 1
+node -e "require('ws/package.json').version" → 8.21.3
+mọi dependency khai trong package.json đều có entry trong yarn.lock → (không thiếu)
+node esbuild.js → OK · node --test → 110/110
+```
