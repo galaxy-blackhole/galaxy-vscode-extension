@@ -153,6 +153,13 @@ async function run() {
   void vscode.commands.executeCommand("galaxy-code.openChat");
   step("legacy-hidden:ok");
 
+  /* The composer sends on Cmd/Ctrl+Enter; the panel HTML carries that handler. */
+  step("composer-keys");
+  const composerHtml = String(await vscode.commands.executeCommand("galaxy-code.__gbhPanelHtml"));
+  assert.match(composerHtml, /metaKey/u, "the composer listens for the platform modifier");
+  assert.match(composerHtml, /Ctrl\+Enter/u, "and the placeholder says so");
+  step("composer-keys:ok");
+
 
 
 

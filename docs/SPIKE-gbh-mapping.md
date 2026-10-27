@@ -399,3 +399,23 @@ Sidebar trước đây có **hai** khung chat (`Chat` dùng ai-coder-core và `H
 Bằng chứng live: `step: legacy-hidden:ok` — `getConfiguration("galaxy-code").get("showLegacyChat") === false`, và `galaxy-code.openChat` chạy xong không ném.
 
 Việc còn lại (chỉ khi panel mới đủ tính năng): **C3-c** — xoá `src/host` + `webview/` + `ai-coder-core` và viết lại e2e; chưa làm.
+
+## 18. Chốt phần VS Code: `⌘/Ctrl+Enter` để gửi (27/10/2026)
+
+Composer trong panel bắt `keydown`: `Enter` + `⌘`/`Ctrl` ⇒ gửi (không gửi khi chỉ Enter, để xuống dòng bình thường). Placeholder nói rõ phím tắt.
+
+Bằng chứng live: `step: composer-keys:ok` — HTML của panel có `metaKey` (handler) và `Ctrl+Enter` (placeholder).
+
+### 18.1 Trạng thái cuối của nhánh
+
+| Hạng mục | Trạng thái |
+|---|---|
+| Map workspace ↔ phiên · Remote · hội thoại · gửi tin · duyệt · diff · deep-link | ✅ |
+| A1 poll · A2 dừng · A3 phiên mới · A4 đổi tên/ghim/lưu trữ · A5 markdown | ✅ |
+| B2 chọn model · B3 tin cũ hơn · B5 cảnh báo turn không phản hồi · B4 `⌘⌥G` + `⌘⏎` | ✅ |
+| C1 lock `ws` khớp · C3-a ẩn panel legacy | ✅ |
+| B6 tên công cụ trong hộp thoại duyệt | ⛔ (host không gửi qua Remote) |
+| C3-c xoá hẳn panel legacy + viết lại e2e | ⛔ (để sau, khi panel mới đủ tính năng) |
+| Parity 100% renderer web (KaTeX, tool card…) | ⛔ (cần nhúng cụm UI GBH — Hướng B) |
+
+Cổng cuối: `node --test test/*.test.ts` **110/110** · `node test/vscode/gbh-run.mjs` **0 failure(s)**, **15 mốc `step:`** · `tsc` sạch · `esbuild` OK.
