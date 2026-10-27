@@ -99,6 +99,36 @@ async function run() {
   assert.ok(diff, "a diff editor opened: " + JSON.stringify(groups.map((tab) => tab.label)));
   step("changes:ok");
 
+  step("panel-html");
+  const html = await vscode.commands.executeCommand("galaxy-code.__gbhPanelHtml");
+  assert.match(String(html), /<strong>đậm<\/strong>/u, "markdown bold is rendered: " + String(html).slice(0, 200));
+  assert.match(String(html), /<div class="code">/u, "a fenced block became a copyable code block");
+  assert.match(String(html), /<code>code<\/code>/u, "inline code is rendered");
+  step("panel-html:ok");
+
+  step("session-actions");
+  await vscode.commands.executeCommand("galaxy-code.newGbhSession");
+  await vscode.commands.executeCommand("galaxy-code.cancelGbhRun", { session: { id: "session-moi" } });
+  await vscode.commands.executeCommand("galaxy-code.renameGbhSession", { session: { id: "session-moi", title: "cũ" } });
+  await vscode.commands.executeCommand("galaxy-code.pinGbhSession", { session: { id: "session-moi" } });
+  step("session-actions:ok");
+
+  /* A1: flip the fixture to "busy", then let the panel poll — no refresh command is issued here. */
+  step("polling");
+  await fetch(new URL("/__test/running?on=1", "http://127.0.0.1:" + String(process.env.GBH_FIXTURE_PORT)));
+  await fetch(new URL("/__test/extra?on=0", "http://127.0.0.1:" + String(process.env.GBH_FIXTURE_PORT)));
+  await vscode.commands.executeCommand("galaxy-code.showGbhTranscript", { session: { id: "session-moi" } });
+  const busy = await vscode.commands.executeCommand("galaxy-code.__gbhConversation");
+  assert.equal(busy.running, true, "the panel saw the turn running: " + JSON.stringify(busy));
+  assert.equal(busy.messages, 2, "two messages before the poll: " + JSON.stringify(busy));
+  /* Only now does the kernel gain a message, so the growth below can only come from the panel polling. */
+  await fetch(new URL("/__test/extra?on=1", "http://127.0.0.1:" + String(process.env.GBH_FIXTURE_PORT)));
+  await new Promise((resolve) => setTimeout(resolve, 4000));
+  const afterPoll = await vscode.commands.executeCommand("galaxy-code.__gbhConversation");
+  assert.equal(afterPoll.messages, 3, "the panel refreshed itself while the turn ran: " + JSON.stringify(afterPoll));
+  await fetch(new URL("/__test/running?on=0", "http://127.0.0.1:" + String(process.env.GBH_FIXTURE_PORT)));
+  step("polling:ok");
+
 
 
 

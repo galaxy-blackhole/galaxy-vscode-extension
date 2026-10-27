@@ -78,13 +78,19 @@ await writeFile(join(cacheDir, "session-moi.json"), cacheOf("phiên mới hơn",
 const prompts = [];
 /** Outcomes the extension posted back for the scripted approval. */
 const eventResults = [];
+/** Write calls the panel made (create/cancel/rename). */
+const writes = [];
+/** Flipped by the suite to prove the panel polls a running turn on its own. */
+let runningFlag = false;
+/** When true the page answer carries a third message, so a poll visibly changes the transcript. */
+let extraMessage = false;
 
-const REMOTE_ITEMS = [
+const remoteItems = () => [
   {
     sessionId: "session-moi",
     cwd: workspace,
     updatedAt: 1_800_000_000_000,
-    running: false,
+    running: runningFlag,
     projections: { kind: "sequenced", asOfSeq: 5, values: { title: "phiên Remote mới", workingDirectory: workspace, tokenUsage: { uncachedInputTokens: 10, outputTokens: 5 } } },
   },
   {
@@ -98,13 +104,24 @@ const REMOTE_ITEMS = [
 
 const server = createServer((request, response) => {
   const url = new URL(request.url ?? "/", "http://127.0.0.1");
+  /* Test-only switches: let the suite make the kernel look busy without touching the fixtures. */
+  if (url.pathname === "/__test/running") {
+    runningFlag = url.searchParams.get("on") === "1";
+    response.end("ok");
+    return;
+  }
+  if (url.pathname === "/__test/extra") {
+    extraMessage = url.searchParams.get("on") === "1";
+    response.end("ok");
+    return;
+  }
   if (url.pathname === "/api/session/list" && request.method === "POST") {
     let body = "";
     request.on("data", (chunk) => { body += chunk; });
     request.on("end", () => {
       const envelope = JSON.parse(body || "{}");
       response.setHeader("content-type", "application/json");
-      response.end(JSON.stringify({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value: { items: REMOTE_ITEMS } } }));
+      response.end(JSON.stringify({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value: { items: remoteItems() } } }));
     });
     return;
   }
@@ -113,12 +130,31 @@ const server = createServer((request, response) => {
     request.on("data", (chunk) => { body += chunk; });
     request.on("end", () => {
       const envelope = JSON.parse(body || "{}");
+      const extra = extraMessage
+        ? [{ type: "event", event: { type: "assistant/message", seq: 3, time: 3, data: { role: "assistant", content: [{ type: "text", text: "tin thứ ba do poll" }] } } }]
+        : [];
       const records = [
         { type: "event", event: { type: "user/message", seq: 1, time: 1, data: { role: "user", content: [{ type: "text", text: "chào GBH" }] } } },
-        { type: "event", event: { type: "assistant/message", seq: 2, time: 2, data: { role: "assistant", content: [{ type: "text", text: "chào bạn" }] } } },
+        ...extra,
+        { type: "event", event: { type: "assistant/message", seq: 2, time: 2, data: { role: "assistant", content: [{ type: "text", text: "chào bạn — **đậm** và \u0060code\u0060, xem:\n\n\u0060\u0060\u0060ts\nconst a = 1;\n\u0060\u0060\u0060" }] } } },
       ];
       response.setHeader("content-type", "application/json");
       response.end(JSON.stringify({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value: { records, hasMore: false } } }));
+    });
+    return;
+  }
+  if (
+    ["/api/session/create", "/api/session/cancel", "/api/session/rename", "/api/workspace/pinSession", "/api/workspace/archiveSession"].includes(url.pathname) &&
+    request.method === "POST"
+  ) {
+    let body = "";
+    request.on("data", (chunk) => { body += chunk; });
+    request.on("end", () => {
+      const envelope = JSON.parse(body || "{}");
+      writes.push({ method: envelope.method, args: envelope.payload?.args });
+      const value = envelope.method === "session.create" ? { sessionId: "session-created" } : {};
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value } }));
     });
     return;
   }
@@ -179,6 +215,8 @@ const userData = await mkdtemp(join(tmpdir(), "gbh-spike-vscode-"));
 const previousHome = process.env.GBH_HOME;
 process.env.GBH_HOME = home;
 process.env.GBH_APPROVAL_TEST_ANSWER = "allow";
+process.env.GBH_RENAME_TEST_TITLE = "Tên do VS Code đặt";
+process.env.GBH_FIXTURE_PORT = String(port);
 let failures = 1;
 try {
   failures = await runTests({
@@ -202,5 +240,6 @@ try {
 }
 console.log("[gbh-spike] prompt the panel sent: " + JSON.stringify(prompts[0] ?? null));
 console.log("[gbh-spike] approval answered: " + JSON.stringify(eventResults[0] ?? null));
+console.log("[gbh-spike] writes: " + JSON.stringify(writes));
 console.log("[gbh-spike] VS Code extension host finished with " + String(failures) + " failure(s)");
 if (failures !== 0) process.exitCode = 1;

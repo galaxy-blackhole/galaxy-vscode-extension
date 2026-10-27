@@ -7,11 +7,28 @@ import { ApprovalBridge } from "./gbh/approval-bridge";
 import { openEventStream, type EventStream } from "./gbh/events";
 import { parseReadyUrl as parseGbhReadyUrl } from "./gbh/host";
 import { parseReadyUrl, probeHost, webUrlForSession } from "./gbh/host";
+import { archiveSession, authenticate as authenticateKernel, cancelSession, createSession, pinSession, renameSession } from "./gbh/remote";
 import { gbhHome, readReadyUrl } from "./gbh/paths";
 
 export function activate(context: vscode.ExtensionContext): void {
   const provider = new GalaxyChatViewProvider(context);
   const webLauncher = new WebGuiLauncher(context);
+  /** Authenticate against the announced kernel, or tell the user why not. */
+  const kernelSession = async (): Promise<{ host: NonNullable<ReturnType<typeof parseGbhReadyUrl>>; cookie: string } | undefined> => {
+    const ready = readReadyUrl(gbhHome(vscode.workspace.getConfiguration("galaxy-code").get<string>("gbhHome", "")));
+    const host = ready === undefined ? undefined : parseGbhReadyUrl(ready);
+    if (host === undefined) {
+      await vscode.window.showWarningMessage("Chưa có kernel nào chạy (thiếu ready-url.txt).");
+      return undefined;
+    }
+    const cookie = await authenticateKernel(host);
+    if (cookie === undefined) {
+      await vscode.window.showWarningMessage("Kernel từ chối token (không lấy được cookie).");
+      return undefined;
+    }
+    return { host, cookie };
+  };
+
   /*
    * SPIKE (branch spike/gbh-kernel-map): prove the kernel mapping — the open folder becomes a GBH
    * workspace and its sessions show up in a native tree view. Read-only: no host is started here.
@@ -108,6 +125,66 @@ export function activate(context: vscode.ExtensionContext): void {
       await vscode.env.openExternal(vscode.Uri.parse(webUrlForSession(ready, node?.session?.id)));
       if (node?.session !== undefined) await vscode.env.clipboard.writeText(node.session.id);
     }),
+    vscode.commands.registerCommand("galaxy-code.newGbhSession", async () => {
+      const kernel = await kernelSession();
+      if (kernel === undefined) return;
+      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      const sessionId = await createSession(kernel, cwd === undefined ? {} : { cwd });
+      if (sessionId === undefined) {
+        await vscode.window.showWarningMessage("Kernel không trả về phiên mới.");
+        return;
+      }
+      gbhTree.refresh();
+      await conversation.show(sessionId);
+      await vscode.commands.executeCommand("galaxy-code.gbhConversation.focus");
+    }),
+    vscode.commands.registerCommand("galaxy-code.cancelGbhRun", async (node?: { session?: { id: string } }) => {
+      const sessionId = node?.session?.id ?? conversation.snapshot().sessionId;
+      const kernel = await kernelSession();
+      if (kernel === undefined || sessionId === undefined) return;
+      await cancelSession(kernel, sessionId);
+      gbhTree.refresh();
+      await conversation.reload();
+    }),
+    vscode.commands.registerCommand("galaxy-code.renameGbhSession", async (node?: { session?: { id: string; title?: string } }) => {
+      const sessionId = node?.session?.id;
+      const kernel = await kernelSession();
+      if (kernel === undefined || sessionId === undefined) return;
+      const scripted = context.extensionMode === vscode.ExtensionMode.Test ? process.env.GBH_RENAME_TEST_TITLE : undefined;
+      if (scripted !== undefined) {
+        await renameSession(kernel, sessionId, scripted.trim());
+        gbhTree.refresh();
+        return;
+      }
+      const title = await vscode.window.showInputBox({
+        prompt: "Tên mới cho phiên",
+        value: node?.session?.title ?? "",
+        validateInput: (value) => (value.trim().length === 0 ? "Tên không được để trống" : undefined),
+      });
+      if (title === undefined) return;
+      await renameSession(kernel, sessionId, title.trim());
+      gbhTree.refresh();
+    }),
+    vscode.commands.registerCommand("galaxy-code.pinGbhSession", async (node?: { session?: { id: string } }) => {
+      const sessionId = node?.session?.id;
+      const kernel = await kernelSession();
+      if (kernel === undefined || sessionId === undefined) return;
+      await pinSession(kernel, sessionId);
+      gbhTree.refresh();
+    }),
+    vscode.commands.registerCommand("galaxy-code.archiveGbhSession", async (node?: { session?: { id: string } }) => {
+      const sessionId = node?.session?.id;
+      const kernel = await kernelSession();
+      if (kernel === undefined || sessionId === undefined) return;
+      const picked = await vscode.window.showWarningMessage(
+        "Lưu trữ phiên này? Công việc đang chạy (nếu có) sẽ bị dừng.",
+        { modal: true },
+        "Lưu trữ",
+      );
+      if (picked !== "Lưu trữ") return;
+      await archiveSession(kernel, sessionId, true);
+      gbhTree.refresh();
+    }),
     vscode.commands.registerCommand("galaxy-code.showGbhDiff", async (node?: { folder?: string; file?: { path: string } }) => {
       const folder = node?.folder;
       const file = node?.file?.path;
@@ -142,6 +219,7 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
       vscode.commands.registerCommand("galaxy-code.__gbhTree", async () => await gbhTree.snapshotForTest()),
       vscode.commands.registerCommand("galaxy-code.__gbhConversation", async () => conversation.snapshot()),
+      vscode.commands.registerCommand("galaxy-code.__gbhPanelHtml", async () => conversation.htmlForTest()),
       vscode.commands.registerCommand("galaxy-code.__gbhEvents", async () => ({ clientId: eventStream?.clientId() ?? null })),
       vscode.commands.registerCommand("galaxy-code.__gbhChanges", async () => {
         const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;

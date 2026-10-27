@@ -263,9 +263,10 @@ export class GbhKernelTreeProvider implements vscode.TreeDataProvider<GbhNode> {
       return item;
     }
     if (element.kind === "session") {
-      const title = element.session.title ?? element.session.id.slice(0, 12);
+      const running = element.session.running === true;
+      const title = (running ? "● " : "") + (element.session.title ?? element.session.id.slice(0, 12));
       const item = new vscode.TreeItem(title, vscode.TreeItemCollapsibleState.None);
-      item.description = element.session.id.slice(0, 12);
+      item.description = running ? "đang chạy" : element.session.id.slice(0, 12);
       item.tooltip = [
         element.session.id,
         element.session.workingDirectory ?? element.session.cwd,
@@ -273,7 +274,7 @@ export class GbhKernelTreeProvider implements vscode.TreeDataProvider<GbhNode> {
       ]
         .filter((part): part is string => part !== undefined)
         .join("\n");
-      item.iconPath = new vscode.ThemeIcon("comment-discussion");
+      item.iconPath = new vscode.ThemeIcon(running ? "sync~spin" : "comment-discussion");
       item.contextValue = "gbhSession";
       item.command = { command: "galaxy-code.showGbhTranscript", title: "Xem hội thoại", arguments: [element] };
       return item;

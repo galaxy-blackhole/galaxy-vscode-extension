@@ -26,6 +26,7 @@ interface SessionItem {
   readonly cwd?: unknown;
   readonly updatedAt?: unknown;
   readonly projections?: { readonly values?: Record<string, unknown>; readonly asOfSeq?: unknown };
+  readonly running?: unknown;
 }
 
 /** Injectable fetch so tests never need a server. */
@@ -103,6 +104,7 @@ export function mapSessionItem(item: unknown): GbhSessionSummary | undefined {
     ...(typeof stats?.uncachedInputTokens === "number" ? { uncachedInputTokens: stats.uncachedInputTokens } : {}),
     ...(typeof stats?.outputTokens === "number" ? { outputTokens: stats.outputTokens } : {}),
     ...(typeof row.projections?.asOfSeq === "number" ? { asOfSeq: row.projections.asOfSeq } : {}),
+    ...(row.running === true ? { running: true } : {}),
   };
 }
 
@@ -184,3 +186,68 @@ export async function sendPrompt(kernel: KernelSession, request: PromptRequest, 
   return value?.accepted === true;
 }
 
+
+/** Request for creating an ordinary session. */
+export interface CreateSessionRequest {
+  /** Directory the session owns; the kernel derives the workspace from it when it has one. */
+  readonly cwd?: string;
+  /** Workspace id, exclusive with cwd. */
+  readonly workspaceId?: string;
+}
+
+/**
+ * Create one ordinary session for a new conversation.
+ * @param kernel - authenticated connection.
+ * @param request - the directory or workspace the session joins.
+ * @param fetchImpl - injectable for tests.
+ * @returns the new session id, when the kernel reported one.
+ */
+export async function createSession(kernel: KernelSession, request: CreateSessionRequest, fetchImpl: FetchLike = fetch): Promise<string | undefined> {
+  const value = (await callRemote(kernel, "session.create", { request: { ...request } }, fetchImpl)) as
+    | { sessionId?: unknown; id?: unknown; session?: { id?: unknown } }
+    | undefined;
+  const id = value?.sessionId ?? value?.id ?? value?.session?.id;
+  return typeof id === "string" && id.length > 0 ? id : undefined;
+}
+
+/**
+ * Cancel the active turn of one session without dropping its pending inbox.
+ * @param kernel - authenticated connection.
+ * @param sessionId - the session whose turn is stopped.
+ * @param fetchImpl - injectable for tests.
+ */
+export async function cancelSession(kernel: KernelSession, sessionId: string, fetchImpl: FetchLike = fetch): Promise<void> {
+  await callRemote(kernel, "session.cancel", { request: { sessionId } }, fetchImpl);
+}
+
+/**
+ * Rename one session.
+ * @param kernel - authenticated connection.
+ * @param sessionId - the session to rename.
+ * @param title - the new, non-blank title.
+ * @param fetchImpl - injectable for tests.
+ */
+export async function renameSession(kernel: KernelSession, sessionId: string, title: string, fetchImpl: FetchLike = fetch): Promise<void> {
+  await callRemote(kernel, "session.rename", { request: { sessionId, title } }, fetchImpl);
+}
+
+/**
+ * Pin or unpin one session in its workspace list.
+ * @param kernel - authenticated connection.
+ * @param sessionId - the session to pin.
+ * @param fetchImpl - injectable for tests.
+ */
+export async function pinSession(kernel: KernelSession, sessionId: string, fetchImpl: FetchLike = fetch): Promise<void> {
+  await callRemote(kernel, "workspace.pinSession", { request: { sessionId } }, fetchImpl);
+}
+
+/**
+ * Archive one session, stopping its running work when asked to.
+ * @param kernel - authenticated connection.
+ * @param sessionId - the session to archive.
+ * @param stopActivity - stop the running turn instead of refusing while it is active.
+ * @param fetchImpl - injectable for tests.
+ */
+export async function archiveSession(kernel: KernelSession, sessionId: string, stopActivity = true, fetchImpl: FetchLike = fetch): Promise<void> {
+  await callRemote(kernel, "workspace.archiveSession", { request: { sessionId, stopActivity } }, fetchImpl);
+}

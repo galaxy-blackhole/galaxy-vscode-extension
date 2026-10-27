@@ -23,6 +23,8 @@ export interface Transcript {
   readonly title?: string;
   readonly messages: readonly TranscriptMessage[];
   readonly hasMore: boolean;
+  /** True while the kernel reports the turn as running (drives the panel polling). */
+  readonly running?: boolean;
 }
 
 /** The event types that carry a message this view shows. */
@@ -96,6 +98,7 @@ export async function readTranscript(
     ...(summary?.title === undefined ? {} : { title: summary.title }),
     messages: messagesOfRecords(value?.records),
     hasMore: value?.hasMore === true,
+    ...(summary?.running === true ? { running: true } : {}),
   };
 }
 

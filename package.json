@@ -80,6 +80,36 @@
         "command": "galaxy-code.showGbhDiff",
         "title": "Galaxy Blackhole: Show File Diff",
         "category": "Galaxy Blackhole"
+      },
+      {
+        "command": "galaxy-code.newGbhSession",
+        "title": "Galaxy Blackhole: New Session",
+        "category": "Galaxy Blackhole",
+        "icon": "$(add)"
+      },
+      {
+        "command": "galaxy-code.cancelGbhRun",
+        "title": "Galaxy Blackhole: Stop Running Turn",
+        "category": "Galaxy Blackhole",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "galaxy-code.renameGbhSession",
+        "title": "Galaxy Blackhole: Rename Session",
+        "category": "Galaxy Blackhole",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "galaxy-code.pinGbhSession",
+        "title": "Galaxy Blackhole: Pin Session",
+        "category": "Galaxy Blackhole",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "galaxy-code.archiveGbhSession",
+        "title": "Galaxy Blackhole: Archive Session",
+        "category": "Galaxy Blackhole",
+        "icon": "$(archive)"
       }
     ],
     "configuration": {
@@ -108,9 +138,49 @@
           "command": "galaxy-code.openGbhSession",
           "when": "view == galaxy-code.gbhSessions && viewItem == gbhSession",
           "group": "inline"
+        },
+        {
+          "command": "galaxy-code.cancelGbhRun",
+          "when": "view == galaxy-code.gbhSessions && viewItem == gbhSession",
+          "group": "inline@1"
+        },
+        {
+          "command": "galaxy-code.renameGbhSession",
+          "when": "view == galaxy-code.gbhSessions && viewItem == gbhSession",
+          "group": "session@1"
+        },
+        {
+          "command": "galaxy-code.pinGbhSession",
+          "when": "view == galaxy-code.gbhSessions && viewItem == gbhSession",
+          "group": "session@2"
+        },
+        {
+          "command": "galaxy-code.archiveGbhSession",
+          "when": "view == galaxy-code.gbhSessions && viewItem == gbhSession",
+          "group": "session@3"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "galaxy-code.newGbhSession",
+          "when": "view == galaxy-code.gbhSessions",
+          "group": "navigation@1"
+        },
+        {
+          "command": "galaxy-code.refreshGbhSessions",
+          "when": "view == galaxy-code.gbhSessions",
+          "group": "navigation@2"
         }
       ]
-    }
+    },
+    "keybindings": [
+      {
+        "command": "galaxy-code.showGbhTranscript",
+        "key": "cmd+alt+g",
+        "mac": "cmd+alt+g",
+        "when": "workspaceFolderCount > 0"
+      }
+    ]
   },
   "scripts": {
     "compile": "node esbuild.js && vite build",

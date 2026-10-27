@@ -29,6 +29,8 @@ export interface GbhSessionSummary {
   readonly createdAt?: number;
   readonly uncachedInputTokens?: number;
   readonly outputTokens?: number;
+  /** True while the kernel reports this session turn as running. */
+  readonly running?: boolean;
   /** Log cut the kernel reported for this session (session.list's projections.asOfSeq). */
   readonly asOfSeq?: number;
 }

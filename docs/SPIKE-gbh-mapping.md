@@ -339,3 +339,23 @@ webUrlForSession(readyUrl, sessionId)   // → <ready-url>#session=<id>
 | C | không tham số | app tự chọn phiên trống của nó (`session-d1a2d8a3…`) — đúng như trước khi có tính năng |
 
 Test: `tests/host/shell-identity-deep-link.test.ts` (3 test: chèn đúng chỗ, idempotent, ghi cả hai khoá) · extension: `test/gbh-host.test.ts` thêm 1 test cho `webUrlForSession`.
+
+## 14. Hoàn thiện dùng hằng ngày: A1–A5 (27/10/2026)
+
+| # | Việc | Cách làm | Bằng chứng live trong VS Code |
+|---|---|---|---|
+| **A1** | Panel **tự cập nhật khi agent chạy** | `session.list` trả `running`; panel poll `session.page` mỗi 1,5 s, dừng khi hết chạy (tối đa 4 lần lỗi liên tiếp) | `step: polling → polling:ok` (tin thứ 3 xuất hiện **không** bấm Làm mới) |
+| **A2** | **Dừng** turn | `session.cancel {request:{sessionId}}` + nút “Dừng” thay nút “Gửi” khi đang chạy | writes ghi `session.cancel` |
+| **A3** | **Phiên mới** | `session.create {request:{cwd}}` + nút `+` ở tiêu đề view | writes ghi `session.create {cwd:<folder đang mở>}` |
+| **A4** | **Đổi tên / ghim / lưu trữ** | `session.rename`, `workspace.pinSession`, `workspace.archiveSession` (menu chuột phải trên dòng phiên) | writes ghi `session.rename`, `workspace.pinSession` |
+| **A5** | **Markdown + code block copy** | `src/gbh/markdown.ts` (thuần, không dependency): code fence có nhãn ngôn ngữ + nút Copy, inline code, đậm/nghiêng, link, heading, list, quote, hr; raw HTML **luôn bị escape** | `step: panel-html:ok` — HTML panel chứa `<strong>đậm</strong>`, `<div class="code">`, `<code>code</code>` |
+
+Thêm: dấu **● + icon quay** cho phiên đang chạy trong cây; keybinding `⌘⌥G` mở panel; 5 lệnh mới trong palette.
+
+Test: `node --test test/*.test.ts` → **104/104** (thêm 4 test markdown + 3 test lệnh ghi). `node test/vscode/gbh-run.mjs` → **0 failure(s)**, 10 mốc `step:`.
+
+### 14.1 Vì sao A5 chưa dùng lại gói UI của `blackhole-tauri`
+
+Các gói UI bên đó (`ui-renderer`, `ui-conversation`…) là **graph cordis + React** khoá vào `window.__ModuleLoader__`, slot registry và Remote — dùng lại đúng nghĩa là nhúng **cả client graph** vào webview, tức Hướng B (nhiều tuần), và quay lại đúng điều chủ dự án đã bác: “giao diện lại giống web”.
+
+Bản hiện tại render markdown **trong extension host** (không JS trong webview ngoài vài handler), dùng token theme `--vscode-*` nên hoà vào VS Code. Muốn parity 100% về render (KaTeX, bảng, tool card, diff card…) thì mới cần nhúng cụm UI của GBH — ghi thành việc riêng.
