@@ -25,6 +25,12 @@ export interface Transcript {
   readonly hasMore: boolean;
   /** True while the kernel reports the turn as running (drives the panel polling). */
   readonly running?: boolean;
+  /** Turn counters the kernel reports for this session. */
+  readonly stats?: { readonly turns: number; readonly steps: number };
+  /** Model the kernel selected for this session. */
+  readonly model?: { readonly provider: string; readonly model: string };
+  /** Sequence of the oldest message in this page, for loading older pages. */
+  readonly firstSeq?: number;
 }
 
 /** The event types that carry a message this view shows. */
@@ -84,21 +90,30 @@ export async function readTranscript(
   sessionId: string,
   maxMessages = 40,
   fetchImpl: FetchLike = fetch,
+  beforeSeq?: number,
 ): Promise<Transcript> {
   const sessions = await listSessions(kernel, fetchImpl);
   const summary = sessions.find((item) => item.id === sessionId);
-  const value = (await callRemote(
-    kernel,
-    "session.page",
-    { request: { address: { kind: "session", sessionId }, throughSeq: throughSeqHint(summary), maxMessages } },
-    fetchImpl,
-  )) as { records?: unknown; hasMore?: unknown } | undefined;
+  const request: Record<string, unknown> = {
+    address: { kind: "session", sessionId },
+    throughSeq: throughSeqHint(summary),
+    maxMessages,
+    ...(beforeSeq === undefined ? {} : { beforeSeq }),
+  };
+  const value = (await callRemote(kernel, "session.page", { request }, fetchImpl)) as
+    | { records?: unknown; hasMore?: unknown }
+    | undefined;
+  const messages = messagesOfRecords(value?.records);
+  const firstSeq = messages.length === 0 ? undefined : messages[0]?.seq;
   return {
     sessionId,
     ...(summary?.title === undefined ? {} : { title: summary.title }),
-    messages: messagesOfRecords(value?.records),
+    ...(summary?.model === undefined ? {} : { model: summary.model }),
+    ...(summary?.stats === undefined ? {} : { stats: summary.stats }),
+    messages,
     hasMore: value?.hasMore === true,
     ...(summary?.running === true ? { running: true } : {}),
+    ...(firstSeq === undefined ? {} : { firstSeq }),
   };
 }
 
@@ -109,4 +124,20 @@ export async function readTranscript(
  */
 export function throughSeqHint(summary: { readonly asOfSeq?: number } | undefined): number {
   return typeof summary?.asOfSeq === "number" && summary.asOfSeq > 0 ? summary.asOfSeq : Number.MAX_SAFE_INTEGER;
+}
+
+/**
+ * Decide whether the last prompt looks unanswered, so the panel can say so instead of staying silent.
+ * A user message newer than every assistant message, on a session that is not running, means the turn
+ * ended without a reply (a model or credential failure, or a cancelled turn).
+ * @param messages - the transcript page, oldest first.
+ * @param running - what the kernel says about the session right now.
+ * @returns true when the panel should warn that the last message has no answer.
+ */
+export function looksUnanswered(messages: readonly TranscriptMessage[], running: boolean): boolean {
+  if (running) return false;
+  const last = messages[messages.length - 1];
+  if (last === undefined || last.role !== "user") return false;
+  const lastAssistant = [...messages].reverse().find((message) => message.role === "assistant");
+  return lastAssistant === undefined || last.seq > lastAssistant.seq;
 }

@@ -359,3 +359,15 @@ Test: `node --test test/*.test.ts` → **104/104** (thêm 4 test markdown + 3 te
 Các gói UI bên đó (`ui-renderer`, `ui-conversation`…) là **graph cordis + React** khoá vào `window.__ModuleLoader__`, slot registry và Remote — dùng lại đúng nghĩa là nhúng **cả client graph** vào webview, tức Hướng B (nhiều tuần), và quay lại đúng điều chủ dự án đã bác: “giao diện lại giống web”.
 
 Bản hiện tại render markdown **trong extension host** (không JS trong webview ngoài vài handler), dùng token theme `--vscode-*` nên hoà vào VS Code. Muốn parity 100% về render (KaTeX, bảng, tool card, diff card…) thì mới cần nhúng cụm UI của GBH — ghi thành việc riêng.
+
+## 15. Bổ sung B2/B3/B5 (27/10/2026)
+
+| # | Việc | Cách làm | Bằng chứng live |
+|---|---|---|---|
+| **B2** | **Chọn model ngay trong VS Code** | `session.modelCatalog` (không tham số) → danh sách provider/model/effort; `session.selectModel {request:{sessionId, provider, model, reasoningEffort?}}`. Lệnh `galaxy-code.selectGbhModel` (menu chuột phải trên phiên); header panel hiện `provider/model` lấy từ projection `modelSelection` | `step: model-picker:ok` — header thành `auto/deepseek-v4.1-flash` sau khi chọn |
+| **B3** | **Tải tin cũ hơn** | `session.page` nhận `beforeSeq`; panel nhớ `firstSeq` của trang hiện tại, nút “Tải tin cũ hơn” ghép trang cũ lên đầu và cập nhật `hasMore` | `step: older-page:ok` — 3 tin + 1 tin cũ = **4**, `hasMore` chuyển `true → false` |
+| **B5** | **Nói rõ khi turn không có phản hồi** | `looksUnanswered(messages, running)`: tin cuối là `user`, mới hơn mọi tin `assistant`, và phiên **không** chạy ⇒ panel hiện cảnh báo “turn đã kết thúc mà không có trả lời…”. Header thêm số **turn** từ projection `sessionStats` | `step: stalled-hint:ok` (header có `2 turn`) |
+
+Test: `node --test test/*.test.ts` → **110/110** (thêm 4 test model/catalog/beforeSeq + 1 test `looksUnanswered` + 1 test `statsOf`). VS Code thật: **0 failure(s)**, 13 mốc `step:`.
+
+Ghi chú về B6 (hộp thoại duyệt): vẫn **không** lấy được `toolName` vì host chỉ gửi `request: {}` qua Remote — thay vào đó panel cảnh báo đúng chỗ (B5) và nút “Mở trong GBH Web” để xem chi tiết.

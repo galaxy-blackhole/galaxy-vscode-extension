@@ -91,7 +91,17 @@ const remoteItems = () => [
     cwd: workspace,
     updatedAt: 1_800_000_000_000,
     running: runningFlag,
-    projections: { kind: "sequenced", asOfSeq: 5, values: { title: "phiên Remote mới", workingDirectory: workspace, tokenUsage: { uncachedInputTokens: 10, outputTokens: 5 } } },
+    projections: {
+      kind: "sequenced",
+      asOfSeq: 5,
+      values: {
+        title: "phiên Remote mới",
+        workingDirectory: workspace,
+        tokenUsage: { uncachedInputTokens: 10, outputTokens: 5 },
+        modelSelection: { next: { provider: "auto", model: "deepseek-v4.1-flash" }, lastUsed: null },
+        sessionStats: { turns: 2, steps: 5 },
+      },
+    },
   },
   {
     sessionId: "session-cu",
@@ -115,6 +125,39 @@ const server = createServer((request, response) => {
     response.end("ok");
     return;
   }
+  if (url.pathname === "/api/session/modelCatalog" && request.method === "POST") {
+    let body = "";
+    request.on("data", (chunk) => { body += chunk; });
+    request.on("end", () => {
+      const envelope = JSON.parse(body || "{}");
+      response.setHeader("content-type", "application/json");
+      response.end(
+        JSON.stringify({
+          type: "server-response",
+          rpcId: envelope.rpcId,
+          result: {
+            ok: true,
+            value: {
+              default: { provider: "auto", model: "deepseek-v4.1-flash" },
+              groups: [{ id: "auto", name: "Galaxy Blackhole", models: [{ id: "deepseek-v4.1-flash", name: "Auto", reasoning: { efforts: [{ id: "off" }, { id: "max" }] } }] }],
+            },
+          },
+        }),
+      );
+    });
+    return;
+  }
+  if (url.pathname === "/api/session/selectModel" && request.method === "POST") {
+    let body = "";
+    request.on("data", (chunk) => { body += chunk; });
+    request.on("end", () => {
+      const envelope = JSON.parse(body || "{}");
+      writes.push({ method: envelope.method, args: envelope.payload?.args });
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value: {} } }));
+    });
+    return;
+  }
   if (url.pathname === "/api/session/list" && request.method === "POST") {
     let body = "";
     request.on("data", (chunk) => { body += chunk; });
@@ -130,6 +173,12 @@ const server = createServer((request, response) => {
     request.on("data", (chunk) => { body += chunk; });
     request.on("end", () => {
       const envelope = JSON.parse(body || "{}");
+      if (envelope.payload?.args?.request?.beforeSeq !== undefined) {
+        const older = [{ type: "event", event: { type: "user/message", seq: 0, data: { role: "user", content: [{ type: "text", text: "tin cũ hơn" }] } } }];
+        response.setHeader("content-type", "application/json");
+        response.end(JSON.stringify({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value: { records: older, hasMore: false } } }));
+        return;
+      }
       const extra = extraMessage
         ? [{ type: "event", event: { type: "assistant/message", seq: 3, time: 3, data: { role: "assistant", content: [{ type: "text", text: "tin thứ ba do poll" }] } } }]
         : [];
@@ -144,7 +193,7 @@ const server = createServer((request, response) => {
     return;
   }
   if (
-    ["/api/session/create", "/api/session/cancel", "/api/session/rename", "/api/workspace/pinSession", "/api/workspace/archiveSession"].includes(url.pathname) &&
+    ["/api/session/create", "/api/session/cancel", "/api/session/rename", "/api/session/selectModel", "/api/workspace/pinSession", "/api/workspace/archiveSession"].includes(url.pathname) &&
     request.method === "POST"
   ) {
     let body = "";
@@ -217,6 +266,7 @@ process.env.GBH_HOME = home;
 process.env.GBH_APPROVAL_TEST_ANSWER = "allow";
 process.env.GBH_RENAME_TEST_TITLE = "Tên do VS Code đặt";
 process.env.GBH_FIXTURE_PORT = String(port);
+process.env.GBH_MODEL_TEST_PICK = "deepseek-v4.1-flash";
 let failures = 1;
 try {
   failures = await runTests({

@@ -105,6 +105,8 @@ export function mapSessionItem(item: unknown): GbhSessionSummary | undefined {
     ...(typeof stats?.outputTokens === "number" ? { outputTokens: stats.outputTokens } : {}),
     ...(typeof row.projections?.asOfSeq === "number" ? { asOfSeq: row.projections.asOfSeq } : {}),
     ...(row.running === true ? { running: true } : {}),
+    ...(modelOf(values) === undefined ? {} : { model: modelOf(values) }),
+    ...(statsOf(values) === undefined ? {} : { stats: statsOf(values) }),
   };
 }
 
@@ -250,4 +252,95 @@ export async function pinSession(kernel: KernelSession, sessionId: string, fetch
  */
 export async function archiveSession(kernel: KernelSession, sessionId: string, stopActivity = true, fetchImpl: FetchLike = fetch): Promise<void> {
   await callRemote(kernel, "workspace.archiveSession", { request: { sessionId, stopActivity } }, fetchImpl);
+}
+
+/**
+ * Read the model the kernel selected for a session out of its projections.
+ * @param values - the projection values bag of one session row.
+ * @returns provider + model, or undefined when the session never picked one.
+ */
+export function modelOf(values: Record<string, unknown>): { provider: string; model: string } | undefined {
+  const selection = values.modelSelection as { next?: unknown; lastUsed?: unknown } | undefined;
+  const picked = (selection?.next ?? selection?.lastUsed) as { provider?: unknown; model?: unknown } | undefined;
+  if (typeof picked?.provider !== "string" || typeof picked.model !== "string") return undefined;
+  return { provider: picked.provider, model: picked.model };
+}
+
+/** One model a session may switch to. */
+export interface ModelChoice {
+  readonly provider: string;
+  readonly providerName: string;
+  readonly model: string;
+  readonly name: string;
+  readonly efforts: readonly string[];
+}
+
+/** The kernel's model catalog, flattened for a picker. */
+export interface ModelCatalog {
+  readonly choices: readonly ModelChoice[];
+  readonly defaultChoice?: { readonly provider: string; readonly model: string };
+}
+
+/**
+ * Read the kernel's model catalog.
+ * @param kernel - authenticated connection.
+ * @param fetchImpl - injectable for tests.
+ * @returns the flattened choices plus the kernel default.
+ */
+export async function modelCatalog(kernel: KernelSession, fetchImpl: FetchLike = fetch): Promise<ModelCatalog> {
+  const value = (await callRemote(kernel, "session.modelCatalog", {}, fetchImpl)) as
+    | {
+        default?: { provider?: unknown; model?: unknown };
+        groups?: { id?: unknown; name?: unknown; models?: { id?: unknown; name?: unknown; reasoning?: { efforts?: { id?: unknown }[] } }[] }[];
+      }
+    | undefined;
+  const choices: ModelChoice[] = [];
+  for (const group of value?.groups ?? []) {
+    const provider = typeof group.id === "string" ? group.id : "";
+    const providerName = typeof group.name === "string" ? group.name : provider;
+    for (const model of group.models ?? []) {
+      if (typeof model.id !== "string") continue;
+      choices.push({
+        provider,
+        providerName,
+        model: model.id,
+        name: typeof model.name === "string" ? model.name : model.id,
+        efforts: (model.reasoning?.efforts ?? []).map((effort) => (typeof effort.id === "string" ? effort.id : "")).filter((id) => id.length > 0),
+      });
+    }
+  }
+  const fallback = value?.default;
+  const defaultChoice =
+    typeof fallback?.provider === "string" && typeof fallback.model === "string" ? { provider: fallback.provider, model: fallback.model } : undefined;
+  return { choices, ...(defaultChoice === undefined ? {} : { defaultChoice }) };
+}
+
+/**
+ * Switch one session to a model.
+ * @param kernel - authenticated connection.
+ * @param request - session, provider, model and optional reasoning effort.
+ * @param fetchImpl - injectable for tests.
+ */
+export async function selectModel(
+  kernel: KernelSession,
+  request: { sessionId: string; provider: string; model: string; reasoningEffort?: string },
+  fetchImpl: FetchLike = fetch,
+): Promise<void> {
+  await callRemote(
+    kernel,
+    "session.selectModel",
+    { request: { sessionId: request.sessionId, provider: request.provider, model: request.model, ...(request.reasoningEffort === undefined ? {} : { reasoningEffort: request.reasoningEffort }) } },
+    fetchImpl,
+  );
+}
+
+/**
+ * Read the turn counters out of a session row's projections.
+ * @param values - the projection values bag of one session row.
+ * @returns turns and steps, or undefined when the kernel never reported them.
+ */
+export function statsOf(values: Record<string, unknown>): { turns: number; steps: number } | undefined {
+  const stats = values.sessionStats as { turns?: unknown; steps?: unknown } | undefined;
+  if (typeof stats?.turns !== "number" || typeof stats?.steps !== "number") return undefined;
+  return { turns: stats.turns, steps: stats.steps };
 }

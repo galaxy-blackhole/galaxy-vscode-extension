@@ -7,7 +7,7 @@ import { ApprovalBridge } from "./gbh/approval-bridge";
 import { openEventStream, type EventStream } from "./gbh/events";
 import { parseReadyUrl as parseGbhReadyUrl } from "./gbh/host";
 import { parseReadyUrl, probeHost, webUrlForSession } from "./gbh/host";
-import { archiveSession, authenticate as authenticateKernel, cancelSession, createSession, pinSession, renameSession } from "./gbh/remote";
+import { archiveSession, authenticate as authenticateKernel, cancelSession, createSession, modelCatalog, pinSession, renameSession, selectModel } from "./gbh/remote";
 import { gbhHome, readReadyUrl } from "./gbh/paths";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -146,6 +146,49 @@ export function activate(context: vscode.ExtensionContext): void {
       gbhTree.refresh();
       await conversation.reload();
     }),
+    vscode.commands.registerCommand("galaxy-code.selectGbhModel", async (node?: { session?: { id: string } }) => {
+      const sessionId = node?.session?.id ?? conversation.snapshot().sessionId;
+      const kernel = await kernelSession();
+      if (kernel === undefined || sessionId === undefined) return;
+      const catalog = await modelCatalog(kernel);
+      if (catalog.choices.length === 0) {
+        await vscode.window.showWarningMessage("Kernel chưa có model nào khả dụng (kiểm tra credentials).");
+        return;
+      }
+      const scripted = context.extensionMode === vscode.ExtensionMode.Test ? process.env.GBH_MODEL_TEST_PICK : undefined;
+      if (scripted !== undefined) {
+        const choice = catalog.choices.find((item) => item.model === scripted) ?? catalog.choices[0];
+        if (choice !== undefined) {
+          await selectModel(kernel, { sessionId, provider: choice.provider, model: choice.model });
+          await conversation.reload();
+          gbhTree.refresh();
+        }
+        return;
+      }
+      const picked = await vscode.window.showQuickPick(
+        catalog.choices.map((choice) => ({
+          label: choice.name,
+          description: choice.providerName + " · " + choice.model,
+          detail: choice.efforts.length === 0 ? undefined : "reasoning: " + choice.efforts.join(", "),
+          choice,
+        })),
+        { title: "Chọn model cho phiên này", matchOnDescription: true },
+      );
+      if (picked === undefined) return;
+      const effort =
+        picked.choice.efforts.length <= 1
+          ? undefined
+          : await vscode.window.showQuickPick([...picked.choice.efforts], { title: "Reasoning effort" });
+      await selectModel(kernel, {
+        sessionId,
+        provider: picked.choice.provider,
+        model: picked.choice.model,
+        ...(typeof effort === "string" ? { reasoningEffort: effort } : {}),
+      });
+      await conversation.reload();
+      gbhTree.refresh();
+      await vscode.window.showInformationMessage("Đã đặt model: " + picked.choice.name + " (" + picked.choice.model + ")");
+    }),
     vscode.commands.registerCommand("galaxy-code.renameGbhSession", async (node?: { session?: { id: string; title?: string } }) => {
       const sessionId = node?.session?.id;
       const kernel = await kernelSession();
@@ -220,6 +263,10 @@ export function activate(context: vscode.ExtensionContext): void {
       vscode.commands.registerCommand("galaxy-code.__gbhTree", async () => await gbhTree.snapshotForTest()),
       vscode.commands.registerCommand("galaxy-code.__gbhConversation", async () => conversation.snapshot()),
       vscode.commands.registerCommand("galaxy-code.__gbhPanelHtml", async () => conversation.htmlForTest()),
+      vscode.commands.registerCommand("galaxy-code.__gbhLoadOlder", async () => {
+        await conversation.loadOlder();
+        return conversation.snapshot();
+      }),
       vscode.commands.registerCommand("galaxy-code.__gbhEvents", async () => ({ clientId: eventStream?.clientId() ?? null })),
       vscode.commands.registerCommand("galaxy-code.__gbhChanges", async () => {
         const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;

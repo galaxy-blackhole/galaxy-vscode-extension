@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { messagesOfRecords, readTranscript, textOfContent, throughSeqHint } from "../src/gbh/transcript.ts";
+import { looksUnanswered, messagesOfRecords, readTranscript, textOfContent, throughSeqHint } from "../src/gbh/transcript.ts";
 import { parseReadyUrl } from "../src/gbh/host.ts";
 
 /**
@@ -82,4 +82,14 @@ test("an unlisted session still pages, using the largest safe cut", async () => 
   assert.equal((asked[0] as { request: { throughSeq: number } }).request.throughSeq, Number.MAX_SAFE_INTEGER);
   assert.equal(throughSeqHint(undefined), Number.MAX_SAFE_INTEGER);
   assert.equal(throughSeqHint({ asOfSeq: 5 }), 5);
+});
+
+test("an unanswered last prompt is detected only when nothing is running", () => {
+  const user = { role: "user" as const, text: "hỏi", seq: 5 };
+  const assistant = { role: "assistant" as const, text: "đáp", seq: 6 };
+  assert.equal(looksUnanswered([user, assistant], false), false);
+  const newer = { ...user, seq: 7 };
+  assert.equal(looksUnanswered([assistant, newer], false), true, "a user message newer than every reply");
+  assert.equal(looksUnanswered([assistant, user], true), false, "a running turn is not an error");
+  assert.equal(looksUnanswered([], false), false);
 });

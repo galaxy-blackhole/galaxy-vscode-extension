@@ -31,6 +31,10 @@ export interface GbhSessionSummary {
   readonly outputTokens?: number;
   /** True while the kernel reports this session turn as running. */
   readonly running?: boolean;
+  /** Turn counters the kernel reports for this session. */
+  readonly stats?: { readonly turns: number; readonly steps: number };
+  /** Model the kernel picked for this session (modelSelection.next, else lastUsed). */
+  readonly model?: { readonly provider: string; readonly model: string };
   /** Log cut the kernel reported for this session (session.list's projections.asOfSeq). */
   readonly asOfSeq?: number;
 }

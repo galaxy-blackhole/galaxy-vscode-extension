@@ -8,7 +8,7 @@
 import * as vscode from "vscode";
 import { authenticate, cancelSession, sendPrompt, type KernelSession } from "./remote";
 import { parseReadyUrl, type GbhHost } from "./host";
-import { readTranscript, type Transcript } from "./transcript";
+import { looksUnanswered, readTranscript, type Transcript } from "./transcript";
 import { escapeHtml, renderMarkdown } from "./markdown";
 
 /** Messages the view sends up. */
@@ -17,7 +17,8 @@ type ViewMessage =
   | { readonly type: "openWeb" }
   | { readonly type: "send"; readonly text?: string }
   | { readonly type: "cancel" }
-  | { readonly type: "copy"; readonly text?: string };
+  | { readonly type: "copy"; readonly text?: string }
+  | { readonly type: "older" };
 
 /** What the panel currently shows, for the tests and for the status bar. */
 export interface ConversationState {
@@ -27,6 +28,10 @@ export interface ConversationState {
   readonly error?: string;
   /** True while the kernel reports the session's turn as running. */
   readonly running?: boolean;
+  /** Model the kernel selected for this session. */
+  readonly model?: string;
+  /** True when older messages can still be loaded. */
+  readonly hasMore?: boolean;
 }
 
 /** How often the panel re-reads a running session. */
@@ -45,6 +50,8 @@ export class GbhConversationView implements vscode.WebviewViewProvider {
   /** Last HTML painted, so the VS Code-level test can prove the markdown renderer ran. */
   private lastHtml = "";
   private failures = 0;
+  /** Page cursor for loading older messages. */
+  private beforeSeq: number | undefined;
 
   constructor(
     private readonly resolveHost: () => GbhHost | undefined,
@@ -61,6 +68,7 @@ export class GbhConversationView implements vscode.WebviewViewProvider {
       if (message.type === "send") await this.send(message.text ?? "");
       if (message.type === "cancel") await this.cancel();
       if (message.type === "copy") await vscode.env.clipboard.writeText(message.text ?? "");
+      if (message.type === "older") await this.loadOlder();
     });
     webviewView.onDidDispose(() => this.stopPolling());
     this.lastHtml = this.render();
@@ -110,6 +118,7 @@ export class GbhConversationView implements vscode.WebviewViewProvider {
       const kernel: KernelSession = { host, cookie };
       const transcript = await readTranscript(kernel, sessionId, 40);
       this.failures = 0;
+      this.beforeSeq = transcript.firstSeq;
       this.paint(transcript);
       if (transcript.running === true) this.startPolling();
       else this.stopPolling();
@@ -139,6 +148,30 @@ export class GbhConversationView implements vscode.WebviewViewProvider {
       this.pending = error instanceof Error ? error.message : String(error);
     }
     await this.reload();
+  }
+
+  /**
+   * Load one older page of the session on screen and keep the messages already shown.
+   * @returns nothing; the panel repaints with the older page prepended.
+   */
+  async loadOlder(): Promise<void> {
+    const sessionId = this.state.sessionId;
+    const host = this.resolveHost();
+    const beforeSeq = this.beforeSeq;
+    if (sessionId === undefined || host === undefined || beforeSeq === undefined) return;
+    try {
+      const cookie = await authenticate(host);
+      if (cookie === undefined) throw new Error("Kernel từ chối token (không lấy được cookie).");
+      const older = await readTranscript({ host, cookie }, sessionId, 40, fetch, beforeSeq);
+      this.beforeSeq = older.firstSeq;
+      this.paint({
+        ...older,
+        messages: [...older.messages, ...(this.transcript?.messages ?? [])],
+      });
+    } catch (error) {
+      this.pending = error instanceof Error ? error.message : String(error);
+      this.paint(this.transcript);
+    }
   }
 
   /** Stop the running turn of the session on screen. */
@@ -191,6 +224,8 @@ export class GbhConversationView implements vscode.WebviewViewProvider {
       ...(transcript?.title === undefined ? {} : { title: transcript.title }),
       messages: transcript?.messages.length ?? 0,
       ...(transcript?.running === undefined ? {} : { running: transcript.running }),
+      ...(transcript?.model === undefined ? {} : { model: transcript.model.provider + "/" + transcript.model.model }),
+      ...(transcript === undefined ? {} : { hasMore: transcript.hasMore === true }),
       ...(error === undefined ? {} : { error }),
     };
     this.lastHtml = this.render();
@@ -222,9 +257,14 @@ export class GbhConversationView implements vscode.WebviewViewProvider {
     const head =
       transcript === undefined
         ? ""
-        : "<header><strong>" + escapeHtml(transcript.title ?? transcript.sessionId) + "</strong><span>" + escapeHtml(transcript.sessionId) + (running ? " · đang chạy" : "") + "</span></header>";
-    const notice = this.pending === undefined ? "" : '<p class="error">' + escapeHtml(this.pending) + "</p>";
+        : "<header><strong>" + escapeHtml(transcript.title ?? transcript.sessionId) + "</strong><span>" + escapeHtml(transcript.sessionId) + (running ? " · đang chạy" : "") + (this.state.model === undefined ? "" : " · " + escapeHtml(this.state.model)) + (transcript?.stats === undefined ? "" : " · " + String(transcript.stats.turns) + " turn") + "</span></header>";
+    const unanswered = transcript !== undefined && looksUnanswered(transcript.messages, running);
+    const stalled = unanswered
+      ? '<p class="error">Tin cuối chưa có phản hồi: turn đã kết thúc mà không có trả lời (thường do model/credentials, hoặc turn bị dừng). Mở GBH Web để xem chi tiết.</p>'
+      : "";
+    const notice = (this.pending === undefined ? "" : '<p class="error">' + escapeHtml(this.pending) + "</p>") + stalled;
     const actions = running ? '<button id="cancel">Dừng</button>' : '<button id="send">Gửi</button>';
+    const older = this.state.hasMore === true ? '<button id="older">Tải tin cũ hơn</button>' : "";
     return [
       '<!doctype html><html lang="vi"><head><meta charset="utf-8">',
       '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; script-src \'unsafe-inline\';">',
@@ -252,13 +292,14 @@ export class GbhConversationView implements vscode.WebviewViewProvider {
       body,
       notice,
       '<div class="composer"><textarea id="prompt" rows="3" placeholder="Nhập tin nhắn cho phiên này…"></textarea>' + actions + "</div>",
-      '<button id="refresh">Làm mới</button> <button id="web">Mở trong GBH Web</button>',
+      '<button id="refresh">Làm mới</button> <button id="web">Mở trong GBH Web</button> ' + older,
       "<script>",
       "const api=acquireVsCodeApi();",
       "const send=document.getElementById('send');if(send)send.onclick=()=>{const el=document.getElementById('prompt');const text=el.value;if(text.trim().length===0)return;el.value='';api.postMessage({type:'send',text});};",
       "const cancel=document.getElementById('cancel');if(cancel)cancel.onclick=()=>api.postMessage({type:'cancel'});",
       "document.getElementById('refresh').onclick=()=>api.postMessage({type:'refresh'});",
       "document.getElementById('web').onclick=()=>api.postMessage({type:'openWeb'});",
+      "const older=document.getElementById('older');if(older)older.onclick=()=>api.postMessage({type:'older'});",
       "document.addEventListener('click',(event)=>{const button=event.target.closest&&event.target.closest('button.copy');if(!button)return;api.postMessage({type:'copy',text:button.getAttribute('data-code')||''});button.textContent='Đã copy';});",
       "</script>",
       "</body></html>",

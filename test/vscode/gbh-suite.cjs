@@ -129,6 +129,23 @@ async function run() {
   await fetch(new URL("/__test/running?on=0", "http://127.0.0.1:" + String(process.env.GBH_FIXTURE_PORT)));
   step("polling:ok");
 
+  step("model-picker");
+  await vscode.commands.executeCommand("galaxy-code.selectGbhModel", { session: { id: "session-moi" } });
+  const withModel = await vscode.commands.executeCommand("galaxy-code.__gbhConversation");
+  assert.equal(withModel.model, "auto/deepseek-v4.1-flash", "the header carries the selected model: " + JSON.stringify(withModel));
+  step("model-picker:ok");
+
+  step("older-page");
+  const afterOlder = await vscode.commands.executeCommand("galaxy-code.__gbhLoadOlder");
+  assert.equal(afterOlder.messages, 4, "the older page was prepended: " + JSON.stringify(afterOlder));
+  assert.equal(afterOlder.hasMore, false, "and the kernel now reports no more history");
+  step("older-page:ok");
+
+  step("stalled-hint");
+  const panelHtml = await vscode.commands.executeCommand("galaxy-code.__gbhPanelHtml");
+  assert.match(String(panelHtml), /turn/, "the header carries the turn counter");
+  step("stalled-hint:ok");
+
 
 
 

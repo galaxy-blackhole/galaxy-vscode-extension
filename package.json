@@ -110,6 +110,12 @@
         "title": "Galaxy Blackhole: Archive Session",
         "category": "Galaxy Blackhole",
         "icon": "$(archive)"
+      },
+      {
+        "command": "galaxy-code.selectGbhModel",
+        "title": "Galaxy Blackhole: Select Model",
+        "category": "Galaxy Blackhole",
+        "icon": "$(chip)"
       }
     ],
     "configuration": {
@@ -158,6 +164,11 @@
           "command": "galaxy-code.archiveGbhSession",
           "when": "view == galaxy-code.gbhSessions && viewItem == gbhSession",
           "group": "session@3"
+        },
+        {
+          "command": "galaxy-code.selectGbhModel",
+          "when": "view == galaxy-code.gbhSessions && viewItem == gbhSession",
+          "group": "session@0"
         }
       ],
       "view/title": [
