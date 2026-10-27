@@ -78,6 +78,29 @@ async function run() {
   assert.equal(afterSend.error, undefined, "and the send raised nothing");
   step("send:ok");
 
+  /* The kernel asked for an approval over the mux; the extension must have answered it. */
+  step("approval-wait");
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  const events = await vscode.commands.executeCommand("galaxy-code.__gbhEvents");
+  assert.equal(events.clientId, "fixture-client", "the extension opened the forwarded-event stream: " + JSON.stringify(events));
+  step("approval:stream-ready");
+
+  /* The workspace is a real git tree with one modified file; the tree must offer it and open a diff. */
+  step("changes");
+  const files = await vscode.commands.executeCommand("galaxy-code.__gbhChanges");
+  assert.ok(Array.isArray(files) && files.some((file) => file.path === "README.md"), "the tree listed the changed file: " + JSON.stringify(files));
+  await vscode.commands.executeCommand("galaxy-code.showGbhDiff", { folder: workspace, file: { path: "README.md" } });
+  const groups = vscode.window.tabGroups.all.flatMap((group) => group.tabs);
+  /*
+   * tab.input's class name differs between VS Code versions, so the check accepts either signal: a
+   * TabInputTextDiff instance, or the title openChange() gives the tab.
+   */
+  const diff = groups.find((tab) => (tab.input && tab.input.constructor && tab.input.constructor.name.includes("Diff")) || String(tab.label).includes("(HEAD"));
+  assert.ok(diff, "a diff editor opened: " + JSON.stringify(groups.map((tab) => tab.label)));
+  step("changes:ok");
+
+
+
 
   void vscode.commands.executeCommand("galaxy-code.openGbhHome");
   console.log("[gbh-spike] activation, contributions, live probe and the mapped tree are green");

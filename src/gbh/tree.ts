@@ -12,13 +12,28 @@ import { matchFolder, readWorkspaces, sessionSummary } from "./mapping";
 import { gbhHome, readReadyUrl, sessionCacheDir, workspaceRegistryPath } from "./paths";
 import { parseReadyUrl, probeHost, type GbhHost } from "./host";
 import { authenticate, listSessions, type KernelSession } from "./remote";
+import { listChanges, type ChangedFile } from "./changes";
 import type { GbhSessionSummary, GbhWorkspace } from "./types";
 
 /** Where the rows came from. */
 export type KernelSource = "remote" | "files";
 
 /** One row in the tree. */
-export type GbhNode = WorkspaceNode | SessionNode | NoteNode | HostNode;
+export type GbhNode = WorkspaceNode | SessionNode | NoteNode | HostNode | ChangesNode | ChangedFileNode;
+
+/** The "changed files" bucket of one workspace. */
+export interface ChangesNode {
+  readonly kind: "changes";
+  readonly folder: string;
+  readonly files: readonly ChangedFile[];
+}
+
+/** One changed file row. */
+export interface ChangedFileNode {
+  readonly kind: "changedFile";
+  readonly folder: string;
+  readonly file: ChangedFile;
+}
 
 /** The running kernel: the URL the CLI printed, plus what a probe learned. */
 export interface HostNode {
@@ -179,9 +194,13 @@ export class GbhKernelTreeProvider implements vscode.TreeDataProvider<GbhNode> {
   /** Children: the sessions of a workspace node. */
   async getChildren(element?: GbhNode): Promise<GbhNode[]> {
     if (element === undefined) return await this.roots();
+    if (element.kind === "changes") return element.files.map((file) => ({ kind: "changedFile" as const, folder: element.folder, file }));
     if (element.kind !== "workspace") return [];
-    if (element.sessions.length === 0) return [{ kind: "note", label: "Chưa có phiên nào cho thư mục này" }];
-    return element.sessions.map((session) => ({ kind: "session" as const, session }));
+    const rows: GbhNode[] = element.sessions.map((session) => ({ kind: "session" as const, session }));
+    const files = await listChanges(element.folder);
+    if (files.length > 0) rows.unshift({ kind: "changes" as const, folder: element.folder, files });
+    if (rows.length === 0) return [{ kind: "note", label: "Chưa có phiên nào cho thư mục này" }];
+    return rows;
   }
 
   /**
@@ -202,7 +221,9 @@ export class GbhKernelTreeProvider implements vscode.TreeDataProvider<GbhNode> {
         if (node.kind === "host") return { kind: node.kind, detail: node.detail, alive: node.alive };
         if (node.kind === "workspace") return { kind: node.kind, label: node.label, detail: node.detail };
         if (node.kind === "note") return { kind: node.kind, label: node.label };
-        return { kind: node.kind, label: node.session.title ?? node.session.id };
+        if (node.kind === "session") return { kind: node.kind, label: node.session.title ?? node.session.id };
+        if (node.kind === "changes") return { kind: node.kind, label: String(node.files.length) + " tệp" };
+        return { kind: node.kind, label: node.file.path };
       }),
       sessions: (first?.sessions ?? []).map((session) => ({
         id: session.id,
@@ -219,6 +240,21 @@ export class GbhKernelTreeProvider implements vscode.TreeDataProvider<GbhNode> {
       item.tooltip = element.host.url;
       item.iconPath = new vscode.ThemeIcon(element.alive ? "vm-running" : "vm-outline");
       item.contextValue = "gbhHost";
+      return item;
+    }
+    if (element.kind === "changes") {
+      const item = new vscode.TreeItem("Thay đổi trong workspace", vscode.TreeItemCollapsibleState.Collapsed);
+      item.description = String(element.files.length) + " tệp";
+      item.iconPath = new vscode.ThemeIcon("diff-modified");
+      item.contextValue = "gbhChanges";
+      return item;
+    }
+    if (element.kind === "changedFile") {
+      const item = new vscode.TreeItem(element.file.path, vscode.TreeItemCollapsibleState.None);
+      item.description = element.file.status;
+      item.iconPath = new vscode.ThemeIcon(element.file.status === "??" ? "diff-added" : "diff-modified");
+      item.contextValue = "gbhChangedFile";
+      item.command = { command: "galaxy-code.showGbhDiff", title: "Xem diff", arguments: [element] };
       return item;
     }
     if (element.kind === "note") {

@@ -260,3 +260,53 @@ Tức là kernel **nhận prompt thật**, đặt tiêu đề phiên và chạy 
 ### 11.3 Test
 
 `node --test test/*.test.ts` → **87/87** (thêm 2 test cho `sendPrompt`: hình dạng request + `accepted:false`).
+
+## 12. Duyệt uỷ quyền + diff trong VS Code (27/10/2026)
+
+### 12.1 Duyệt uỷ quyền (stream `$events`)
+
+Kernel hỏi qua **stream sự kiện**, không phải RPC thường:
+
+```
+WS  <origin>/api/remote.mux      (cookie dsh-auth-…)
+→   {type:"open", streamId, endpoint:"$events", payload:{args:{}}}
+←   {type:"item", value:{type:"ready", clientId, host:{home}}}
+←   {type:"item", value:{type:"waterfall", event:"approval/request", eventId, agentId, request}}
+trả lời: POST /api/$events/result
+→   {type:"client-request", method:"$events/result", payload:{args:{clientId, eventId, outcome}}}
+outcome: {kind:"next"} | {kind:"result", value:"allowed-once"|"rejected"|"cancelled"|"unavailable"}
+```
+
+Module: `src/gbh/events.ts` (mở stream, `postEventResult`) + `src/gbh/approval-bridge.ts` (hỏi bằng notification, map lựa chọn → outcome, waterfall lạ trả `next` để không treo run).
+
+**Giới hạn đo được:** qua Remote, `approval/request` chỉ còn `request: {}` (các trường `toolName`/`reason` không qua được biên JSON), nên hộp thoại trong VS Code ghi *“GBH cần bạn cho phép”* mà không nêu tên công cụ. Ghi nhận trung thực thay vì đoán.
+
+Bằng chứng live với kernel thật:
+
+```
+stream sẵn sàng, clientId: 0a04b63c
+prompt accepted: true
+waterfall: approval/request | {}
+→ đã trả lời: rejected
+thấy approval request: true
+```
+
+Bằng chứng live trong VS Code (fixture WS phát ready + một waterfall):
+
+```
+[gbh-spike] step: approval-wait → approval:stream-ready
+[gbh-spike] approval answered: {"clientId":"fixture-client","eventId":"evt-1","outcome":{"kind":"result","value":"allowed-once"}}
+```
+
+### 12.2 Diff tệp agent sửa
+
+`src/gbh/changes.ts` đọc `git status --porcelain` của workspace phiên, hiện nhánh **“Thay đổi trong workspace”** trong cây, bấm một tệp → mở **diff editor của VS Code** (`vscode.diff`): bên trái là bản `HEAD`, bên phải là bản đang làm việc (tệp chưa commit thì trái rỗng).
+
+```
+[gbh-spike] step: changes → changes:ok
+tab: "README.md (HEAD ↔ hiện tại)"
+```
+
+### 12.3 Test
+
+`node --test test/*.test.ts` → **96/96** (thêm 5 test duyệt + 4 test diff: porcelain, rename, không phải git, tệp chưa có trong HEAD).

@@ -3,6 +3,8 @@ import { GalaxyChatViewProvider } from "./host/chat-view-provider";
 import { WebGuiLauncher } from "./host/web-launcher";
 import { GbhKernelTreeProvider } from "./gbh/tree";
 import { GbhConversationView } from "./gbh/conversation-view";
+import { ApprovalBridge } from "./gbh/approval-bridge";
+import { openEventStream, type EventStream } from "./gbh/events";
 import { parseReadyUrl as parseGbhReadyUrl } from "./gbh/host";
 import { parseReadyUrl, probeHost } from "./gbh/host";
 import { gbhHome, readReadyUrl } from "./gbh/paths";
@@ -32,6 +34,51 @@ export function activate(context: vscode.ExtensionContext): void {
       await vscode.env.openExternal(vscode.Uri.parse(url));
     },
   );
+  /*
+   * Approvals: the kernel asks through its forwarded event stream and waits. The bridge turns that into
+   * one editor question; dismissing it answers "next" so the host fallback runs and nothing hangs.
+   */
+  let eventStream: EventStream | undefined;
+  const startEvents = (): void => {
+    eventStream?.close();
+    eventStream = undefined;
+    const ready = readReadyUrl(gbhHome(vscode.workspace.getConfiguration("galaxy-code").get<string>("gbhHome", "")));
+    const host = ready === undefined ? undefined : parseGbhReadyUrl(ready);
+    if (host === undefined) return;
+    void (async () => {
+      const { authenticate } = await import("./gbh/remote.js");
+      const cookie = await authenticate(host);
+      if (cookie === undefined) return;
+      const bridge = new ApprovalBridge({
+        ask: async (prompt) => {
+          const scripted = process.env.GBH_APPROVAL_TEST_ANSWER;
+          if (context.extensionMode === vscode.ExtensionMode.Test && scripted !== undefined) {
+            return scripted === "allow" ? "allow" : scripted === "reject" ? "reject" : undefined;
+          }
+          const detail = prompt.displayReason ?? prompt.reason;
+          const picked = await vscode.window.showWarningMessage(
+            "GBH cần bạn cho phép: " + prompt.toolName + (detail === undefined ? "" : " — " + detail),
+            { modal: false },
+            "Cho phép một lần",
+            "Từ chối",
+          );
+          return picked === "Cho phép một lần" ? "allow" : picked === "Từ chối" ? "reject" : undefined;
+        },
+        answer: async (eventId, outcome) => {
+          await eventStream?.answer(eventId, outcome);
+        },
+        log: (message) => console.warn("[gbh] " + message),
+      });
+      eventStream = openEventStream(host, cookie, {
+        onWaterfall: (request) => {
+          void bridge.handle(request);
+        },
+        onClose: (reason) => console.warn("[gbh] event stream: " + reason),
+      });
+    })();
+  };
+  startEvents();
+  context.subscriptions.push(new vscode.Disposable(() => eventStream?.close()));
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("galaxy-code.gbhConversation", conversation, {
       webviewOptions: { retainContextWhenHidden: true },
@@ -61,6 +108,20 @@ export function activate(context: vscode.ExtensionContext): void {
       await vscode.env.openExternal(vscode.Uri.parse(ready));
       if (node?.session !== undefined) await vscode.env.clipboard.writeText(node.session.id);
     }),
+    vscode.commands.registerCommand("galaxy-code.showGbhDiff", async (node?: { folder?: string; file?: { path: string } }) => {
+      const folder = node?.folder;
+      const file = node?.file?.path;
+      if (folder === undefined || file === undefined) {
+        await vscode.window.showWarningMessage("Chọn một tệp trong mục Thay đổi của GBH Kernel trước.");
+        return;
+      }
+      const { openChange } = await import("./gbh/changes.js");
+      await openChange(folder, file, {
+        openDiff: async (left, right, shown) => {
+          await vscode.commands.executeCommand("vscode.diff", vscode.Uri.file(left), vscode.Uri.file(right), shown);
+        },
+      });
+    }),
     vscode.commands.registerCommand("galaxy-code.openGbhHome", async () => {
       const home = vscode.workspace.getConfiguration("galaxy-code").get<string>("gbhHome", "");
       await vscode.window.showInformationMessage("GBH home: " + (home.length > 0 ? home : "(GBH_HOME hoặc ~/.galaxy/blackhole)"));
@@ -81,6 +142,13 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
       vscode.commands.registerCommand("galaxy-code.__gbhTree", async () => await gbhTree.snapshotForTest()),
       vscode.commands.registerCommand("galaxy-code.__gbhConversation", async () => conversation.snapshot()),
+      vscode.commands.registerCommand("galaxy-code.__gbhEvents", async () => ({ clientId: eventStream?.clientId() ?? null })),
+      vscode.commands.registerCommand("galaxy-code.__gbhChanges", async () => {
+        const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (folder === undefined) return [];
+        const { listChanges } = await import("./gbh/changes.js");
+        return await listChanges(folder);
+      }),
       vscode.commands.registerCommand("galaxy-code.__gbhSend", async (request?: { sessionId?: string; text?: string }) => {
         await conversation.show(String(request?.sessionId ?? "session-moi"));
         await conversation.send(String(request?.text ?? "chào từ panel"));

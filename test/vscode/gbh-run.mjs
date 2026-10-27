@@ -6,7 +6,10 @@
  * runner starts, so probeHost() is exercised for real (it must accept the 401 a bare request gets).
  */
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { createServer } from "node:http";
+import { WebSocketServer } from "ws";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,6 +23,15 @@ const executable = existsSync(LOCAL_CODE) ? LOCAL_CODE : undefined;
 const root = fileURLToPath(new URL("../../", import.meta.url)).replace(/\/$/, "");
 const workspace = await mkdtemp(join(tmpdir(), "gbh-spike-ws-"));
 await writeFile(join(workspace, "README.md"), "fixture workspace\n", "utf8");
+
+/* A real git work tree, so the changed-files branch of the tree has something true to show. */
+const git = promisify(execFile);
+await writeFile(join(workspace, "README.md"), "committed line\n", "utf8");
+await git("git", ["init", "-q"], { cwd: workspace });
+await git("git", ["add", "README.md"], { cwd: workspace });
+await git("git", ["-c", "user.email=spike@local", "-c", "user.name=Spike", "commit", "-qm", "fixture"], { cwd: workspace });
+/* The working tree now differs from HEAD, which is what the diff tab must show. */
+await writeFile(join(workspace, "README.md"), "committed line\nworking-tree line\n", "utf8");
 
 const home = await mkdtemp(join(tmpdir(), "gbh-spike-home-"));
 const cacheDir = join(home, "storages", "session_projcache", "sessions");
@@ -64,6 +76,8 @@ await writeFile(join(cacheDir, "session-moi.json"), cacheOf("phiên mới hơn",
  * "Remote" in their titles so the suite can prove it painted the API, not the files left on disk.
  */
 const prompts = [];
+/** Outcomes the extension posted back for the scripted approval. */
+const eventResults = [];
 
 const REMOTE_ITEMS = [
   {
@@ -108,6 +122,17 @@ const server = createServer((request, response) => {
     });
     return;
   }
+  if (url.pathname === "/api/$events/result" && request.method === "POST") {
+    let body = "";
+    request.on("data", (chunk) => { body += chunk; });
+    request.on("end", () => {
+      const envelope = JSON.parse(body || "{}");
+      eventResults.push(envelope.payload?.args);
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value: null } }));
+    });
+    return;
+  }
   if (url.pathname === "/api/session/prompt" && request.method === "POST") {
     let body = "";
     request.on("data", (chunk) => { body += chunk; });
@@ -133,9 +158,27 @@ await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const port = server.address().port;
 await writeFile(join(home, "ready-url.txt"), "http://127.0.0.1:" + String(port) + "/?token=fixture-token", "utf8");
 
+/* The mux: a ready frame, then one approval waterfall the extension must answer. */
+const wss = new WebSocketServer({ server, path: "/api/remote.mux" });
+wss.on("connection", (socket) => {
+  socket.on("message", (data) => {
+    const frame = JSON.parse(String(data));
+    if (frame.type !== "open") return;
+    socket.send(JSON.stringify({ type: "item", streamId: frame.streamId, value: { type: "ready", clientId: "fixture-client", host: { home } } }));
+    setTimeout(() => {
+      socket.send(JSON.stringify({
+        type: "item",
+        streamId: frame.streamId,
+        value: { type: "waterfall", event: "approval/request", eventId: "evt-1", agentId: "session-moi", request: { toolName: "bash" } },
+      }));
+    }, 1200);
+  });
+});
+
 const userData = await mkdtemp(join(tmpdir(), "gbh-spike-vscode-"));
 const previousHome = process.env.GBH_HOME;
 process.env.GBH_HOME = home;
+process.env.GBH_APPROVAL_TEST_ANSWER = "allow";
 let failures = 1;
 try {
   failures = await runTests({
@@ -154,8 +197,10 @@ try {
 } finally {
   if (previousHome === undefined) delete process.env.GBH_HOME;
   else process.env.GBH_HOME = previousHome;
+  wss.close();
   await new Promise((resolve) => server.close(resolve));
 }
 console.log("[gbh-spike] prompt the panel sent: " + JSON.stringify(prompts[0] ?? null));
+console.log("[gbh-spike] approval answered: " + JSON.stringify(eventResults[0] ?? null));
 console.log("[gbh-spike] VS Code extension host finished with " + String(failures) + " failure(s)");
 if (failures !== 0) process.exitCode = 1;

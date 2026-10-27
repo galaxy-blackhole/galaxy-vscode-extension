@@ -75,6 +75,11 @@
         "command": "galaxy-code.showGbhTranscript",
         "title": "Galaxy Blackhole: Show Session Transcript",
         "category": "Galaxy Blackhole"
+      },
+      {
+        "command": "galaxy-code.showGbhDiff",
+        "title": "Galaxy Blackhole: Show File Diff",
+        "category": "Galaxy Blackhole"
       }
     ],
     "configuration": {
@@ -136,7 +141,8 @@
     "immer": "^11.1.21",
     "katex": "^0.19.0",
     "mdast-util-math": "^3.0.0",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "@assistant-ui/react": "0.15.20",
