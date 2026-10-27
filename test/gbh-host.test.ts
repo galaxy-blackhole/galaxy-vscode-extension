@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseReadyUrl, probeHost } from "../src/gbh/host.ts";
+import { parseReadyUrl, probeHost, webUrlForSession } from "../src/gbh/host.ts";
 
 /**
  * The ready URL is the only handle the extension has on a running kernel, and a bare request answers
@@ -38,4 +38,13 @@ test("a refused connection or an unexpected status is reported as not alive, wit
   const weird = await probeHost(host, (async () => new Response("", { status: 503 })) as typeof fetch);
   assert.equal(weird.alive, false);
   assert.equal(weird.status, 503);
+});
+
+test("the web URL carries the session in the hash, which survives the token redirect", () => {
+  assert.equal(webUrlForSession(READY), READY);
+  assert.equal(
+    webUrlForSession(READY, "session-a"),
+    "http://127.0.0.1:5439/?token=NU8hQRZX4H01s06aAhGzAYLGrk7vXZTpbDbyL8lMbRI#session=session-a",
+  );
+  assert.equal(webUrlForSession(READY + "#session=old", "session-b").endsWith("#session=session-b"), true);
 });

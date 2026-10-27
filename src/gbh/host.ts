@@ -59,3 +59,20 @@ export async function probeHost(host: GbhHost, fetchImpl: typeof fetch = fetch):
     return { alive: false, reason: error instanceof Error ? error.message : String(error) };
   }
 }
+
+/**
+ * Build the GBH web URL that opens one session.
+ *
+ * The session travels in the HASH, not the query: the token URL answers 303 to "./", so the query is
+ * dropped, while the fragment survives the redirect — the page's inline deep-link script reads it and
+ * writes the selection before the client graph boots.
+ * @param readyUrl - the token URL the CLI printed.
+ * @param sessionId - the session to open, when there is one.
+ * @returns the URL to hand to the browser.
+ */
+export function webUrlForSession(readyUrl: string, sessionId?: string): string {
+  if (sessionId === undefined || sessionId.length === 0) return readyUrl;
+  const base = readyUrl.split("#", 1)[0] ?? readyUrl;
+  return base + "#session=" + encodeURIComponent(sessionId);
+}
+

@@ -6,7 +6,7 @@ import { GbhConversationView } from "./gbh/conversation-view";
 import { ApprovalBridge } from "./gbh/approval-bridge";
 import { openEventStream, type EventStream } from "./gbh/events";
 import { parseReadyUrl as parseGbhReadyUrl } from "./gbh/host";
-import { parseReadyUrl, probeHost } from "./gbh/host";
+import { parseReadyUrl, probeHost, webUrlForSession } from "./gbh/host";
 import { gbhHome, readReadyUrl } from "./gbh/paths";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -31,7 +31,7 @@ export function activate(context: vscode.ExtensionContext): void {
       return ready === undefined ? undefined : parseGbhReadyUrl(ready);
     },
     async (url) => {
-      await vscode.env.openExternal(vscode.Uri.parse(url));
+      await vscode.env.openExternal(vscode.Uri.parse(webUrlForSession(url, conversation.snapshot().sessionId)));
     },
   );
   /*
@@ -105,7 +105,7 @@ export function activate(context: vscode.ExtensionContext): void {
         await vscode.window.showWarningMessage("Chưa có kernel nào chạy: " + home + "/ready-url.txt");
         return;
       }
-      await vscode.env.openExternal(vscode.Uri.parse(ready));
+      await vscode.env.openExternal(vscode.Uri.parse(webUrlForSession(ready, node?.session?.id)));
       if (node?.session !== undefined) await vscode.env.clipboard.writeText(node.session.id);
     }),
     vscode.commands.registerCommand("galaxy-code.showGbhDiff", async (node?: { folder?: string; file?: { path: string } }) => {

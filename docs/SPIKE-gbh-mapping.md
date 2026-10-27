@@ -310,3 +310,32 @@ tab: "README.md (HEAD ↔ hiện tại)"
 ### 12.3 Test
 
 `node --test test/*.test.ts` → **96/96** (thêm 5 test duyệt + 4 test diff: porcelain, rename, không phải git, tệp chưa có trong HEAD).
+
+## 13. Deep-link `#session=` — mảnh cuối (27/10/2026)
+
+**Vì sao là hash chứ không phải query:** URL token trả `303 See Other` về `./`, nên **query bị mất** (`location.search` rỗng khi trang tải); **fragment thì sống qua redirect**. Đo được bằng probe: `hash sau khi vào: ""` (script đã `history.replaceState` dọn hash sau khi dùng).
+
+Phía `blackhole-tauri` (gói `shell-identity`, lớp vỏ đã có `webServer.tapIndex`):
+
+```ts
+export function injectDeepLink(html: string): string  // chèn <script data-gbh-deep-link> ngay sau <head>, idempotent
+export function deepLinkScript(): string              // đọc #session= / ?session=, ghi localStorage, dọn hash
+```
+
+Ghi **hai khoá** `gbh.sessions.current` và `dsh.sessions.current` (client đang chạy đọc khoá cũ; migration đọc cả hai).
+
+Phía extension:
+
+```ts
+webUrlForSession(readyUrl, sessionId)   // → <ready-url>#session=<id>
+```
+
+### Đối chứng A/B/C (Playwright, mỗi lượt context sạch)
+
+| Ca | Yêu cầu | Kết quả |
+|---|---|---|
+| A | `#session=session-1c0e6589…` (workspace default-workspace) | `dsh.sessions.current` = đúng id; UI hiện **“Say OK Only”**; KHÔNG hiện tiêu đề ca B |
+| B | `#session=session-f54a7fe0…` (workspace galaxy) | `dsh.sessions.current` = đúng id; UI hiện **“Kiểm tra biểu tượng lần nữa”**; KHÔNG hiện tiêu đề ca A |
+| C | không tham số | app tự chọn phiên trống của nó (`session-d1a2d8a3…`) — đúng như trước khi có tính năng |
+
+Test: `tests/host/shell-identity-deep-link.test.ts` (3 test: chèn đúng chỗ, idempotent, ghi cả hai khoá) · extension: `test/gbh-host.test.ts` thêm 1 test cho `webUrlForSession`.
