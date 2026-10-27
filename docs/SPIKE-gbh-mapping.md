@@ -384,3 +384,18 @@ node -e "require('ws/package.json').version" → 8.21.3
 mọi dependency khai trong package.json đều có entry trong yarn.lock → (không thiếu)
 node esbuild.js → OK · node --test → 110/110
 ```
+
+## 17. C3-a — panel chat cũ ẩn mặc định (27/10/2026)
+
+Sidebar trước đây có **hai** khung chat (`Chat` dùng ai-coder-core và `Hội thoại` dùng kernel). Chọn **C3-a**: ẩn panel cũ, **không xoá** gì.
+
+| Thay đổi | Chi tiết |
+|---|---|
+| View cũ | `galaxy-code.chatView` đổi tên **“Chat (legacy)”** + điều kiện `"when": "config.galaxy-code.showLegacyChat"` |
+| Setting | `galaxy-code.showLegacyChat` — kiểu boolean, **mặc định `false`** |
+| Lệnh `openChat` | Khi setting tắt: mở sidebar và báo “panel Chat cũ đang ẩn… dùng view Hội thoại”; thông báo **không** `await` (nếu await sẽ giữ lệnh mở mãi tới khi người dùng bấm OK) |
+| Code + e2e cũ | Giữ nguyên ⇒ `test/vscode/suite.cjs` (bộ e2e sẵn có của repo) không bị ảnh hưởng |
+
+Bằng chứng live: `step: legacy-hidden:ok` — `getConfiguration("galaxy-code").get("showLegacyChat") === false`, và `galaxy-code.openChat` chạy xong không ném.
+
+Việc còn lại (chỉ khi panel mới đủ tính năng): **C3-c** — xoá `src/host` + `webview/` + `ai-coder-core` và viết lại e2e; chưa làm.

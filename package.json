@@ -27,9 +27,10 @@
       "galaxy-code-sidebar": [
         {
           "id": "galaxy-code.chatView",
-          "name": "Chat",
+          "name": "Chat (legacy)",
           "type": "webview",
-          "icon": "resources/icon.svg"
+          "icon": "resources/icon.svg",
+          "when": "config.galaxy-code.showLegacyChat"
         },
         {
           "id": "galaxy-code.gbhSessions",
@@ -135,6 +136,11 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Thư mục home của kernel GBH (để trống = dùng GBH_HOME, rồi tới ~/.galaxy/blackhole)."
+        },
+        "galaxy-code.showLegacyChat": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Hiện panel **Chat (legacy)** (dùng ai-coder-core). Panel này ẩn mặc định: dùng view **Hội thoại** của GBH Kernel thay thế."
         }
       }
     },

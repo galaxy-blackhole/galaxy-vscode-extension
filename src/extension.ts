@@ -313,8 +313,18 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     provider,
     webLauncher,
-    vscode.commands.registerCommand("galaxy-code.openChat", () => {
-      void vscode.commands.executeCommand("workbench.view.extension.galaxy-code-sidebar");
+    vscode.commands.registerCommand("galaxy-code.openChat", async () => {
+      const enabled = vscode.workspace.getConfiguration("galaxy-code").get<boolean>("showLegacyChat", false);
+      if (!enabled) {
+        /* The legacy panel is hidden by default; send people to the kernel panel instead. */
+        await vscode.commands.executeCommand("workbench.view.extension.galaxy-code-sidebar");
+        /* Not awaited: an open notification must never hold the command open. */
+        void vscode.window.showInformationMessage(
+          "Panel Chat cũ đang ẩn (ai-coder-core). Dùng view “Hội thoại” của GBH Kernel, hoặc bật galaxy-code.showLegacyChat.",
+        );
+        return;
+      }
+      await vscode.commands.executeCommand("workbench.view.extension.galaxy-code-sidebar");
     }),
     vscode.commands.registerCommand("galaxy-code.newThread", () => provider.newThread()),
     vscode.commands.registerCommand("galaxy-code.openWeb", () => webLauncher.open()),

@@ -146,6 +146,13 @@ async function run() {
   assert.match(String(panelHtml), /turn/, "the header carries the turn counter");
   step("stalled-hint:ok");
 
+  /* C3-a: the legacy ai-coder-core panel ships hidden behind a setting that defaults to false. */
+  step("legacy-hidden");
+  const legacy = vscode.workspace.getConfiguration("galaxy-code").get("showLegacyChat");
+  assert.equal(legacy, false, "the legacy chat panel is hidden by default: " + String(legacy));
+  void vscode.commands.executeCommand("galaxy-code.openChat");
+  step("legacy-hidden:ok");
+
 
 
 
